@@ -9,8 +9,8 @@
       '<div style="height:100vh;display:grid;place-items:center;background:var(--bg-app);' +
       'color:var(--text-primary);font-family:var(--font-sans)">' +
       '<div style="text-align:center;max-width:340px;padding:32px">' +
-      '<div style="width:54px;height:54px;border-radius:14px;background:var(--violet,#6E5BF2);' +
-      'display:grid;place-items:center;margin:0 auto 18px;color:#fff;font:600 26px/1 var(--font-sans)">R</div>' +
+      '<img src="../../assets/logo-mark.png" alt="Reezer" width="56" height="56" ' +
+      'style="display:block;margin:0 auto 18px;border-radius:14px" />' +
       inner + "</div></div>";
   }
   function loginScreen() {
