@@ -1,0 +1,20 @@
+<!-- @dsCard group="Spacing" viewport="700x140" name="Corner radii" subtitle="Chips → cards → fully round" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:22px;display:flex;gap:16px;align-items:flex-end}
+  .col{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .box{width:84px;height:60px;background:var(--surface-inset);border:1px solid var(--border-strong)}
+  .name{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);color:var(--text-secondary)}
+  .val{font:var(--w-regular) 10px/1 var(--font-mono);color:var(--text-tertiary)}
+</style></head>
+<body><div class="wrap">
+  <div class="col"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="name">xs</span><span class="val">6px</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="name">sm</span><span class="val">9px</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-md)"></div><span class="name">md</span><span class="val">12px</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="name">lg · card</span><span class="val">16px</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="name">xl</span><span class="val">20px</span></div>
+  <div class="col"><div class="box" style="border-radius:var(--radius-pill);width:60px"></div><span class="name">pill</span><span class="val">999px</span></div>
+</div></body></html>

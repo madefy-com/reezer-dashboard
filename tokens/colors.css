@@ -1,0 +1,116 @@
+/* ============================================================
+   Reezer · COLOR TOKENS
+   Flat fintech. Dark-default (the product's native skin) with a
+   light override. Brand = electric violet (the R mark).
+   P&L is ALWAYS green=profit / red=loss, never the brand color.
+   No gradients anywhere in the system.
+   ============================================================ */
+
+:root {
+  /* ---- Brand: electric violet ---- */
+  --violet-500: #6E5BF2;   /* primary brand */
+  --violet-400: #8676F5;
+  --violet-600: #5A47E0;
+  --violet-soft: rgba(110, 91, 242, 0.16);
+  --violet-line: rgba(110, 91, 242, 0.30);
+
+  /* ---- Neutral ramp (dark-native values) ---- */
+  --ink-0:  #08080A;   /* app background, deepest */
+  --ink-1:  #0E0E11;   /* page background */
+  --ink-2:  #151518;   /* card surface */
+  --ink-3:  #1B1B1F;   /* inset / elevated surface */
+  --ink-4:  #232328;   /* hover surface */
+  --line-1: rgba(255,255,255,0.07);  /* hairline border */
+  --line-2: rgba(255,255,255,0.12);  /* stronger border */
+  --line-3: rgba(255,255,255,0.20);
+
+  --fg-1: #FAFAFB;   /* primary text / big numbers */
+  --fg-2: #A2A2AC;   /* secondary text, labels */
+  --fg-3: #6C6C77;   /* tertiary, captions, axis */
+  --fg-4: #45454E;   /* disabled, faint */
+
+  /* ---- Semantic P&L ---- */
+  --profit:      #21C77A;   /* WIN / gain */
+  --profit-bg:   rgba(33, 199, 122, 0.14);
+  --profit-line: rgba(33, 199, 122, 0.34);
+  --loss:        #F0454B;   /* LOSS / drop */
+  --loss-bg:     rgba(240, 69, 75, 0.14);
+  --loss-line:   rgba(240, 69, 75, 0.32);
+  --open:        #4A8DF7;   /* OPEN position (blue) */
+  --open-bg:     rgba(74, 141, 247, 0.14);
+  --breakeven:   #8A8A94;   /* breakeven (gray) */
+  --breakeven-bg:rgba(138, 138, 148, 0.16);
+
+  /* ---- Mode / status ---- */
+  --live:    #21C77A;   /* LIVE mode = real money, armed-green */
+  --live-bg: rgba(33, 199, 122, 0.14);
+  --dryrun:  #F5A524;   /* DRY-RUN = simulation, amber */
+  --dryrun-bg: rgba(245, 165, 36, 0.14);
+  --danger:  #F0454B;   /* kill-switch tripped */
+  --danger-bg: rgba(240, 69, 75, 0.14);
+
+  /* ---- Discord message type chips ---- */
+  --chip-watch:   #4A8DF7;   --chip-watch-bg:   rgba(74, 141, 247, 0.14);   /* WATCH  = blue   */
+  --chip-entry:   #8B5CF6;   --chip-entry-bg:   rgba(139, 92, 246, 0.16);   /* ENTRY  = purple */
+  --chip-partial: #F5A524;   --chip-partial-bg: rgba(245, 165, 36, 0.15);   /* PARTIAL= amber  */
+  --chip-close:   #16BFB0;   --chip-close-bg:   rgba(22, 191, 176, 0.15);   /* CLOSE  = teal   */
+  --fired:    #21C77A;  --fired-bg: rgba(33, 199, 122, 0.14);  /* FIRED badge */
+  --filtered: #5E5E68;  --filtered-bg: rgba(255,255,255,0.04); /* filtered / muted */
+
+  /* ---- Semantic surface aliases (use these in components) ---- */
+  --bg-app:       var(--ink-1);
+  --surface-card: var(--ink-2);
+  --surface-inset:var(--ink-3);
+  --surface-hover:var(--ink-4);
+  --border:       var(--line-1);
+  --border-strong:var(--line-2);
+  --text-primary:   var(--fg-1);
+  --text-secondary: var(--fg-2);
+  --text-tertiary:  var(--fg-3);
+  --text-disabled:  var(--fg-4);
+  --accent:       var(--violet-500);
+  --accent-fg:    #FFFFFF;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   LIGHT THEME — apply [data-theme="light"] on <html> or any scope.
+   Same token names, re-pointed; semantic colors darkened for AA.
+   ============================================================ */
+[data-theme="light"] {
+  --ink-0:  #FFFFFF;
+  --ink-1:  #F6F6F8;   /* page background */
+  --ink-2:  #FFFFFF;   /* card surface */
+  --ink-3:  #F4F4F6;   /* inset */
+  --ink-4:  #ECECEF;   /* hover */
+  --line-1: rgba(15, 15, 20, 0.09);
+  --line-2: rgba(15, 15, 20, 0.14);
+  --line-3: rgba(15, 15, 20, 0.22);
+
+  --fg-1: #15151A;
+  --fg-2: #5B5B66;
+  --fg-3: #8A8A95;
+  --fg-4: #B6B6BE;
+
+  --violet-soft: rgba(110, 91, 242, 0.10);
+  --violet-line: rgba(110, 91, 242, 0.28);
+
+  --profit:      #12A55F;  --profit-bg: rgba(18, 165, 95, 0.12);  --profit-line: rgba(18,165,95,0.30);
+  --loss:        #DC2F36;  --loss-bg:   rgba(220, 47, 54, 0.10);  --loss-line:   rgba(220,47,54,0.28);
+  --open:        #2E6FE0;  --open-bg:   rgba(46, 111, 224, 0.10);
+  --breakeven:   #74747E;  --breakeven-bg: rgba(116,116,126,0.12);
+
+  --live:    #12A55F;  --live-bg: rgba(18, 165, 95, 0.12);
+  --dryrun:  #C77A0A;  --dryrun-bg: rgba(199, 122, 10, 0.12);
+  --danger:  #DC2F36;  --danger-bg: rgba(220, 47, 54, 0.10);
+
+  --chip-watch:   #2E6FE0;  --chip-watch-bg:   rgba(46, 111, 224, 0.10);
+  --chip-entry:   #6D45D8;  --chip-entry-bg:   rgba(109, 69, 216, 0.10);
+  --chip-partial: #C77A0A;  --chip-partial-bg: rgba(199, 122, 10, 0.12);
+  --chip-close:   #0E9C8F;  --chip-close-bg:   rgba(14, 156, 143, 0.12);
+  --fired:    #12A55F;  --fired-bg: rgba(18, 165, 95, 0.12);
+  --filtered: #9A9AA3;  --filtered-bg: rgba(15,15,20,0.035);
+
+  color-scheme: light;
+}

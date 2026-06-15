@@ -1,0 +1,18 @@
+<!-- @dsCard group="Spacing" viewport="700x150" name="Elevation & shadows" subtitle="Whisper-quiet — borders separate, not shadows" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:26px;display:flex;gap:20px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:9px;align-items:center}
+  .box{width:120px;height:64px;background:var(--surface-card);border:1px solid var(--border);border-radius:var(--radius-lg)}
+  .name{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);color:var(--text-secondary)}
+</style></head>
+<body><div class="wrap">
+  <div class="col"><div class="box" style="box-shadow:var(--shadow-none)"></div><span class="name">none · border only</span></div>
+  <div class="col"><div class="box" style="box-shadow:var(--shadow-sm)"></div><span class="name">sm · card</span></div>
+  <div class="col"><div class="box" style="box-shadow:var(--shadow-md)"></div><span class="name">md</span></div>
+  <div class="col"><div class="box" style="box-shadow:var(--shadow-pop)"></div><span class="name">pop · dropdowns</span></div>
+  <div class="col"><div class="box" style="box-shadow:var(--ring-focus)"></div><span class="name">focus ring</span></div>
+</div></body></html>

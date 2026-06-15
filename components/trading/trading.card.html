@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" viewport="700x320" name="Trading · Badges, chips, KPI, status" subtitle="P&L semantics and Discord feed tokens" -->
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:var(--bg-app);color:var(--text-primary);font-family:var(--font-sans);}
+  .wrap{padding:22px;display:flex;flex-direction:column;gap:16px;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .lbl{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary);min-width:64px;}
+  .divider{height:1px;background:var(--border);}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+</style>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script type="text/babel">
+const { ResultBadge, TypeChip, FiredBadge, StatusDot, KpiCard } = window.NitroTraderDesignSystem_95e598;
+function Demo(){
+  return (
+    <React.Fragment>
+      <div className="row"><span className="lbl">Result</span>
+        <ResultBadge result="WIN"/><ResultBadge result="LOSS"/><ResultBadge result="OPEN"/><ResultBadge result="BE"/>
+      </div>
+      <div className="row"><span className="lbl">Type</span>
+        <TypeChip type="WATCH"/><TypeChip type="ENTRY"/><TypeChip type="PARTIAL"/><TypeChip type="CLOSE"/>
+      </div>
+      <div className="row"><span className="lbl">Fired</span>
+        <FiredBadge fired/><FiredBadge fired={false} reason="hype"/><FiredBadge fired={false} reason="+23% brag"/>
+      </div>
+      <div className="row"><span className="lbl">Status</span>
+        <StatusDot status="live" label/><StatusDot status="firing" label/><StatusDot status="done" label/><StatusDot status="cancelled" label/>
+      </div>
+      <div className="divider"></div>
+      <div className="grid">
+        <KpiCard label="net p&l" value="+$2,840" delta="+12.4%" tone="profit"/>
+        <KpiCard label="win rate" value="62%" sub="18W / 11L"/>
+        <KpiCard label="today's p&l" value="-$380" delta="-3.1%" tone="loss"/>
+      </div>
+    </React.Fragment>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Discord feed tokens" subtitle="Type chips + fired / filtered" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .lbl{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary);min-width:60px}
+  .chip{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 10px;border-radius:var(--radius-xs);font:var(--w-semibold) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-caps)}
+  .filtered{height:22px;padding:0 9px;border-radius:var(--radius-xs);background:var(--filtered-bg);color:var(--filtered);border:1px solid var(--border);font:var(--w-medium) var(--t-2xs)/22px var(--font-sans);letter-spacing:var(--ls-wide)}
+</style></head>
+<body><div class="wrap">
+  <div class="row"><span class="lbl">Type</span>
+    <span class="chip" style="background:var(--chip-watch-bg);color:var(--chip-watch)">WATCH</span>
+    <span class="chip" style="background:var(--chip-entry-bg);color:var(--chip-entry)">ENTRY</span>
+    <span class="chip" style="background:var(--chip-partial-bg);color:var(--chip-partial)">PARTIAL</span>
+    <span class="chip" style="background:var(--chip-close-bg);color:var(--chip-close)">CLOSE</span>
+  </div>
+  <div class="row"><span class="lbl">Outcome</span>
+    <span class="chip" style="background:var(--fired-bg);color:var(--fired)">● FIRED</span>
+    <span class="filtered">FILTERED · hype</span>
+    <span class="filtered">FILTERED · +23% brag</span>
+  </div>
+</div></body></html>

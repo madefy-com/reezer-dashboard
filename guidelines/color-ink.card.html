@@ -1,0 +1,20 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Neutral ink ramp (dark)" subtitle="Surfaces & hairlines do the layout work" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:20px;display:flex;gap:10px}
+  .sw{flex:1;border-radius:var(--radius-md);border:1px solid var(--border);overflow:hidden}
+  .chip{height:62px}
+  .meta{padding:8px 10px;display:flex;flex-direction:column;gap:2px;background:var(--surface-card)}
+  .name{font:var(--w-medium) var(--t-2xs)/1.2 var(--font-sans)}
+  .hex{font:var(--w-regular) 10px/1 var(--font-mono);color:var(--text-tertiary)}
+</style></head>
+<body><div class="wrap">
+  <div class="sw"><div class="chip" style="background:var(--ink-0)"></div><div class="meta"><span class="name">ink-0</span><span class="hex">#08080A</span></div></div>
+  <div class="sw"><div class="chip" style="background:var(--ink-1)"></div><div class="meta"><span class="name">ink-1 · page</span><span class="hex">#0E0E11</span></div></div>
+  <div class="sw"><div class="chip" style="background:var(--ink-2)"></div><div class="meta"><span class="name">ink-2 · card</span><span class="hex">#151518</span></div></div>
+  <div class="sw"><div class="chip" style="background:var(--ink-3)"></div><div class="meta"><span class="name">ink-3 · inset</span><span class="hex">#1B1B1F</span></div></div>
+  <div class="sw"><div class="chip" style="background:var(--ink-4)"></div><div class="meta"><span class="name">ink-4 · hover</span><span class="hex">#232328</span></div></div>
+</div></body></html>

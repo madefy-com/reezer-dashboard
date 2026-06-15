@@ -1,0 +1,7 @@
+# Deploy repo for the Reezer dashboard. config.js IS committed (anon key only,
+# safe once RLS is locked to authenticated allow-listed emails).
+.DS_Store
+chats/
+uploads/
+screenshots/
+.thumbnail

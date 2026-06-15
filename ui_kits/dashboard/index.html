@@ -1,0 +1,77 @@
+<!-- @dsCard group="Dashboard" viewport="1440x880" name="Reezer · Operator dashboard" subtitle="Full live trading dashboard — DRY-RUN / LIVE, strategy, P&L, trades, Discord firing log" -->
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reezer · dashboard</title>
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; background: var(--bg-app); color: var(--text-primary); font-family: var(--font-sans); }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--line-3); background-clip: padding-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="data.js"></script>
+<script src="config.js"></script>
+<script src="client.js"></script>
+<script src="auth-gate.js"></script>
+<script src="live.js"></script>
+<script src="realtime.js"></script>
+<script type="text/babel" src="Sidebar.jsx" data-presets="react"></script>
+<script type="text/babel" src="Shared.jsx" data-presets="react"></script>
+<script type="text/babel" src="StatusBar.jsx" data-presets="react"></script>
+<script type="text/babel" src="KpiRow.jsx" data-presets="react"></script>
+<script type="text/babel" src="PnlChart.jsx" data-presets="react"></script>
+<script type="text/babel" src="TradesLog.jsx" data-presets="react"></script>
+<script type="text/babel" src="DiscordLog.jsx" data-presets="react"></script>
+<script type="text/babel" src="TradeDetail.jsx" data-presets="react"></script>
+<script type="text/babel" src="TradesPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="DashboardPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="LogPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="BacktestingPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="StrategiesPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="App.jsx" data-presets="react"></script>
+<script type="text/babel" data-presets="react">
+  function ntBoot() {
+    if (!window.NitroTraderDesignSystem_95e598 || !window.App) {
+      var root = document.getElementById("root");
+      if (root && !root.dataset.loading) {
+        root.dataset.loading = "1";
+        root.innerHTML = '<div style="height:100vh;display:grid;place-items:center;color:var(--text-tertiary);font:500 13px/1 var(--font-sans);letter-spacing:0.04em">loading components…</div>';
+      }
+      if (!window.NitroTraderDesignSystem_95e598) {
+        var s = document.createElement("script");
+        s.src = "../../_ds_bundle.js?t=" + Date.now();
+        s.onload = ntBoot; s.onerror = function () { setTimeout(ntBoot, 600); };
+        document.head.appendChild(s);
+      } else {
+        setTimeout(ntBoot, 200);
+      }
+      return;
+    }
+    var r = document.getElementById("root");
+    (async function () {
+      var ok = window.NT_AUTH_GATE ? await window.NT_AUTH_GATE() : true;
+      if (!ok) { delete r.dataset.loading; return; }   // login / denied screen shown
+      var live = window.NT_LIVE ? await window.NT_LIVE() : null;
+      if (live) window.NT_DATA = live;                 // live Reezer data, else demo
+      delete r.dataset.loading; r.innerHTML = "";
+      ReactDOM.createRoot(r).render(<App />);
+      if (window.NT_REALTIME_START) window.NT_REALTIME_START();  // live push updates
+    })();
+  }
+  ntBoot();
+</script>
+</body>
+</html>

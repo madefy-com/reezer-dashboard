@@ -1,0 +1,21 @@
+<!-- @dsCard group="Type" viewport="700x180" name="Body & labels — Geist" subtitle="UI text, labels, captions" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:24px;display:flex;flex-direction:column;gap:13px}
+  .specimen{display:flex;align-items:baseline;justify-content:space-between;gap:20px;border-bottom:1px solid var(--border);padding-bottom:11px}
+  .specimen:last-child{border:none;padding:0}
+  .meta{font:var(--w-regular) var(--t-2xs)/1 var(--font-mono);color:var(--text-tertiary);white-space:nowrap}
+  .body{font:var(--w-regular) var(--t-body)/1.45 var(--font-sans);letter-spacing:var(--ls-snug)}
+  .label{font:var(--w-medium) var(--t-body)/1 var(--font-sans)}
+  .small{font:var(--w-regular) var(--t-sm)/1.4 var(--font-sans);color:var(--text-secondary)}
+  .caps{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary)}
+</style></head>
+<body><div class="wrap">
+  <div class="specimen"><span class="label">Open positions · medium label</span><span class="meta">14 / 500</span></div>
+  <div class="specimen"><span class="body">Reads alerts from Discord and places 0DTE orders.</span><span class="meta">14 / 400</span></div>
+  <div class="specimen"><span class="small">filtered — hype / P&L brag, no order placed</span><span class="meta">13 / 400</span></div>
+  <div class="specimen"><span class="caps">net p&l · avg return / trade</span><span class="meta">11 / 500 · 0.04em</span></div>
+</div></body></html>

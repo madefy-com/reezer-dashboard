@@ -1,0 +1,25 @@
+<!-- @dsCard group="Type" viewport="700x190" name="Numeric — Geist Mono, tabular" subtitle="Every price & P&L; tabular figures align columns" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:22px;display:flex;flex-direction:column;gap:14px}
+  table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  th{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary);text-align:right;padding:0 0 8px}
+  th:first-child,td:first-child{text-align:left}
+  td{font:var(--w-regular) var(--t-sm)/1 var(--font-mono);padding:7px 0;border-top:1px solid var(--border);text-align:right;color:var(--text-primary)}
+  .pos{color:var(--profit)}.neg{color:var(--loss)}
+  .note{font:var(--w-regular) var(--t-xs)/1.4 var(--font-sans);color:var(--text-tertiary)}
+</style></head>
+<body><div class="wrap">
+  <table>
+    <thead><tr><th>contract</th><th>entry</th><th>exit</th><th>p&l $</th><th>p&l %</th></tr></thead>
+    <tbody>
+      <tr><td>SPY 588C ×4</td><td>1.42</td><td>1.80</td><td class="pos">+152.00</td><td class="pos">+26.7%</td></tr>
+      <tr><td>QQQ 502P ×2</td><td>2.10</td><td>1.74</td><td class="neg">&minus;72.00</td><td class="neg">&minus;17.1%</td></tr>
+      <tr><td>IWM 214C ×6</td><td>0.88</td><td>1.05</td><td class="pos">+102.00</td><td class="pos">+19.3%</td></tr>
+    </tbody>
+  </table>
+  <span class="note">Geist Mono 13 · tabular-nums — decimals and signs stay column-aligned as values tick live.</span>
+</div></body></html>

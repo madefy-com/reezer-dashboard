@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="P&L semantics" subtitle="Green = profit, red = loss — never the brand color" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:20px;display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:12px}
+  .sw{flex:1;border-radius:var(--radius-md);border:1px solid var(--border);padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--surface-card)}
+  .dot{display:flex;align-items:center;gap:9px}
+  .b{width:18px;height:18px;border-radius:6px}
+  .name{font:var(--w-semibold) var(--t-sm)/1 var(--font-sans)}
+  .hex{font:var(--w-regular) var(--t-2xs)/1 var(--font-mono);color:var(--text-tertiary)}
+  .val{font:var(--w-light) 22px/1 var(--font-mono);font-variant-numeric:tabular-nums;letter-spacing:var(--ls-tight)}
+</style></head>
+<body><div class="wrap">
+  <div class="row">
+    <div class="sw"><div class="dot"><span class="b" style="background:var(--profit)"></span><span class="name" style="color:var(--profit)">WIN / profit</span></div><span class="val" style="color:var(--profit)">+$1,240.00</span><span class="hex">--profit #21C77A</span></div>
+    <div class="sw"><div class="dot"><span class="b" style="background:var(--loss)"></span><span class="name" style="color:var(--loss)">LOSS</span></div><span class="val" style="color:var(--loss)">&minus;$380.00</span><span class="hex">--loss #F0454B</span></div>
+  </div>
+  <div class="row">
+    <div class="sw"><div class="dot"><span class="b" style="background:var(--open)"></span><span class="name" style="color:var(--open)">OPEN / unrealized</span></div><span class="val" style="color:var(--open)">+$152.00</span><span class="hex">--open #4A8DF7</span></div>
+    <div class="sw"><div class="dot"><span class="b" style="background:var(--breakeven)"></span><span class="name" style="color:var(--breakeven)">BREAKEVEN</span></div><span class="val" style="color:var(--breakeven)">$0.00</span><span class="hex">--breakeven #8A8A94</span></div>
+  </div>
+</div></body></html>

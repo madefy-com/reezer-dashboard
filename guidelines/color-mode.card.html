@@ -1,0 +1,17 @@
+<!-- @dsCard group="Colors" viewport="700x130" name="Mode & kill-switch states" subtitle="LIVE green · DRY-RUN amber · TRIPPED red" -->
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8"/>
+<link rel="stylesheet" href="../styles.css"/>
+<style>
+  html,body{margin:0;background:var(--bg-app);font-family:var(--font-sans);color:var(--text-primary)}
+  .wrap{padding:22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px 0 10px;border-radius:var(--radius-pill);font:var(--w-semibold) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-caps)}
+  .d{width:8px;height:8px;border-radius:50%}
+  .anim{animation:nt-pulse var(--blink) var(--ease-in-out) infinite}
+</style></head>
+<body><div class="wrap">
+  <span class="pill" style="background:var(--live-bg);color:var(--live);border:1px solid color-mix(in srgb,var(--live) 34%,transparent)"><span class="d anim" style="background:var(--live)"></span>LIVE</span>
+  <span class="pill" style="background:var(--dryrun-bg);color:var(--dryrun);border:1px solid color-mix(in srgb,var(--dryrun) 34%,transparent)"><span class="d" style="background:var(--dryrun)"></span>DRY-RUN</span>
+  <span class="pill" style="background:var(--live-bg);color:var(--live);border:1px solid color-mix(in srgb,var(--live) 32%,transparent)"><span class="d" style="background:var(--live)"></span>KILL · ARMED</span>
+  <span class="pill" style="background:var(--danger-bg);color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 32%,transparent)"><span class="d anim" style="background:var(--danger)"></span>KILL · TRIPPED</span>
+</div></body></html>

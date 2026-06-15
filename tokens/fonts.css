@@ -1,0 +1,12 @@
+/* Reezer webfonts
+   ------------------------------------------------------------------
+   Geist & Geist Mono (Vercel) — a clean, neutral geometric grotesk with
+   a true monospace partner carrying tabular figures. Chosen for the
+   trading context: proportional Geist for UI/display, Geist Mono for
+   every price, P&L and tabular numeric. Loaded from Google Fonts.
+   SUBSTITUTION NOTE: the reference favourite (IMG_4926) uses a paid
+   grotesk (PP Neue Montreal / General Sans family). Geist is the closest
+   freely-hostable match. Swap the @font-face src for self-hosted woff2
+   if licensing the original. */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');

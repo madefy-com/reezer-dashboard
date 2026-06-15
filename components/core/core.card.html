@@ -1,0 +1,63 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Core · Buttons, Card, Mode, Kill switch" subtitle="Actions and run-state controls" -->
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:var(--bg-app);color:var(--text-primary);font-family:var(--font-sans);}
+  .wrap{padding:22px;display:flex;flex-direction:column;gap:18px;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .lbl{font:var(--w-medium) var(--t-2xs)/1 var(--font-sans);letter-spacing:var(--ls-wide);text-transform:uppercase;color:var(--text-tertiary);min-width:72px;}
+  .group{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .divider{height:1px;background:var(--border);}
+</style>
+</head>
+<body>
+<div id="root" class="wrap"></div>
+<script type="text/babel">
+const { Button, Card, ModePill, KillSwitch } = window.NitroTraderDesignSystem_95e598;
+const Bolt = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>;
+const Pause = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg>;
+
+function Demo(){
+  const [mode,setMode]=React.useState("DRY-RUN");
+  const [kill,setKill]=React.useState("ARMED");
+  return (
+    <React.Fragment>
+      <div className="row" style={{justifyContent:"space-between"}}>
+        <div className="group">
+          <ModePill mode={mode} onToggle={()=>setMode(m=>m==="LIVE"?"DRY-RUN":"LIVE")} />
+          <KillSwitch state={kill} onToggle={()=>setKill(k=>k==="ARMED"?"TRIPPED":"ARMED")} />
+        </div>
+      </div>
+      <div className="divider"></div>
+      <div className="row"><span className="lbl">Variant</span><div className="group">
+        <Button variant="primary" icon={<Bolt/>}>Switch to LIVE</Button>
+        <Button variant="secondary" icon={<Pause/>}>Pause bot</Button>
+        <Button variant="ghost">Export</Button>
+        <Button variant="danger">Arm kill switch</Button>
+      </div></div>
+      <div className="row"><span className="lbl">Size</span><div className="group">
+        <Button size="sm" variant="secondary">Small</Button>
+        <Button size="md" variant="secondary">Medium</Button>
+        <Button size="lg" variant="secondary">Large</Button>
+        <Button variant="secondary" disabled>Disabled</Button>
+      </div></div>
+      <div className="divider"></div>
+      <Card title="Open positions" action={<Button size="sm" variant="ghost">View all</Button>}>
+        <div style={{font:"var(--w-light) 26px/1 var(--font-mono)",fontVariantNumeric:"tabular-nums",color:"var(--profit)"}}>+$420.00</div>
+        <div style={{font:"var(--w-regular) var(--t-xs)/1.3 var(--font-sans)",color:"var(--text-tertiary)",marginTop:6}}>3 contracts · unrealized</div>
+      </Card>
+    </React.Fragment>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<Demo/>);
+</script>
+</body>
+</html>
