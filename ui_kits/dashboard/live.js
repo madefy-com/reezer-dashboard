@@ -5,17 +5,9 @@
    always renders. Sections we don't yet record (backtest, strategies) keep the
    demo values. */
 (function () {
-  function headers() {
-    var c = window.NT_SUPABASE || {};
-    return { apikey: c.key, Authorization: "Bearer " + c.key };
-  }
-  function api(path) {
-    var c = window.NT_SUPABASE;
-    return fetch(c.url + "/rest/v1/" + path, { headers: headers() }).then(function (r) {
-      if (!r.ok) throw new Error(path + " -> " + r.status);
-      return r.json();
-    });
-  }
+  // Reads go through the shared Supabase client (NT_CLIENT). After Google login
+  // it carries the user's session, so RLS authorizes reads for the allow-listed
+  // email. (Reading with the bare anon key would be denied post-lockdown.)
   var tOf = function (iso) { if (!iso) return "—"; var m = String(iso).split("T")[1]; return m ? m.slice(0, 8) : "—"; };
   var strikeOf = function (n) { return String(Number(n)); };
   function holdOf(p) {
@@ -74,15 +66,16 @@
   }
 
   window.NT_LIVE = function () {
-    if (!window.NT_SUPABASE || !window.NT_SUPABASE.url) return Promise.resolve(null);
+    var c = window.NT_CLIENT;
+    if (!c) return Promise.resolve(null);
     var base = window.NT_DATA || {};
     var stratName = (base.strategyParams || {}).name || "Strategy";
     return Promise.all([
-      api("positions?order=entry_ts.desc&limit=300"),
-      api("alerts?order=ts.desc&limit=300"),
-      api("runs?order=id.desc&limit=1"),
+      c.from("positions").select("*").order("entry_ts", { ascending: false }).limit(300),
+      c.from("alerts").select("*").order("ts", { ascending: false }).limit(300),
+      c.from("runs").select("*").order("id", { ascending: false }).limit(1),
     ]).then(function (res) {
-      var positions = res[0] || [], alerts = res[1] || [], runs = res[2] || [];
+      var positions = (res[0] && res[0].data) || [], alerts = (res[1] && res[1].data) || [], runs = (res[2] && res[2].data) || [];
       if (!positions.length && !alerts.length) return null;  // empty DB -> keep demo
       var trades = buildTrades(positions, stratName);
       var run = runs[0] || {};
