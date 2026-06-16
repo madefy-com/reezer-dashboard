@@ -27,15 +27,16 @@ function TradesLog({ onSelect, fill = false }) {
       </span>}
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
-      <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "0 20px 10px" }}>
+      <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "auto", padding: "0 20px 10px" }}>
         {/* table-layout:fixed -> column widths are independent of content, so a
-            changing P&L value never reflows the columns (no jumping mid-trade). */}
-        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            changing P&L value never reflows the columns (no jumping mid-trade).
+            minWidth keeps every column readable; the card scrolls if too narrow. */}
+        <table style={{ width: "100%", minWidth: 588, borderCollapse: "collapse", tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: 26 }} /><col style={{ width: 54 }} /><col />
-            <col style={{ width: 82 }} /><col style={{ width: 56 }} /><col style={{ width: 56 }} />
-            <col style={{ width: 90 }} /><col style={{ width: 96 }} /><col style={{ width: 64 }} />
-            <col style={{ width: 62 }} />
+            <col style={{ width: 22 }} /><col style={{ width: 44 }} /><col style={{ width: 104 }} />
+            <col style={{ width: 50 }} /><col style={{ width: 50 }} /><col style={{ width: 50 }} />
+            <col style={{ width: 54 }} /><col style={{ width: 88 }} /><col style={{ width: 56 }} />
+            <col style={{ width: 56 }} />
           </colgroup>
           <thead><tr>
             <th style={{ ...thL }}></th>
@@ -64,15 +65,8 @@ function TradesLog({ onSelect, fill = false }) {
                 </td>
                 <td style={td}>{r.entry.toFixed(2)}</td>
                 <td style={{ ...td, color: r.exit == null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit == null ? "—" : Number(r.exit).toFixed(2)}</td>
-                <td style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : "var(--loss)") }}>
-                  {r.stop == null ? "—" : (
-                    r.atBreakeven
-                      ? <span title={"Stop at breakeven $" + Number(r.stop).toFixed(2)} style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
-                          {Number(r.stop).toFixed(2)}
-                          <span style={{ padding: "1px 4px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", color: "var(--breakeven)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>BE</span>
-                        </span>
-                      : Number(r.stop).toFixed(2)
-                  )}
+                <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : "var(--loss)") }}>
+                  {r.stop == null ? "—" : Number(r.stop).toFixed(2)}
                 </td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>

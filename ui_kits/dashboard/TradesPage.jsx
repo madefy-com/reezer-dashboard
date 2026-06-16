@@ -57,6 +57,7 @@ function TradesPage() {
               <th style={th}>qty</th>
               <th style={th}>entry</th>
               <th style={th}>exit</th>
+              <th style={th}>stop</th>
               <th style={th}>capital</th>
               <th style={th}>p&l $</th>
               <th style={th}>p&l %</th>
@@ -84,7 +85,8 @@ function TradesPage() {
                     </td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
                     <td style={td}>{r.entry.toFixed(2)}</td>
-                    <td style={{ ...td, color: r.exit === null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit === null ? "\u2014" : r.exit}</td>
+                    <td style={{ ...td, color: r.exit == null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit == null ? "\u2014" : Number(r.exit).toFixed(2)}</td>
+                    <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : "var(--loss)") }}>{r.stop == null ? "\u2014" : Number(r.stop).toFixed(2)}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>${capital}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                     <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>

@@ -50,10 +50,10 @@
   --danger-bg: rgba(240, 69, 75, 0.14);
 
   /* ---- Discord message type chips ---- */
-  --chip-watch:   #4A8DF7;   --chip-watch-bg:   rgba(74, 141, 247, 0.14);   /* WATCH  = blue   */
-  --chip-entry:   #8B5CF6;   --chip-entry-bg:   rgba(139, 92, 246, 0.16);   /* ENTRY  = purple */
-  --chip-partial: #F5A524;   --chip-partial-bg: rgba(245, 165, 36, 0.15);   /* PARTIAL= amber  */
-  --chip-close:   #16BFB0;   --chip-close-bg:   rgba(22, 191, 176, 0.15);   /* CLOSE  = teal   */
+  --chip-watch:   #5BB8F5;   --chip-watch-bg:   rgba(91, 184, 245, 0.16);   /* WATCH   = light blue */
+  --chip-entry:   #F5A524;   --chip-entry-bg:   rgba(245, 165, 36, 0.16);   /* ENTRY   = yellow     */
+  --chip-partial: #4A8DF7;   --chip-partial-bg: rgba(74, 141, 247, 0.15);   /* PARTIAL = blue       */
+  --chip-close:   #8B5CF6;   --chip-close-bg:   rgba(139, 92, 246, 0.16);   /* CLOSE   = purple     */
   --fired:    #21C77A;  --fired-bg: rgba(33, 199, 122, 0.14);  /* FIRED badge */
   --filtered: #5E5E68;  --filtered-bg: rgba(255,255,255,0.04); /* filtered / muted */
 
@@ -105,10 +105,10 @@
   --dryrun:  #C77A0A;  --dryrun-bg: rgba(199, 122, 10, 0.12);
   --danger:  #DC2F36;  --danger-bg: rgba(220, 47, 54, 0.10);
 
-  --chip-watch:   #2E6FE0;  --chip-watch-bg:   rgba(46, 111, 224, 0.10);
-  --chip-entry:   #6D45D8;  --chip-entry-bg:   rgba(109, 69, 216, 0.10);
-  --chip-partial: #C77A0A;  --chip-partial-bg: rgba(199, 122, 10, 0.12);
-  --chip-close:   #0E9C8F;  --chip-close-bg:   rgba(14, 156, 143, 0.12);
+  --chip-watch:   #2F9BE0;  --chip-watch-bg:   rgba(47, 155, 224, 0.12);   /* light blue */
+  --chip-entry:   #C77A0A;  --chip-entry-bg:   rgba(199, 122, 10, 0.12);   /* yellow     */
+  --chip-partial: #2E6FE0;  --chip-partial-bg: rgba(46, 111, 224, 0.10);   /* blue       */
+  --chip-close:   #6D45D8;  --chip-close-bg:   rgba(109, 69, 216, 0.10);   /* purple     */
   --fired:    #12A55F;  --fired-bg: rgba(18, 165, 95, 0.12);
   --filtered: #9A9AA3;  --filtered-bg: rgba(15,15,20,0.035);
 
