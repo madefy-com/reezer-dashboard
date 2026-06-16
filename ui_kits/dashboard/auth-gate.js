@@ -16,7 +16,7 @@
   function loginScreen() {
     screen(
       '<div style="font:600 22px/1.1 var(--font-sans);margin-bottom:6px">Reezer</div>' +
-      '<div style="color:var(--text-tertiary);font-size:13px;margin-bottom:24px">Operator access</div>' +
+      '<div style="color:var(--text-tertiary);font-size:13px;margin-bottom:24px">Trader access</div>' +
       '<button id="nt-google" style="width:100%;padding:12px 16px;border-radius:9px;border:1px solid var(--line-2,rgba(255,255,255,0.12));' +
       'background:var(--ink-2,#151518);color:var(--text-primary);font:500 14px/1 var(--font-sans);cursor:pointer">' +
       'Sign in with Google</button>');
