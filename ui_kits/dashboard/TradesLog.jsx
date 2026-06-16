@@ -17,7 +17,14 @@ function TradesLog({ onSelect, fill = false }) {
 
   return (
     <NT.Card title="Trades" padding={20}
-      action={<NT.StatusDot status={streaming ? "live" : "loss"} label={streaming ? "Streaming" : "Not streaming"} />}
+      action={<span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+        <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%",
+          background: streaming ? "var(--profit)" : "var(--loss)",
+          animation: streaming ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }} />
+        <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-secondary)", letterSpacing: "var(--ls-snug)" }}>
+          {streaming ? "streaming" : "not streaming"}
+        </span>
+      </span>}
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
       <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "0 20px 10px" }}>

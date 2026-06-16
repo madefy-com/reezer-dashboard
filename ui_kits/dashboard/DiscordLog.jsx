@@ -7,11 +7,10 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
   const Summary = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: "var(--fired)" }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--fired)" }}></span>{sum.fired} fired
+        <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%", background: "var(--fired)" }}></span>{sum.fired} fired
       </span>
       <span style={{ color: "var(--text-tertiary)" }}>·</span>
       <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{sum.filtered} filtered</span>
-      <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", letterSpacing: "var(--ls-wide)" }}>· 14d</span>
     </div>
   );
 

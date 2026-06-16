@@ -68,10 +68,26 @@
       openPos: { value: String(open.length), sub: open.length ? "live" : "none", tone: "profit" },
     };
   }
+  // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")
+  // and collapse the rest into one readable line.
+  function cleanMsg(raw) {
+    return String(raw || "")
+      .replace(/comments?\s*:\s*none/gi, "")            // "Comments:none"
+      .split("\n")
+      .map(function (s) { return s.trim(); })
+      .filter(function (s) { return s && !/^comments?$/i.test(s); })  // bare "Comment"/"Comments" label
+      .join(" · ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  // Unrecognized alerts are noise, not a real signal — label them as such.
+  function typeLabel(t) {
+    return String(t || "").toUpperCase() === "UNKNOWN" ? "noise" : t;
+  }
   function buildDiscord(alerts) {
     return alerts.map(function (a) {
-      return { t: tOf(a.ts), type: a.type, user: "alerts", ch: "alerts",
-        symbol: a.ticker || "—", msg: a.raw, fired: !!a.fired,
+      return { t: tOf(a.ts), type: typeLabel(a.type), user: "alerts", ch: "alerts",
+        symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
         reason: a.reason || "", latency: "", action: "" };
     });
   }
