@@ -28,17 +28,15 @@ function TradesLog({ onSelect, fill = false }) {
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
       <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "auto", padding: "0 20px 10px" }}>
-        {/* table-layout:fixed -> column widths are independent of content, so a
-            changing P&L value never reflows the columns (no jumping mid-trade).
-            minWidth keeps every column readable; the card scrolls if too narrow. */}
-        {/* a flexible trailing column soaks up any extra width, so the real
-            columns stay packed tight on the left (no gap between contract & qty). */}
-        <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", tableLayout: "fixed" }}>
+        {/* table-layout:fixed + percentage columns (sum 100%) -> the table fills the
+            full card width with even, tight column spacing (no trailing whitespace,
+            no mid gap) AND a changing P&L value never reflows the columns. */}
+        <table style={{ width: "100%", minWidth: 548, borderCollapse: "collapse", tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: 22 }} /><col style={{ width: 44 }} /><col style={{ width: 92 }} />
-            <col style={{ width: 40 }} /><col style={{ width: 52 }} /><col style={{ width: 52 }} />
-            <col style={{ width: 54 }} /><col style={{ width: 90 }} /><col style={{ width: 58 }} />
-            <col style={{ width: 60 }} /><col />
+            <col style={{ width: "4%" }} /><col style={{ width: "9%" }} /><col style={{ width: "14%" }} />
+            <col style={{ width: "7%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} /><col style={{ width: "13%" }} /><col style={{ width: "11%" }} />
+            <col style={{ width: "12%" }} />
           </colgroup>
           <thead><tr>
             <th style={{ ...thL }}></th>
@@ -50,8 +48,7 @@ function TradesLog({ onSelect, fill = false }) {
             <th style={th}>stop</th>
             <th style={th}>p&l $</th>
             <th style={th}>p&l %</th>
-            <th style={th}>result</th>
-            <th style={th}></th>
+            <th style={{ ...th, paddingRight: 2 }}>result</th>
           </tr></thead>
           <tbody>
             {rows.map((r, i) => (
@@ -73,8 +70,7 @@ function TradesLog({ onSelect, fill = false }) {
                 </td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
-                <td style={td}><NT.ResultBadge result={r.result} size="sm" /></td>
-                <td></td>
+                <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>
               </tr>
             ))}
           </tbody>
