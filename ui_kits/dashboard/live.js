@@ -25,15 +25,25 @@
 
   function buildTrades(positions, stratName) {
     return positions.map(function (p) {
-      var entry = Number(p.entry_price), exit = p.exit_price == null ? null : Number(p.exit_price);
-      var pct = entry ? Math.round((((exit == null ? entry : exit) / entry - 1) * 100) * 10) / 10 : 0;
+      var entry = Number(p.entry_price);
+      var closed = p.status === "closed";
+      var exit = p.exit_price == null ? null : Number(p.exit_price);
+      var last = p.last_price == null ? null : Number(p.last_price);
+      // mark = price we value the trade at right now: exit if closed, else the
+      // live contract price (falls back to entry until the first tick lands).
+      var mark = closed ? (exit == null ? entry : exit) : (last == null ? entry : last);
+      var pct = entry ? Math.round(((mark / entry - 1) * 100) * 10) / 10 : 0;
+      var qty = Number(p.qty), realized = Number(p.realized_pnl || 0);
+      // open: realized (locked-in from partials) + live unrealized on the remaining
+      // contracts. closed: realized is the final number. Both tick as `last` moves.
+      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * 100 * qty));
       var label = strikeOf(p.strike) + (p.side || "");
       return {
         t: tOf(p.entry_ts), close: p.exit_ts ? tOf(p.exit_ts) : "—",
         tk: p.ticker, strike: label, side: p.side, qty: p.qty,
-        entry: entry, exit: exit, pnl: Math.round(Number(p.realized_pnl || 0)), pct: pct,
-        result: resultOf(p), status: p.status === "closed" ? "done" : "live",
-        partial: p.status !== "closed" && !!p.half_sold,  // ½ sold, still open
+        entry: entry, exit: closed ? exit : last, pnl: pnl, pct: pct,
+        result: resultOf(p), status: closed ? "done" : "live",
+        partial: !closed && !!p.half_sold,  // ½ sold, still open
         strat: stratName, hold: holdOf(p), stopped: false,
         trigger: { type: "ENTRY", user: "alerts", msg: p.ticker + " " + label },
       };
