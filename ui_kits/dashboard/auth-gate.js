@@ -3,15 +3,31 @@
    Google account whose email is in NT_SUPABASE.allowedEmails. Otherwise it shows a
    sign-in screen (or an access-denied screen). Returns true => proceed to render. */
 (function () {
-  function screen(inner) {
+  function injectStyle() {
+    if (document.getElementById("nt-splash-style")) return;
+    var s = document.createElement("style");
+    s.id = "nt-splash-style";
+    s.textContent =
+      "@keyframes ntLogoIn{0%{transform:scale(1.75);opacity:0}14%{transform:scale(1.75);opacity:1}" +
+      "64%{transform:scale(1.75);opacity:1}100%{transform:scale(1);opacity:1}}" +
+      "@keyframes ntFadeIn{0%,66%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}" +
+      ".nt-logo-anim{animation:ntLogoIn 2.2s cubic-bezier(.22,1,.36,1) both;will-change:transform,opacity}" +
+      ".nt-fade-anim{animation:ntFadeIn 2.4s cubic-bezier(.22,1,.36,1) both}" +
+      "@media(prefers-reduced-motion:reduce){.nt-logo-anim,.nt-fade-anim{animation:none!important;opacity:1!important;transform:none!important}}";
+    document.head.appendChild(s);
+  }
+  function screen(inner, animate) {
+    injectStyle();
     var r = document.getElementById("root");
+    var lc = animate ? ' class="nt-logo-anim"' : "";
+    var fc = animate ? ' class="nt-fade-anim"' : "";
     r.innerHTML =
       '<div style="height:100vh;display:grid;place-items:center;background:var(--bg-app);' +
       'color:var(--text-primary);font-family:var(--font-sans)">' +
       '<div style="text-align:center;max-width:340px;padding:32px">' +
-      '<img src="/assets/logo-mark.png" alt="Reezer" width="56" height="56" ' +
+      '<img' + lc + ' src="/assets/logo-mark.png" alt="Reezer" width="56" height="56" ' +
       'style="display:block;margin:0 auto 18px;border-radius:14px" />' +
-      inner + "</div></div>";
+      '<div' + fc + ">" + inner + "</div></div></div>";
   }
   function loginScreen() {
     screen(
@@ -19,7 +35,7 @@
       '<div style="color:var(--text-tertiary);font-size:13px;margin-bottom:24px">Trader access</div>' +
       '<button id="nt-google" style="width:100%;padding:12px 16px;border-radius:9px;border:1px solid var(--line-2,rgba(255,255,255,0.12));' +
       'background:var(--ink-2,#151518);color:var(--text-primary);font:500 14px/1 var(--font-sans);cursor:pointer">' +
-      'Sign in with Google</button>');
+      'Sign in with Google</button>', true);
     document.getElementById("nt-google").onclick = function () {
       window.NT_CLIENT.auth.signInWithOAuth({
         provider: "google",
