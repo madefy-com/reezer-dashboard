@@ -26,11 +26,16 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
     const n = range === "1W" ? 5 : 22;
     const slice = D.daily.slice(-n);
     const dates = tradingDates(n);
-    return slice.map((d, i) => ({
-      label: dates[i].toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      shortLabel: dates[i].toLocaleDateString("en-US", { weekday: "short" }),
-      $: d.pnl, pct: d.pct,
-    }));
+    return slice.map((d, i) => {
+      // prefer the real session date carried on each daily entry; fall back to
+      // the synthetic trading-day sequence for legacy/demo data.
+      const dt = d.date ? new Date(d.date + "T00:00:00") : (dates[i] || dates[dates.length - 1]);
+      return {
+        label: dt.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        shortLabel: dt.toLocaleDateString("en-US", { weekday: "short" }),
+        $: d.pnl, pct: d.pct,
+      };
+    });
   }, [range]);
 
   const val = (it) => (unit === "$" ? it.$ : it.pct);

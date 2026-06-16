@@ -28,14 +28,23 @@ function TradesLog({ onSelect, fill = false }) {
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
       <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "hidden", padding: "0 20px 10px" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        {/* table-layout:fixed -> column widths are independent of content, so a
+            changing P&L value never reflows the columns (no jumping mid-trade). */}
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: 26 }} /><col style={{ width: 54 }} /><col />
+            <col style={{ width: 82 }} /><col style={{ width: 56 }} /><col style={{ width: 56 }} />
+            <col style={{ width: 90 }} /><col style={{ width: 96 }} /><col style={{ width: 64 }} />
+            <col style={{ width: 62 }} />
+          </colgroup>
           <thead><tr>
-            <th style={{ ...thL, width: 28 }}></th>
+            <th style={{ ...thL }}></th>
             <th style={thL}>time</th>
             <th style={thL}>contract</th>
             <th style={th}>qty</th>
             <th style={th}>entry</th>
             <th style={th}>exit</th>
+            <th style={th}>stop</th>
             <th style={th}>p&l $</th>
             <th style={th}>p&l %</th>
             <th style={{ ...th, paddingRight: 2 }}>result</th>
@@ -43,9 +52,9 @@ function TradesLog({ onSelect, fill = false }) {
           <tbody>
             {rows.map((r, i) => (
               <tr key={i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
-                <td style={{ ...tdL, width: 28 }}><NT.StatusDot status={r.status} /></td>
+                <td style={{ ...tdL }}><NT.StatusDot status={r.status} /></td>
                 <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t.slice(0, 5)}</td>
-                <td style={tdL}>
+                <td style={{ ...tdL, overflow: "hidden", textOverflow: "ellipsis" }}>
                   <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
                   <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
                 </td>
@@ -54,7 +63,17 @@ function TradesLog({ onSelect, fill = false }) {
                   {r.partial && <span title="Half sold — position still open" style={{ marginLeft: 5, padding: "1px 5px", borderRadius: "var(--radius-xs)", background: "var(--profit-bg)", color: "var(--profit)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)" }}>½</span>}
                 </td>
                 <td style={td}>{r.entry.toFixed(2)}</td>
-                <td style={{ ...td, color: r.exit === null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit === null ? "—" : r.exit}</td>
+                <td style={{ ...td, color: r.exit == null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit == null ? "—" : Number(r.exit).toFixed(2)}</td>
+                <td style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : "var(--loss)") }}>
+                  {r.stop == null ? "—" : (
+                    r.atBreakeven
+                      ? <span title={"Stop at breakeven $" + Number(r.stop).toFixed(2)} style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+                          {Number(r.stop).toFixed(2)}
+                          <span style={{ padding: "1px 4px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", color: "var(--breakeven)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>BE</span>
+                        </span>
+                      : Number(r.stop).toFixed(2)
+                  )}
+                </td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
                 <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>

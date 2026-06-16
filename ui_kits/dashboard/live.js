@@ -8,7 +8,20 @@
   // Reads go through the shared Supabase client (NT_CLIENT). After Google login
   // it carries the user's session, so RLS authorizes reads for the allow-listed
   // email. (Reading with the bare anon key would be denied post-lockdown.)
-  var tOf = function (iso) { if (!iso) return "—"; var m = String(iso).split("T")[1]; return m ? m.slice(0, 8) : "—"; };
+  var dispTz = function () { return (window.NT_DATA && window.NT_DATA.marketHours && window.NT_DATA.marketHours.display_tz) || "Europe/Amsterdam"; };
+  // Render a stored UTC instant as HH:MM:SS in the operator's display timezone.
+  var tOf = function (iso) {
+    if (!iso) return "—";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) { var m = String(iso).split("T")[1]; return m ? m.slice(0, 8) : "—"; }
+    try {
+      return new Intl.DateTimeFormat("en-GB", { timeZone: dispTz(), hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(d);
+    } catch (e) { var m2 = String(iso).split("T")[1]; return m2 ? m2.slice(0, 8) : "—"; }
+  };
+  var dayKey = function (iso) {
+    try { return new Intl.DateTimeFormat("en-CA", { timeZone: dispTz(), year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso)); }
+    catch (e) { return String(iso).slice(0, 10); }
+  };
   var strikeOf = function (n) { return String(Number(n)); };
   function holdOf(p) {
     if (!p.entry_ts || !p.exit_ts) return "open";
@@ -27,26 +40,47 @@
     return positions.map(function (p) {
       var entry = Number(p.entry_price);
       var closed = p.status === "closed";
-      var exit = p.exit_price == null ? null : Number(p.exit_price);
+      var total = Number(p.orig_qty || p.qty);            // total contracts in the trade
+      var remaining = Number(p.qty);                       // still open after partials
       var last = p.last_price == null ? null : Number(p.last_price);
-      // mark = price we value the trade at right now: exit if closed, else the
-      // live contract price (falls back to entry until the first tick lands).
-      var mark = closed ? (exit == null ? entry : exit) : (last == null ? entry : last);
-      var pct = entry ? Math.round(((mark / entry - 1) * 100) * 10) / 10 : 0;
-      var qty = Number(p.qty), realized = Number(p.realized_pnl || 0);
-      // open: realized (locked-in from partials) + live unrealized on the remaining
-      // contracts. closed: realized is the final number. Both tick as `last` moves.
-      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * 100 * qty));
+      var mark = (!closed && last != null) ? last : entry; // live mark for open legs
+      var realized = Number(p.realized_pnl || 0);
+      // Whole-trade P&L: banked realized + live unrealized on the remaining legs.
+      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * 100 * remaining));
+      var cost = entry * 100 * total;                      // original capital at risk
+      var pct = cost ? Math.round((pnl / cost * 100) * 10) / 10 : 0;  // total return %
+      // Exit price shown: closed -> blended average across all sells (derived from
+      // realized P&L over the full size); open -> the live mark.
+      var exitShown = closed ? Math.round((entry + realized / (100 * total)) * 100 + 1e-6) / 100
+                             : last;
+      var stop = p.stop_price == null ? null : Number(p.stop_price);
       var label = strikeOf(p.strike) + (p.side || "");
       return {
         t: tOf(p.entry_ts), close: p.exit_ts ? tOf(p.exit_ts) : "—",
-        tk: p.ticker, strike: label, side: p.side, qty: p.qty,
-        entry: entry, exit: closed ? exit : last, pnl: pnl, pct: pct,
+        tk: p.ticker, strike: label, side: p.side, qty: total,
+        entry: entry, exit: exitShown, pnl: pnl, pct: pct,
+        stop: stop, atBreakeven: stop != null && Math.abs(stop - entry) < 0.005,
         result: resultOf(p), status: closed ? "done" : "live",
         partial: !closed && !!p.half_sold,  // ½ sold, still open
         strat: stratName, hold: holdOf(p), stopped: false,
         trigger: { type: "ENTRY", user: "alerts", msg: p.ticker + " " + label },
       };
+    });
+  }
+  // Per-day roll-up for the 1W / 1M chart ranges (was empty -> chart went blank).
+  function buildDaily(positions) {
+    var byDay = {};
+    positions.forEach(function (p) {
+      if (p.status !== "closed" || !p.exit_ts) return;
+      var k = dayKey(p.exit_ts);
+      var total = Number(p.orig_qty || p.qty), entry = Number(p.entry_price);
+      if (!byDay[k]) byDay[k] = { date: k, pnl: 0, cost: 0 };
+      byDay[k].pnl += Number(p.realized_pnl || 0);
+      byDay[k].cost += entry * 100 * total;
+    });
+    return Object.keys(byDay).sort().map(function (k) {
+      var d = byDay[k];
+      return { date: k, pnl: Math.round(d.pnl), pct: d.cost ? Math.round((d.pnl / d.cost * 100) * 10) / 10 : 0 };
     });
   }
   function buildKpis(trades) {
@@ -131,6 +165,7 @@
     var out = Object.assign({}, base, {
       trades: trades || base.trades,
       kpis: trades ? buildKpis(trades) : base.kpis,
+      daily: positions.length ? buildDaily(positions) : base.daily,
       discord: alerts.length ? buildDiscord(alerts) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       session: Object.assign({}, base.session || {}, {
