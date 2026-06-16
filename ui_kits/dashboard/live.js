@@ -33,6 +33,7 @@
         tk: p.ticker, strike: label, side: p.side, qty: p.qty,
         entry: entry, exit: exit, pnl: Math.round(Number(p.realized_pnl || 0)), pct: pct,
         result: resultOf(p), status: p.status === "closed" ? "done" : "live",
+        partial: p.status !== "closed" && !!p.half_sold,  // ½ sold, still open
         strat: stratName, hold: holdOf(p), stopped: false,
         trigger: { type: "ENTRY", user: "alerts", msg: p.ticker + " " + label },
       };

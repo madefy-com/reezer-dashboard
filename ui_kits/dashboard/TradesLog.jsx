@@ -42,7 +42,10 @@ function TradesLog({ onSelect, fill = false }) {
                   <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
                   <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
                 </td>
-                <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
+                <td style={{ ...td, color: "var(--text-secondary)" }}>
+                  ×{r.qty}
+                  {r.partial && <span title="Half sold — position still open" style={{ marginLeft: 5, padding: "1px 5px", borderRadius: "var(--radius-xs)", background: "var(--profit-bg)", color: "var(--profit)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)" }}>½</span>}
+                </td>
                 <td style={td}>{r.entry.toFixed(2)}</td>
                 <td style={{ ...td, color: r.exit === null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit === null ? "—" : r.exit}</td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
