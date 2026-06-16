@@ -73,14 +73,16 @@
     var avg = closed.length ? Math.round((closed.reduce(function (a, t) { return a + t.pct; }, 0) / closed.length) * 10) / 10 : 0;
     return {
       name: sp.name || "Nitro 0DTE", status: sp.kill_switch ? "paused" : "live",
-      desc: "Reads 0DTE options alerts from the nitro_trades Discord and trades them on Schwab. Money-management: sizing, stop, breakeven, scaling, EOD flatten.",
+      desc: sp.description || "Reads 0DTE options alerts and trades them on Schwab.",
       trades: (trades || []).length, winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
       pnl: Math.round(pnl), avgReturn: avg, alloc: "$" + Math.round(Number(sp.trade_budget_usd || 0)) + "/trade",
       params: {
         trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
         allowlist: sp.allowlist || "", stop_loss_pct: Number(sp.stop_loss_pct), breakeven_at_pct: Number(sp.breakeven_at_pct),
-        take_half_at_pct: Number(sp.take_half_at_pct), max_price_multiple: Number(sp.max_price_multiple),
-        max_trades_per_day: Number(sp.max_trades_per_day), eod_flatten_et: sp.eod_flatten_et || "15:58",
+        take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
+        max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
+        max_price_multiple: Number(sp.max_price_multiple),
+        max_trades_per_day: Number(sp.max_trades_per_day),
         kill_switch: !!sp.kill_switch, dry_run: !!sp.dry_run,
       },
     };

@@ -26,10 +26,12 @@ function StrategiesPage() {
 
   const openEdit = () => {
     setForm({
-      name: strat.name || "Nitro 0DTE",
+      name: strat.name || "Nitro 0DTE", desc: strat.desc || "",
       budget: p.trade_budget_usd, maxC: p.max_contracts_per_trade, allowlist: p.allowlist || "",
-      stop: NT_pct(p.stop_loss_pct), be: NT_pct(p.breakeven_at_pct), half: NT_pct(p.take_half_at_pct),
-      maxMult: p.max_price_multiple, maxTrades: p.max_trades_per_day, eod: p.eod_flatten_et || "15:58",
+      stop: NT_pct(p.stop_loss_pct), be: NT_pct(p.breakeven_at_pct),
+      half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
+      maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
+      maxMult: p.max_price_multiple, maxTrades: p.max_trades_per_day,
       kill: !!p.kill_switch, dry: p.dry_run !== false,
     });
     setSaved(false);
@@ -38,18 +40,23 @@ function StrategiesPage() {
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const save = async () => {
+    const tickers = (form.allowlist || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    const bad = tickers.filter((s) => !/^[A-Z]{1,5}$/.test(s));
+    if (bad.length) { alert("Invalid ticker(s): " + bad.join(", ") + "\nUse 1–5 letters, comma-separated (e.g. QQQ, NVDA)."); return; }
+    if (!tickers.length) { alert("Allowlist can't be empty — add at least one ticker."); return; }
     setSaving(true);
+    const opt = (v) => (v === "" || v == null ? null : v);
     const payload = {
-      name: form.name,
+      name: form.name, description: form.desc,
       trade_budget_usd: Number(form.budget) || 0,
       max_contracts_per_trade: Number(form.maxC) || 0,
-      allowlist: (form.allowlist || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).join(","),
+      allowlist: tickers.join(","),
       stop_loss_pct: (Number(form.stop) || 0) / 100,
       breakeven_at_pct: (Number(form.be) || 0) / 100,
-      take_half_at_pct: (Number(form.half) || 0) / 100,
+      take_half_at_pct: opt(form.half) == null ? null : (Number(form.half) || 0) / 100,
+      max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_multiple: Number(form.maxMult) || 0,
       max_trades_per_day: Number(form.maxTrades) || 0,
-      eod_flatten_et: form.eod,
       kill_switch: !!form.kill,
       dry_run: !!form.dry,
       updated_at: new Date().toISOString(),
@@ -57,13 +64,14 @@ function StrategiesPage() {
     try {
       const r = await window.NT_CLIENT.from("strategy_params").update(payload).eq("id", 1);
       if (r.error) throw r.error;
-      const ns = { ...strat, name: payload.name, alloc: "$" + payload.trade_budget_usd + "/trade", status: payload.kill_switch ? "paused" : "live", params: {
+      const ns = { ...strat, name: payload.name, desc: payload.description, alloc: "$" + payload.trade_budget_usd + "/trade", status: payload.kill_switch ? "paused" : "live", params: {
         trade_budget_usd: payload.trade_budget_usd, max_contracts_per_trade: payload.max_contracts_per_trade,
         allowlist: payload.allowlist, stop_loss_pct: payload.stop_loss_pct, breakeven_at_pct: payload.breakeven_at_pct,
-        take_half_at_pct: payload.take_half_at_pct, max_price_multiple: payload.max_price_multiple,
-        max_trades_per_day: payload.max_trades_per_day, eod_flatten_et: payload.eod_flatten_et,
+        take_half_at_pct: payload.take_half_at_pct, max_hold_minutes: payload.max_hold_minutes,
+        max_price_multiple: payload.max_price_multiple, max_trades_per_day: payload.max_trades_per_day,
         kill_switch: payload.kill_switch, dry_run: payload.dry_run } };
       setStrat(ns); window.NT_DATA.strategy = ns; window.NT_DATA.strategies = [ns];
+      if (window.NT_ON_STRAT) window.NT_ON_STRAT(ns);  // refresh the header pill
       setSaved(true); closeEdit();
     } catch (e) { alert("Save failed: " + (e.message || e)); }
     setSaving(false);
@@ -84,8 +92,8 @@ function StrategiesPage() {
     { g: "Exits / risk", items: [
       ["Stop loss", NT_pct(p.stop_loss_pct) + "%"],
       ["Breakeven at", NT_pct(p.breakeven_at_pct) + "%"],
-      ["Take half at", NT_pct(p.take_half_at_pct) + "%"],
-      ["EOD flatten (ET)", p.eod_flatten_et],
+      ["Take half at", p.take_half_at_pct == null ? "off" : NT_pct(p.take_half_at_pct) + "%"],
+      ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"],
     ] },
     { g: "Safety", items: [
       ["Max price × alert", p.max_price_multiple + "×"],
@@ -149,6 +157,7 @@ function StrategiesPage() {
             </div>
 
             <NT_SField label="Name"><input value={form.name} onChange={(e) => setF("name", e.target.value)} style={NT_SINPUT} /></NT_SField>
+            <NT_SField label="Description"><textarea value={form.desc} onChange={(e) => setF("desc", e.target.value)} rows={2} style={{ ...NT_SINPUT, height: "auto", padding: "10px 12px", lineHeight: 1.45, resize: "vertical" }} /></NT_SField>
 
             <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Sizing</span>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -158,12 +167,13 @@ function StrategiesPage() {
             <NT_SField label="Allowlist" hint="Comma-separated tickers the bot may trade."><input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} /></NT_SField>
 
             <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Exits / risk</span>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <NT_SField label="Stop loss (%)"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Breakeven (%)"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
-              <NT_SField label="Take half (%)"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
-            <NT_SField label="EOD flatten (ET, HH:MM)"><input value={form.eod} onChange={(e) => setF("eod", e.target.value)} style={NT_SINPUT} /></NT_SField>
+            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>End-of-day flatten (~15:58 ET) is always on as a final safety backstop.</div>
 
             <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Safety</span>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -175,7 +185,7 @@ function StrategiesPage() {
                 <input type="checkbox" checked={form.kill} onChange={(e) => setF("kill", e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--loss)" }} /> Kill switch — block all new orders
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 9, font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                <input type="checkbox" checked={form.dry} onChange={(e) => setF("dry", e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} /> Dry-run — simulate, never send real orders
+                <input type="checkbox" checked={form.dry} onChange={(e) => { if (!e.target.checked && !window.confirm("⚠️  Turning OFF dry-run switches the bot to LIVE real-money trading.\n\nReal orders will be placed on your Schwab account. Continue?")) return; setF("dry", e.target.checked); }} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} /> Dry-run — simulate, never send real orders
               </label>
             </div>
 
