@@ -6,5 +6,5 @@ window.NT_SUPABASE = {
   // Gate on Google sign-in everywhere (incl. localhost) — only the allow-listed
   // emails can see the data. Set false only for throwaway local UI tinkering.
   requireAuth: true,
-  allowedEmails: ["giannivandort@gmail.com", "dderese@gmail.com"],
+  allowedEmails: ["giannivandort@gmail.com"],
 };
