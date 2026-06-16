@@ -30,6 +30,7 @@ function StrategiesPage() {
       budget: p.trade_budget_usd, maxC: p.max_contracts_per_trade, allowlist: p.allowlist || "",
       stop: NT_pct(p.stop_loss_pct), be: NT_pct(p.breakeven_at_pct),
       half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
+      trail: p.trailing_stop_pct == null ? "" : NT_pct(p.trailing_stop_pct),
       maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
       maxMult: p.max_price_multiple, maxTrades: p.max_trades_per_day,
       kill: !!p.kill_switch, dry: p.dry_run !== false,
@@ -54,6 +55,7 @@ function StrategiesPage() {
       stop_loss_pct: (Number(form.stop) || 0) / 100,
       breakeven_at_pct: (Number(form.be) || 0) / 100,
       take_half_at_pct: opt(form.half) == null ? null : (Number(form.half) || 0) / 100,
+      trailing_stop_pct: opt(form.trail) == null ? null : (Number(form.trail) || 0) / 100,
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_multiple: Number(form.maxMult) || 0,
       max_trades_per_day: Number(form.maxTrades) || 0,
@@ -67,7 +69,7 @@ function StrategiesPage() {
       const ns = { ...strat, name: payload.name, desc: payload.description, alloc: "$" + payload.trade_budget_usd + "/trade", status: payload.kill_switch ? "paused" : "live", params: {
         trade_budget_usd: payload.trade_budget_usd, max_contracts_per_trade: payload.max_contracts_per_trade,
         allowlist: payload.allowlist, stop_loss_pct: payload.stop_loss_pct, breakeven_at_pct: payload.breakeven_at_pct,
-        take_half_at_pct: payload.take_half_at_pct, max_hold_minutes: payload.max_hold_minutes,
+        take_half_at_pct: payload.take_half_at_pct, trailing_stop_pct: payload.trailing_stop_pct, max_hold_minutes: payload.max_hold_minutes,
         max_price_multiple: payload.max_price_multiple, max_trades_per_day: payload.max_trades_per_day,
         kill_switch: payload.kill_switch, dry_run: payload.dry_run } };
       setStrat(ns); window.NT_DATA.strategy = ns; window.NT_DATA.strategies = [ns];
@@ -93,6 +95,7 @@ function StrategiesPage() {
       ["Stop loss", NT_pct(p.stop_loss_pct) + "%"],
       ["Breakeven at", NT_pct(p.breakeven_at_pct) + "%"],
       ["Take half at", p.take_half_at_pct == null ? "off" : NT_pct(p.take_half_at_pct) + "%"],
+      ["Trailing stop", p.trailing_stop_pct == null ? "off" : NT_pct(p.trailing_stop_pct) + "% (from +" + NT_pct(p.breakeven_at_pct) + "%)"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"],
     ] },
     { g: "Safety", items: [
@@ -171,6 +174,7 @@ function StrategiesPage() {
               <NT_SField label="Stop loss (%)"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Breakeven (%)"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              <NT_SField label="Trailing stop (%)" hint={"Empty = off · once +" + NT_pct(p.breakeven_at_pct) + "% hit, trails the high"}><input type="number" value={form.trail} onChange={(e) => setF("trail", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>End-of-day flatten (~15:58 ET) is always on as a final safety backstop.</div>
