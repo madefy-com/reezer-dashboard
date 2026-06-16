@@ -31,24 +31,27 @@ function TradesLog({ onSelect, fill = false }) {
         {/* table-layout:fixed -> column widths are independent of content, so a
             changing P&L value never reflows the columns (no jumping mid-trade).
             minWidth keeps every column readable; the card scrolls if too narrow. */}
-        <table style={{ width: "100%", minWidth: 588, borderCollapse: "collapse", tableLayout: "fixed" }}>
+        {/* a flexible trailing column soaks up any extra width, so the real
+            columns stay packed tight on the left (no gap between contract & qty). */}
+        <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: 22 }} /><col style={{ width: 44 }} /><col style={{ width: 104 }} />
-            <col style={{ width: 50 }} /><col style={{ width: 50 }} /><col style={{ width: 50 }} />
-            <col style={{ width: 54 }} /><col style={{ width: 88 }} /><col style={{ width: 56 }} />
-            <col style={{ width: 56 }} />
+            <col style={{ width: 22 }} /><col style={{ width: 44 }} /><col style={{ width: 92 }} />
+            <col style={{ width: 40 }} /><col style={{ width: 52 }} /><col style={{ width: 52 }} />
+            <col style={{ width: 54 }} /><col style={{ width: 90 }} /><col style={{ width: 58 }} />
+            <col style={{ width: 60 }} /><col />
           </colgroup>
           <thead><tr>
             <th style={{ ...thL }}></th>
             <th style={thL}>time</th>
             <th style={thL}>contract</th>
-            <th style={th}>qty</th>
+            <th style={thL}>qty</th>
             <th style={th}>entry</th>
             <th style={th}>exit</th>
             <th style={th}>stop</th>
             <th style={th}>p&l $</th>
             <th style={th}>p&l %</th>
-            <th style={{ ...th, paddingRight: 2 }}>result</th>
+            <th style={th}>result</th>
+            <th style={th}></th>
           </tr></thead>
           <tbody>
             {rows.map((r, i) => (
@@ -59,7 +62,7 @@ function TradesLog({ onSelect, fill = false }) {
                   <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
                   <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
                 </td>
-                <td style={{ ...td, color: "var(--text-secondary)" }}>
+                <td style={{ ...tdL, color: "var(--text-secondary)" }}>
                   ×{r.qty}
                   {r.partial && <span title="Half sold — position still open" style={{ marginLeft: 5, padding: "1px 5px", borderRadius: "var(--radius-xs)", background: "var(--profit-bg)", color: "var(--profit)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)" }}>½</span>}
                 </td>
@@ -70,7 +73,8 @@ function TradesLog({ onSelect, fill = false }) {
                 </td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
-                <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>
+                <td style={td}><NT.ResultBadge result={r.result} size="sm" /></td>
+                <td></td>
               </tr>
             ))}
           </tbody>
