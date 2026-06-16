@@ -45,9 +45,13 @@ function App() {
 
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
 
-  // Strategy edits (from StrategiesPage) propagate to the header pill + state.
+  // Strategy edits (from StrategiesPage) propagate to the header pill + state,
+  // and keep the SIMULATION/LIVE mode pill in sync with the strategy's dry_run.
   React.useEffect(() => {
-    window.NT_ON_STRAT = (s) => { setStrategies([s]); setCurrentStrat(s.name); };
+    window.NT_ON_STRAT = (s) => {
+      setStrategies([s]); setCurrentStrat(s.name);
+      if (s && s.params) setMode(s.params.dry_run === false ? "LIVE" : "SIMULATION");
+    };
     return () => { delete window.NT_ON_STRAT; };
   }, []);
 

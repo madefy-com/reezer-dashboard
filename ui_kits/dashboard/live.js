@@ -133,19 +133,22 @@
     var wins = closed.filter(function (t) { return t.result === "WIN"; }).length;
     var avg = closed.length ? Math.round((closed.reduce(function (a, t) { return a + t.pct; }, 0) / closed.length) * 10) / 10 : 0;
     return {
-      name: sp.name || "Nitro 0DTE", status: sp.kill_switch ? "paused" : "live",
+      name: sp.name || "Nitro 0DTE", status: sp.paused ? "paused" : "live",
       desc: sp.description || "Reads 0DTE options alerts and trades them on Schwab.",
       trades: (trades || []).length, winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
       pnl: Math.round(pnl), avgReturn: avg, alloc: "$" + Math.round(Number(sp.trade_budget_usd || 0)) + "/trade",
       params: {
         trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
-        allowlist: sp.allowlist || "", stop_loss_pct: Number(sp.stop_loss_pct), breakeven_at_pct: Number(sp.breakeven_at_pct),
+        allowlist: sp.allowlist || "",
+        stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),
+        breakeven_at_pct: sp.breakeven_at_pct == null ? null : Number(sp.breakeven_at_pct),
+        take_profit_pct: sp.take_profit_pct == null ? null : Number(sp.take_profit_pct),
         take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
         trailing_tiers: Array.isArray(sp.trailing_tiers) ? sp.trailing_tiers : [],
         max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
-        max_price_multiple: Number(sp.max_price_multiple),
+        max_price_slippage_usd: sp.max_price_slippage_usd == null ? null : Number(sp.max_price_slippage_usd),
         max_trades_per_day: Number(sp.max_trades_per_day),
-        kill_switch: !!sp.kill_switch, dry_run: !!sp.dry_run,
+        kill_switch: !!sp.kill_switch, paused: !!sp.paused, dry_run: !!sp.dry_run,
       },
     };
   }
