@@ -59,6 +59,7 @@ function App() {
     if (page === "trades") return <TradesPage />;
     if (page === "log") return <LogPage />;
     if (page === "backtesting") return <BacktestingPage />;
+    if (page === "fronttest") return <FronttestPage />;
     if (page === "strategies") return <StrategiesPage strategies={strategies} onActivate={activateByName} onPause={pauseByName} onUpdate={updateByName} onDelete={deleteByName} />;
     return <DashboardPage mode={mode} kill={kill} />;
   };

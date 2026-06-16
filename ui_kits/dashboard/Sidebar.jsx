@@ -10,6 +10,7 @@ function Sidebar({ page, onNav }) {
     { id: "trades", label: "Trades", icon: "candlestick-chart" },
     { id: "log", label: "Alerts", icon: "message-square-dot" },
     { id: "backtesting", label: "Backtesting", icon: "flask-conical" },
+    { id: "fronttest", label: "Fronttesting", icon: "git-compare-arrows" },
     { id: "strategies", label: "Strategies", icon: "target" },
   ];
   return (
