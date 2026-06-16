@@ -141,7 +141,7 @@
         trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
         allowlist: sp.allowlist || "", stop_loss_pct: Number(sp.stop_loss_pct), breakeven_at_pct: Number(sp.breakeven_at_pct),
         take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
-        trailing_stop_pct: sp.trailing_stop_pct == null ? null : Number(sp.trailing_stop_pct),
+        trailing_tiers: Array.isArray(sp.trailing_tiers) ? sp.trailing_tiers : [],
         max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
         max_price_multiple: Number(sp.max_price_multiple),
         max_trades_per_day: Number(sp.max_trades_per_day),

@@ -13,6 +13,10 @@ function NT_SField({ label, hint, children }) {
   );
 }
 const NT_pct = (v) => Math.round((Number(v) || 0) * 100);
+// trailing tiers come from Supabase as [{at,trail},...]; tolerate [[at,trail],...] too
+const NT_tier = (p, i) => (Array.isArray(p.trailing_tiers) ? p.trailing_tiers[i] : null) || null;
+const NT_tierAt = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.at != null ? t.at : t[0]); };
+const NT_tierTr = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.trail != null ? t.trail : t[1]); };
 
 function StrategiesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
@@ -30,7 +34,9 @@ function StrategiesPage() {
       budget: p.trade_budget_usd, maxC: p.max_contracts_per_trade, allowlist: p.allowlist || "",
       stop: NT_pct(p.stop_loss_pct), be: NT_pct(p.breakeven_at_pct),
       half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
-      trail: p.trailing_stop_pct == null ? "" : NT_pct(p.trailing_stop_pct),
+      t1at: NT_tierAt(p, 0), t1pct: NT_tierTr(p, 0),
+      t2at: NT_tierAt(p, 1), t2pct: NT_tierTr(p, 1),
+      t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
       maxMult: p.max_price_multiple, maxTrades: p.max_trades_per_day,
       kill: !!p.kill_switch, dry: p.dry_run !== false,
@@ -55,7 +61,11 @@ function StrategiesPage() {
       stop_loss_pct: (Number(form.stop) || 0) / 100,
       breakeven_at_pct: (Number(form.be) || 0) / 100,
       take_half_at_pct: opt(form.half) == null ? null : (Number(form.half) || 0) / 100,
-      trailing_stop_pct: opt(form.trail) == null ? null : (Number(form.trail) || 0) / 100,
+      trailing_tiers: [[form.t1at, form.t1pct], [form.t2at, form.t2pct], [form.t3at, form.t3pct]]
+        .filter(([a, t]) => opt(a) != null && opt(t) != null)
+        .map(([a, t]) => ({ at: (Number(a) || 0) / 100, trail: (Number(t) || 0) / 100 }))
+        .filter((x) => x.at > 0 && x.trail > 0)
+        .sort((x, y) => x.at - y.at),
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_multiple: Number(form.maxMult) || 0,
       max_trades_per_day: Number(form.maxTrades) || 0,
@@ -69,7 +79,7 @@ function StrategiesPage() {
       const ns = { ...strat, name: payload.name, desc: payload.description, alloc: "$" + payload.trade_budget_usd + "/trade", status: payload.kill_switch ? "paused" : "live", params: {
         trade_budget_usd: payload.trade_budget_usd, max_contracts_per_trade: payload.max_contracts_per_trade,
         allowlist: payload.allowlist, stop_loss_pct: payload.stop_loss_pct, breakeven_at_pct: payload.breakeven_at_pct,
-        take_half_at_pct: payload.take_half_at_pct, trailing_stop_pct: payload.trailing_stop_pct, max_hold_minutes: payload.max_hold_minutes,
+        take_half_at_pct: payload.take_half_at_pct, trailing_tiers: payload.trailing_tiers, max_hold_minutes: payload.max_hold_minutes,
         max_price_multiple: payload.max_price_multiple, max_trades_per_day: payload.max_trades_per_day,
         kill_switch: payload.kill_switch, dry_run: payload.dry_run } };
       setStrat(ns); window.NT_DATA.strategy = ns; window.NT_DATA.strategies = [ns];
@@ -95,7 +105,9 @@ function StrategiesPage() {
       ["Stop loss", NT_pct(p.stop_loss_pct) + "%"],
       ["Breakeven at", NT_pct(p.breakeven_at_pct) + "%"],
       ["Take half at", p.take_half_at_pct == null ? "off" : NT_pct(p.take_half_at_pct) + "%"],
-      ["Trailing stop", p.trailing_stop_pct == null ? "off" : NT_pct(p.trailing_stop_pct) + "% (from +" + NT_pct(p.breakeven_at_pct) + "%)"],
+      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length)
+        ? p.trailing_tiers.map((t) => "+" + NT_pct(t.at != null ? t.at : t[0]) + "%→" + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join("  ")
+        : "off", true],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"],
     ] },
     { g: "Safety", items: [
@@ -174,9 +186,17 @@ function StrategiesPage() {
               <NT_SField label="Stop loss (%)"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Breakeven (%)"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
-              <NT_SField label="Trailing stop (%)" hint={"Empty = off · once +" + NT_pct(p.breakeven_at_pct) + "% hit, trails the high"}><input type="number" value={form.trail} onChange={(e) => setF("trail", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
+
+            <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Trailing stop — tiers</span>
+            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)" }}>Once peak profit reaches “from”, trail the stop that % below the high (ratchets up only, never below breakeven). Leave a row empty to skip it; all empty = off. Tighten each tier to squeeze more out.</div>
+            {[1, 2, 3].map((n) => (
+              <div key={n} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <NT_SField label={"Tier " + n + " — from profit (%)"}><input type="number" value={form["t" + n + "at"]} onChange={(e) => setF("t" + n + "at", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                <NT_SField label="Trail (%)"><input type="number" value={form["t" + n + "pct"]} onChange={(e) => setF("t" + n + "pct", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              </div>
+            ))}
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>End-of-day flatten (~15:58 ET) is always on as a final safety backstop.</div>
 
             <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Safety</span>
