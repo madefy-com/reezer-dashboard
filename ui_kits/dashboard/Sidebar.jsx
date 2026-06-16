@@ -19,7 +19,7 @@ function Sidebar({ page, onNav }) {
     }}>
       {/* brand */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "2px 6px 18px" }}>
-        <img src="../../assets/logo-mark.png" width="30" height="30" alt="Reezer" style={{ borderRadius: 9 }} />
+        <img src="/assets/logo-mark.png" width="30" height="30" alt="Reezer" style={{ borderRadius: 9 }} />
         <span style={{ font: "var(--w-semibold) 17px/1 var(--font-sans)", letterSpacing: "var(--ls-tight)" }}>Reezer</span>
       </div>
 

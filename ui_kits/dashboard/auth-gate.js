@@ -9,7 +9,7 @@
       '<div style="height:100vh;display:grid;place-items:center;background:var(--bg-app);' +
       'color:var(--text-primary);font-family:var(--font-sans)">' +
       '<div style="text-align:center;max-width:340px;padding:32px">' +
-      '<img src="../../assets/logo-mark.png" alt="Reezer" width="56" height="56" ' +
+      '<img src="/assets/logo-mark.png" alt="Reezer" width="56" height="56" ' +
       'style="display:block;margin:0 auto 18px;border-radius:14px" />' +
       inner + "</div></div>";
   }

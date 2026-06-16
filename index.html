@@ -1,5 +1,77 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=ui_kits/dashboard/index.html">
-<title>Reezer</title>
-<a href="ui_kits/dashboard/index.html">Open Reezer dashboard →</a>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reezer · dashboard</title>
+<link rel="icon" href="/assets/logo-mark.png" />
+<link rel="stylesheet" href="/styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="/_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; background: var(--bg-app); color: var(--text-primary); font-family: var(--font-sans); }
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--line-3); background-clip: padding-box; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="/ui_kits/dashboard/data.js"></script>
+<script src="/ui_kits/dashboard/config.js"></script>
+<script src="/ui_kits/dashboard/client.js"></script>
+<script src="/ui_kits/dashboard/auth-gate.js"></script>
+<script src="/ui_kits/dashboard/live.js"></script>
+<script src="/ui_kits/dashboard/realtime.js"></script>
+<script type="text/babel" src="/ui_kits/dashboard/Sidebar.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/Shared.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/StatusBar.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/KpiRow.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/PnlChart.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradesLog.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/DiscordLog.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradeDetail.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradesPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/DashboardPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/LogPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/BacktestingPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/StrategiesPage.jsx" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/App.jsx" data-presets="react"></script>
+<script type="text/babel" data-presets="react">
+  function ntBoot() {
+    if (!window.NitroTraderDesignSystem_95e598 || !window.App) {
+      var root = document.getElementById("root");
+      if (root && !root.dataset.loading) {
+        root.dataset.loading = "1";
+        root.innerHTML = '<div style="height:100vh;display:grid;place-items:center;color:var(--text-tertiary);font:500 13px/1 var(--font-sans);letter-spacing:0.04em">loading…</div>';
+      }
+      if (!window.NitroTraderDesignSystem_95e598) {
+        var s = document.createElement("script");
+        s.src = "/_ds_bundle.js?t=" + Date.now();
+        s.onload = ntBoot; s.onerror = function () { setTimeout(ntBoot, 600); };
+        document.head.appendChild(s);
+      } else {
+        setTimeout(ntBoot, 200);
+      }
+      return;
+    }
+    var r = document.getElementById("root");
+    (async function () {
+      var ok = window.NT_AUTH_GATE ? await window.NT_AUTH_GATE() : true;
+      if (!ok) { delete r.dataset.loading; return; }
+      var live = window.NT_LIVE ? await window.NT_LIVE() : null;
+      if (live) window.NT_DATA = live;
+      delete r.dataset.loading; r.innerHTML = "";
+      ReactDOM.createRoot(r).render(<App />);
+      if (window.NT_REALTIME_START) window.NT_REALTIME_START();
+    })();
+  }
+  ntBoot();
+</script>
+</body>
+</html>

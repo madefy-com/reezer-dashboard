@@ -2317,7 +2317,7 @@ function Sidebar({
       padding: "2px 6px 18px"
     }
   }, /*#__PURE__*/React.createElement("img", {
-    src: "../../assets/logo-mark.png",
+    src: "/assets/logo-mark.png",
     width: "30",
     height: "30",
     alt: "Reezer",
