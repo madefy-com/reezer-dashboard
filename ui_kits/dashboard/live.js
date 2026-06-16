@@ -65,31 +65,56 @@
     });
   }
 
+  function mapStrategy(sp, trades) {
+    if (!sp) return null;
+    var closed = (trades || []).filter(function (t) { return t.result !== "OPEN"; });
+    var pnl = (trades || []).reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
+    var wins = closed.filter(function (t) { return t.result === "WIN"; }).length;
+    var avg = closed.length ? Math.round((closed.reduce(function (a, t) { return a + t.pct; }, 0) / closed.length) * 10) / 10 : 0;
+    return {
+      name: sp.name || "Nitro 0DTE", status: sp.kill_switch ? "paused" : "live",
+      desc: "Reads 0DTE options alerts from the nitro_trades Discord and trades them on Schwab. Money-management: sizing, stop, breakeven, scaling, EOD flatten.",
+      trades: (trades || []).length, winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
+      pnl: Math.round(pnl), avgReturn: avg, alloc: "$" + Math.round(Number(sp.trade_budget_usd || 0)) + "/trade",
+      params: {
+        trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
+        allowlist: sp.allowlist || "", stop_loss_pct: Number(sp.stop_loss_pct), breakeven_at_pct: Number(sp.breakeven_at_pct),
+        take_half_at_pct: Number(sp.take_half_at_pct), max_price_multiple: Number(sp.max_price_multiple),
+        max_trades_per_day: Number(sp.max_trades_per_day), eod_flatten_et: sp.eod_flatten_et || "15:58",
+        kill_switch: !!sp.kill_switch, dry_run: !!sp.dry_run,
+      },
+    };
+  }
+
   window.NT_LIVE = function () {
     var c = window.NT_CLIENT;
     if (!c) return Promise.resolve(null);
     var base = window.NT_DATA || {};
-    var stratName = (base.strategyParams || {}).name || "Strategy";
     return Promise.all([
       c.from("positions").select("*").order("entry_ts", { ascending: false }).limit(300),
       c.from("alerts").select("*").order("ts", { ascending: false }).limit(300),
       c.from("runs").select("*").order("id", { ascending: false }).limit(1),
+      c.from("strategy_params").select("*").eq("id", 1).maybeSingle(),
     ]).then(function (res) {
       var positions = (res[0] && res[0].data) || [], alerts = (res[1] && res[1].data) || [], runs = (res[2] && res[2].data) || [];
-      if (!positions.length && !alerts.length) return null;  // empty DB -> keep demo
-      var trades = buildTrades(positions, stratName);
-      var run = runs[0] || {};
+      var sp = (res[3] && res[3].data) || null;
+      var sName = (sp && sp.name) || "Nitro 0DTE";
+      var trades = positions.length ? buildTrades(positions, sName) : null;
+      var strat = mapStrategy(sp, trades);
       var fired = alerts.filter(function (a) { return a.fired; }).length;
-      return Object.assign({}, base, {
-        trades: trades,
-        kpis: buildKpis(trades),
-        discord: buildDiscord(alerts),
-        summary14d: { fired: fired, filtered: alerts.length - fired },
+      var out = Object.assign({}, base, {
+        trades: trades || base.trades,
+        kpis: trades ? buildKpis(trades) : base.kpis,
+        discord: alerts.length ? buildDiscord(alerts) : base.discord,
+        summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
         session: Object.assign({}, base.session || {}, {
-          mode: run.mode === "live" ? "LIVE" : "DRY-RUN",
-          budget: run.budget != null ? "$" + Math.round(run.budget) : (base.session || {}).budget,
+          mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "DRY-RUN"),
+          budget: sp ? "$" + Math.round(Number(sp.trade_budget_usd)) : (runs[0] && runs[0].budget != null ? "$" + Math.round(runs[0].budget) : (base.session || {}).budget),
+          strategy: sName,
         }),
       });
+      if (strat) { out.strategy = strat; out.strategies = [strat]; }
+      return out;
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };
 })();
