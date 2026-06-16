@@ -9,7 +9,7 @@ function DashboardPage({ mode, kill }) {
   const onChartRange = (cr) => setRange(({ "1D": "today", "1W": "week", "1M": "month" })[cr] || "today");
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title={greeting(window.NT_DATA.session.user)} right={<DateFilter value={range} onChange={setRange} />} />
+      <PageHead title={greeting(window.NT_USER_NAME || window.NT_DATA.session.user)} right={<DateFilter value={range} onChange={setRange} />} />
       <KpiRow />
       <div className="nt-body" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gridTemplateRows: "minmax(0,1fr)", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", minHeight: 0 }}>

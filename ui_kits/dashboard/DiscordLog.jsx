@@ -45,7 +45,7 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
               <span style={{ flex: 1, minWidth: 0, font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", color: muted ? "var(--text-tertiary)" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {m.msg}
               </span>
-              <div style={{ flex: "none" }}><NT.FiredBadge fired={m.fired} reason={m.reason} /></div>
+              <div style={{ flex: "none" }} title={m.reason || undefined}><NT.FiredBadge fired={m.fired} /></div>
             </div>
           );
         })}
