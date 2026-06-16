@@ -72,7 +72,13 @@
     var email = ((session.user && session.user.email) || "").toLowerCase();
     var allow = (cfg.allowedEmails || []).map(function (x) { return x.toLowerCase(); });
     if (allow.length && allow.indexOf(email) < 0) { deniedScreen(email); return false; }
-    window.NT_USER_EMAIL = (session.user && session.user.email) || email;
+    var su = session.user || {};
+    var meta = su.user_metadata || {};
+    var first = meta.given_name ||
+      (meta.full_name || meta.name || "").trim().split(/\s+/)[0] ||
+      email.split("@")[0].split(/[._-]/)[0] || "";
+    window.NT_USER_NAME = first ? first.charAt(0).toUpperCase() + first.slice(1) : "Trader";
+    window.NT_USER_EMAIL = su.email || email;
     return true;
   };
 })();
