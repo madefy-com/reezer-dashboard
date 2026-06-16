@@ -47,11 +47,18 @@ function Sidebar({ page, onNav }) {
           <Ico name="settings" size={18} /> Settings
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 2px" }}>
-          <div style={{ width: 30, height: 30, flex: "none", borderRadius: "50%", background: "var(--violet-soft)", border: "1px solid var(--violet-line)", display: "grid", placeItems: "center", font: "var(--w-semibold) 13px/1 var(--font-sans)", color: "var(--accent)" }}>G</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{D.session.user}</div>
+          <div style={{ width: 30, height: 30, flex: "none", borderRadius: "50%", background: "var(--violet-soft)", border: "1px solid var(--violet-line)", display: "grid", placeItems: "center", font: "var(--w-semibold) 13px/1 var(--font-sans)", color: "var(--accent)" }}>
+            {(window.NT_USER_EMAIL || D.session.user || "G").charAt(0).toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div title={window.NT_USER_EMAIL || D.session.user} style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{window.NT_USER_EMAIL || D.session.user}</div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>Trader</div>
           </div>
+          <button title="Sign out" aria-label="Sign out"
+            onClick={() => window.NT_CLIENT && window.NT_CLIENT.auth.signOut().then(() => location.reload())}
+            style={{ flex: "none", background: "transparent", border: "1px solid transparent", color: "var(--text-tertiary)", cursor: "pointer", padding: 6, borderRadius: "var(--radius-md)", display: "grid", placeItems: "center" }}>
+            <Ico name="log-out" size={17} />
+          </button>
         </div>
       </div>
       <style>{`

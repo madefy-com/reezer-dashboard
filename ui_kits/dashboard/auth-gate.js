@@ -39,7 +39,10 @@
     document.getElementById("nt-google").onclick = function () {
       window.NT_CLIENT.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: location.origin + location.pathname },
+        options: {
+          redirectTo: location.origin + location.pathname,
+          queryParams: { prompt: "select_account" },  // always show the account chooser
+        },
       });
     };
   }
@@ -69,6 +72,7 @@
     var email = ((session.user && session.user.email) || "").toLowerCase();
     var allow = (cfg.allowedEmails || []).map(function (x) { return x.toLowerCase(); });
     if (allow.length && allow.indexOf(email) < 0) { deniedScreen(email); return false; }
+    window.NT_USER_EMAIL = (session.user && session.user.email) || email;
     return true;
   };
 })();
