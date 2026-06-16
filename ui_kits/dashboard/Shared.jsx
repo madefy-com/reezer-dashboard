@@ -156,11 +156,15 @@ function ntSession(now) {
   const tz = MH.market_tz;
   const dow = ntTzDow(now, tz);
   const weekend = dow === 0 || dow === 6;
-  const pmHM = ntHM(MH.premarket_open_et), roHM = ntHM(MH.regular_open_et), rcHM = ntHM(MH.regular_close_et);
+  // Defensive fallbacks: a missing/partial config must never white-screen the app.
+  const pmHM = ntHM(MH.premarket_open_et || MH.regular_open_et || "09:30");
+  const roHM = ntHM(MH.regular_open_et || "09:30");
+  const rcHM = ntHM(MH.regular_close_et || "16:00");
   const pre   = ntTzInstant(now, tz, pmHM[0], pmHM[1]);
   const open  = ntTzInstant(now, tz, roHM[0], roHM[1]);
   const close = ntTzInstant(now, tz, rcHM[0], rcHM[1]);
-  const streamEnd = open + SP.streaming.window_hours * 3600 * 1000;
+  const winH  = (SP && SP.streaming && SP.streaming.window_hours) || 2.5;
+  const streamEnd = open + winH * 3600 * 1000;
   const t = now.getTime();
   let state = "closed";
   if (!weekend && t >= pre && t < open) state = "premarket";

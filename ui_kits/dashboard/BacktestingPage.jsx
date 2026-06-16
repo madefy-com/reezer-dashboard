@@ -8,6 +8,7 @@ function BacktestingPage() {
 
   // equity curve geometry
   const eq = bt.equity;
+  const hasData = eq.length > 1;
   const W = 920, H = 300, mL = 46, mR = 16, mT = 18, mB = 28;
   const max = 40, min = 0;
   const ix = (i) => mL + (i * (W - mL - mR)) / (eq.length - 1);
@@ -36,9 +37,16 @@ function BacktestingPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.7fr) minmax(0,1fr)", gap: "var(--gap-grid)", alignItems: "stretch" }} className="nt-body">
         <NT.Card title={"Equity curve · " + strat} action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{bt.range}</span>}>
+          {!hasData ? (
+            <div style={{ height: H, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text-tertiary)" }}>
+              <Ico name="line-chart" size={26} />
+              <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>No backtest yet</span>
+              <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)" }}>Run a strategy over historical sessions to see its equity curve.</span>
+            </div>
+          ) : (<>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 8 }}>
-            <span className="num" style={{ font: "var(--w-light) 34px/1 var(--font-mono)", letterSpacing: "var(--ls-tight)", color: "var(--profit)" }}>+38.4%</span>
-            <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>cumulative return · 30 sessions</span>
+            <span className="num" style={{ font: "var(--w-light) 34px/1 var(--font-mono)", letterSpacing: "var(--ls-tight)", color: "var(--profit)" }}>{bt.cumReturn || ""}</span>
+            <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>cumulative return · {eq.length} sessions</span>
           </div>
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
             {yTicks.map((v) => (
@@ -50,13 +58,16 @@ function BacktestingPage() {
             <path d={area} fill="var(--violet-soft)" />
             <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" />
             <circle cx={ix(eq.length - 1)} cy={iy(eq[eq.length - 1])} r="4.5" fill="var(--accent)" stroke="var(--ink-2)" strokeWidth="2.5" />
-            {["S-30", "S-20", "S-10", "now"].map((lbl, k) => (
-              <text key={lbl} x={ix(Math.round((k / 3) * (eq.length - 1)))} y={H - 8} textAnchor="middle" fill="var(--text-tertiary)" style={{ font: "var(--w-regular) 10px/1 var(--font-mono)" }}>{lbl}</text>
-            ))}
           </svg>
+          </>)}
         </NT.Card>
 
         <NT.Card title="Results" bodyStyle={{ display: "flex", flexDirection: "column" }}>
+          {bt.stats.length === 0 ? (
+            <div style={{ flex: 1, minHeight: 160, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", textAlign: "center", padding: 20 }}>
+              No results yet
+            </div>
+          ) : (
           <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "1fr", gap: 1, background: "var(--border)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
             {bt.stats.map((s, i) => (
               <div key={i} style={{ background: "var(--surface-card)", padding: "14px 15px", display: "flex", flexDirection: "column", gap: 7 }}>
@@ -65,6 +76,7 @@ function BacktestingPage() {
               </div>
             ))}
           </div>
+          )}
         </NT.Card>
       </div>
       <style>{`@media (max-width: 1080px){ .nt-body{ grid-template-columns: 1fr !important; } }`}</style>
