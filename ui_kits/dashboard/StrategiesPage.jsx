@@ -106,7 +106,7 @@ function StrategiesPage() {
       ["Breakeven at", NT_pct(p.breakeven_at_pct) + "%"],
       ["Take half at", p.take_half_at_pct == null ? "off" : NT_pct(p.take_half_at_pct) + "%"],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length)
-        ? p.trailing_tiers.map((t) => "+" + NT_pct(t.at != null ? t.at : t[0]) + "%→" + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join("  ")
+        ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1])).join("  ·  ")
         : "off", true],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"],
     ] },
@@ -189,12 +189,16 @@ function StrategiesPage() {
               <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
 
-            <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Trailing stop — tiers</span>
-            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)" }}>Once peak profit reaches “from”, trail the stop that % below the high (ratchets up only, never below breakeven). Leave a row empty to skip it; all empty = off. Tighten each tier to squeeze more out.</div>
+            <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)", marginTop: 2 }}>Trailing stop — lock in profit as it climbs</span>
+            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+              Each tier: once the trade’s profit reaches the <b style={{ color: "var(--text-secondary)" }}>when ≥</b> level, the auto-sell line follows it up and never lets you give back more than the <b style={{ color: "var(--text-secondary)" }}>give back</b> amount (in profit points).<br />
+              Example — <i>when ≥ 30, give back 25</i>: up +40% → it won’t sell below <b style={{ color: "var(--text-secondary)" }}>+15%</b>; up +60% → won’t sell below +35%. Higher tiers give back less, to lock in more near the top.<br />
+              Leave a row blank to skip it; all blank = trailing off (just the breakeven stop at +{NT_pct(p.breakeven_at_pct)}%).
+            </div>
             {[1, 2, 3].map((n) => (
               <div key={n} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <NT_SField label={"Tier " + n + " — from profit (%)"}><input type="number" value={form["t" + n + "at"]} onChange={(e) => setF("t" + n + "at", e.target.value)} style={NT_SINPUT} /></NT_SField>
-                <NT_SField label="Trail (%)"><input type="number" value={form["t" + n + "pct"]} onChange={(e) => setF("t" + n + "pct", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                <NT_SField label={"Tier " + n + " — when profit ≥ (%)"}><input type="number" value={form["t" + n + "at"]} onChange={(e) => setF("t" + n + "at", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                <NT_SField label="give back at most (pts)"><input type="number" value={form["t" + n + "pct"]} onChange={(e) => setF("t" + n + "pct", e.target.value)} style={NT_SINPUT} /></NT_SField>
               </div>
             ))}
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>End-of-day flatten (~15:58 ET) is always on as a final safety backstop.</div>
