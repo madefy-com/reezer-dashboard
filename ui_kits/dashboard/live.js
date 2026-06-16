@@ -99,35 +99,69 @@
     };
   }
 
+  // ---- Local cache of the raw DB rows. NT_LIVE fills it from Supabase ONCE
+  //      (initial load + manual refresh); after that, realtime pushes patch it
+  //      in place via NT_APPLY — no per-event network round-trip, so each update
+  //      renders the instant the websocket message lands. ----
+  var RAW = { positions: [], alerts: [], runs: [], sp: null };
+
+  function rebuild() {
+    var base = window.NT_DATA || {};
+    var positions = RAW.positions, alerts = RAW.alerts, runs = RAW.runs, sp = RAW.sp;
+    var sName = (sp && sp.name) || "Nitro 0DTE";
+    var trades = positions.length ? buildTrades(positions, sName) : null;
+    var strat = mapStrategy(sp, trades);
+    var fired = alerts.filter(function (a) { return a.fired; }).length;
+    var out = Object.assign({}, base, {
+      trades: trades || base.trades,
+      kpis: trades ? buildKpis(trades) : base.kpis,
+      discord: alerts.length ? buildDiscord(alerts) : base.discord,
+      summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
+      session: Object.assign({}, base.session || {}, {
+        mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "DRY-RUN"),
+        budget: sp ? "$" + Math.round(Number(sp.trade_budget_usd)) : (runs[0] && runs[0].budget != null ? "$" + Math.round(runs[0].budget) : (base.session || {}).budget),
+        strategy: sName,
+      }),
+    });
+    if (strat) { out.strategy = strat; out.strategies = [strat]; }
+    return out;
+  }
+
   window.NT_LIVE = function () {
     var c = window.NT_CLIENT;
     if (!c) return Promise.resolve(null);
-    var base = window.NT_DATA || {};
     return Promise.all([
       c.from("positions").select("*").order("entry_ts", { ascending: false }).limit(300),
       c.from("alerts").select("*").order("ts", { ascending: false }).limit(300),
       c.from("runs").select("*").order("id", { ascending: false }).limit(1),
       c.from("strategy_params").select("*").eq("id", 1).maybeSingle(),
     ]).then(function (res) {
-      var positions = (res[0] && res[0].data) || [], alerts = (res[1] && res[1].data) || [], runs = (res[2] && res[2].data) || [];
-      var sp = (res[3] && res[3].data) || null;
-      var sName = (sp && sp.name) || "Nitro 0DTE";
-      var trades = positions.length ? buildTrades(positions, sName) : null;
-      var strat = mapStrategy(sp, trades);
-      var fired = alerts.filter(function (a) { return a.fired; }).length;
-      var out = Object.assign({}, base, {
-        trades: trades || base.trades,
-        kpis: trades ? buildKpis(trades) : base.kpis,
-        discord: alerts.length ? buildDiscord(alerts) : base.discord,
-        summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
-        session: Object.assign({}, base.session || {}, {
-          mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "DRY-RUN"),
-          budget: sp ? "$" + Math.round(Number(sp.trade_budget_usd)) : (runs[0] && runs[0].budget != null ? "$" + Math.round(runs[0].budget) : (base.session || {}).budget),
-          strategy: sName,
-        }),
-      });
-      if (strat) { out.strategy = strat; out.strategies = [strat]; }
-      return out;
+      RAW.positions = (res[0] && res[0].data) || [];
+      RAW.alerts = (res[1] && res[1].data) || [];
+      RAW.runs = (res[2] && res[2].data) || [];
+      RAW.sp = (res[3] && res[3].data) || null;
+      return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
+  };
+
+  // Apply ONE realtime change in place (using the row the websocket delivered)
+  // and re-render immediately — no Supabase query, so this is as fast as the
+  // push arrives. Returns true if handled.
+  window.NT_APPLY = function (table, eventType, newRow, oldRow) {
+    if (table === "strategy_params") {
+      if (newRow) RAW.sp = newRow;
+    } else if (table === "positions" || table === "alerts") {
+      var arr = RAW[table], row = newRow || oldRow;
+      if (!row) return false;
+      var i = arr.findIndex(function (r) { return r.id === row.id; });
+      if (eventType === "DELETE") { if (i >= 0) arr.splice(i, 1); }
+      else if (i >= 0) { arr[i] = newRow; }    // in-place update keeps row order
+      else { arr.unshift(newRow); }            // brand-new row -> newest first
+    } else {
+      return false;
+    }
+    window.NT_DATA = rebuild();
+    window.dispatchEvent(new Event("nt-data"));
+    return true;
   };
 })();

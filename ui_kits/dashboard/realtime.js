@@ -14,14 +14,24 @@
       }
     });
   }
-  function debounced() { clearTimeout(timer); timer = setTimeout(refresh, 250); }
+  function debounced() { clearTimeout(timer); timer = setTimeout(refresh, 120); }
 
   window.NT_REALTIME_START = function () {
     if (!window.NT_CLIENT || client) return;
     client = window.NT_CLIENT;  // shared client (also used by auth)
     var ch = client.channel("reezer-live");
     ["alerts", "positions", "trade_events"].forEach(function (t) {
-      ch.on("postgres_changes", { event: "*", schema: "public", table: t }, debounced);
+      ch.on("postgres_changes", { event: "*", schema: "public", table: t }, function (payload) {
+        var tbl = payload.table, ev = payload.eventType;
+        // positions/alerts carry everything the table/KPIs need -> patch in place,
+        // instant, zero queries. trade_events only feeds the detail drawer -> a
+        // light debounced refetch keeps that fresh without slowing the table.
+        if ((tbl === "positions" || tbl === "alerts") && window.NT_APPLY) {
+          window.NT_APPLY(tbl, ev, payload.new, payload.old);
+        } else {
+          debounced();
+        }
+      });
     });
     ch.subscribe(function (status) { console.log("[reezer realtime]", status); });
   };
