@@ -39,7 +39,7 @@ function StrategiesPage() {
       t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
       maxMult: p.max_price_multiple, maxTrades: p.max_trades_per_day,
-      kill: !!p.kill_switch, dry: p.dry_run !== false,
+      dry: p.dry_run !== false,
     });
     setSaved(false);
   };
@@ -49,8 +49,8 @@ function StrategiesPage() {
   const save = async () => {
     const tickers = (form.allowlist || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
     const bad = tickers.filter((s) => !/^[A-Z]{1,5}$/.test(s));
-    if (bad.length) { alert("Invalid ticker(s): " + bad.join(", ") + "\nUse 1–5 letters, comma-separated (e.g. QQQ, NVDA)."); return; }
-    if (!tickers.length) { alert("Allowlist can't be empty — add at least one ticker."); return; }
+    if (bad.length) { await window.NT_ALERT("Invalid ticker(s): " + bad.join(", ") + "\nUse 1–5 letters, comma-separated (e.g. QQQ, NVDA).", { title: "Check the allowlist" }); return; }
+    if (!tickers.length) { await window.NT_ALERT("The allowlist can't be empty — add at least one ticker.", { title: "Check the allowlist" }); return; }
     setSaving(true);
     const opt = (v) => (v === "" || v == null ? null : v);
     const payload = {
@@ -69,23 +69,22 @@ function StrategiesPage() {
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_multiple: Number(form.maxMult) || 0,
       max_trades_per_day: Number(form.maxTrades) || 0,
-      kill_switch: !!form.kill,
-      dry_run: !!form.dry,
+      dry_run: !!form.dry,   // kill_switch is owned by the top-bar toggle, not saved here
       updated_at: new Date().toISOString(),
     };
     try {
       const r = await window.NT_CLIENT.from("strategy_params").update(payload).eq("id", 1);
       if (r.error) throw r.error;
-      const ns = { ...strat, name: payload.name, desc: payload.description, alloc: "$" + payload.trade_budget_usd + "/trade", status: payload.kill_switch ? "paused" : "live", params: {
+      const ns = { ...strat, name: payload.name, desc: payload.description, alloc: "$" + payload.trade_budget_usd + "/trade", status: p.kill_switch ? "paused" : "live", params: {
         trade_budget_usd: payload.trade_budget_usd, max_contracts_per_trade: payload.max_contracts_per_trade,
         allowlist: payload.allowlist, stop_loss_pct: payload.stop_loss_pct, breakeven_at_pct: payload.breakeven_at_pct,
         take_half_at_pct: payload.take_half_at_pct, trailing_tiers: payload.trailing_tiers, max_hold_minutes: payload.max_hold_minutes,
         max_price_multiple: payload.max_price_multiple, max_trades_per_day: payload.max_trades_per_day,
-        kill_switch: payload.kill_switch, dry_run: payload.dry_run } };
+        kill_switch: p.kill_switch, dry_run: payload.dry_run } };
       setStrat(ns); window.NT_DATA.strategy = ns; window.NT_DATA.strategies = [ns];
       if (window.NT_ON_STRAT) window.NT_ON_STRAT(ns);  // refresh the header pill
       setSaved(true); closeEdit();
-    } catch (e) { alert("Save failed: " + (e.message || e)); }
+    } catch (e) { await window.NT_ALERT("Save failed: " + (e.message || e), { title: "Couldn’t save" }); }
     setSaving(false);
   };
 
@@ -168,7 +167,9 @@ function StrategiesPage() {
           <div style={{ width: 520, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 20, display: "flex", flexDirection: "column", gap: 14, maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)", letterSpacing: "var(--ls-snug)" }}>Edit strategy</span>
-              <button onClick={closeEdit} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}><Ico name="x" size={16} /></button>
+              <button onClick={closeEdit} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
             </div>
 
             <NT_SField label="Name"><input value={form.name} onChange={(e) => setF("name", e.target.value)} style={NT_SINPUT} /></NT_SField>
@@ -208,13 +209,28 @@ function StrategiesPage() {
               <NT_SField label="Max price × alert" hint="Reject if live ask exceeds this × the alert price."><input type="number" value={form.maxMult} onChange={(e) => setF("maxMult", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max trades / day"><input type="number" value={form.maxTrades} onChange={(e) => setF("maxTrades", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 2 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 9, font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                <input type="checkbox" checked={form.kill} onChange={(e) => setF("kill", e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--loss)" }} /> Kill switch — close all open positions + block new orders
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 9, font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                <input type="checkbox" checked={form.dry} onChange={(e) => { if (!e.target.checked && !window.confirm("⚠️  Turning OFF simulation switches the bot to LIVE real-money trading.\n\nReal orders will be placed on your Schwab account. Continue?")) return; setF("dry", e.target.checked); }} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} /> Simulation — simulate, never send real orders
-              </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Mode</span>
+              <div style={{ display: "inline-flex", width: "fit-content", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
+                {[["Simulation", true], ["Live", false]].map((opt) => {
+                  const lbl = opt[0], dryVal = opt[1], on = !!form.dry === dryVal;
+                  const col = dryVal ? "var(--dryrun)" : "var(--live)";
+                  return (
+                    <button key={lbl} type="button" onClick={async () => {
+                      if (!dryVal && !on) {
+                        const ok = await window.NT_CONFIRM("This switches the bot to LIVE real-money trading — real orders will be placed on your Schwab account.", { title: "Go LIVE?", ok: "Go LIVE", cancel: "Stay in simulation", danger: true });
+                        if (!ok) return;
+                      }
+                      setF("dry", dryVal);
+                    }} style={{ height: 30, padding: "0 16px", borderRadius: "var(--radius-xs)", cursor: "pointer",
+                      border: "1px solid " + (on ? "color-mix(in srgb, " + col + " 34%, transparent)" : "transparent"),
+                      background: on ? (dryVal ? "var(--dryrun-bg)" : "var(--live-bg)") : "transparent",
+                      color: on ? col : "var(--text-tertiary)",
+                      font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{lbl}</button>
+                  );
+                })}
+              </div>
+              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>Simulation never sends real orders. The kill switch is the ACTIVE toggle in the top bar.</span>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>

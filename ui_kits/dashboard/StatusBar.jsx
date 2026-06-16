@@ -170,7 +170,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies, cur
 
       <NT.KillSwitch state={kill} onToggle={async () => {
         const tripping = kill === "ARMED";  // ARMED -> deactivate (kill); else re-arm
-        if (tripping && !window.confirm("⚠️  DEACTIVATE — KILL SWITCH\n\nThis immediately CLOSES ALL open positions at market and blocks any new trades.\n\nContinue?")) return;
+        if (tripping && !(await window.NT_CONFIRM("This immediately CLOSES ALL open positions at market and blocks any new trades.", { title: "Deactivate — kill switch", ok: "Deactivate & close all", cancel: "Cancel", danger: true }))) return;
         const prev = kill;
         setKill(tripping ? "TRIPPED" : "ARMED");
         try {
@@ -181,7 +181,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies, cur
           }
         } catch (e) {
           setKill(prev);  // revert the UI if the bot won't have received it
-          alert("Kill switch didn't save: " + (e.message || e) + "\nCheck the connection and try again.");
+          window.NT_ALERT("Kill switch didn’t save: " + (e.message || e) + "\nCheck the connection and try again.", { title: "Kill switch", danger: true });
         }
       }} />
 
