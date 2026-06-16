@@ -114,7 +114,7 @@ function StrategiesPage() {
       ["Max price × alert", p.max_price_multiple + "×"],
       ["Max trades / day", String(p.max_trades_per_day)],
       ["Kill switch", p.kill_switch ? "ON" : "off"],
-      ["Mode", p.dry_run ? "DRY-RUN" : "LIVE"],
+      ["Mode", p.dry_run ? "SIMULATION" : "LIVE"],
     ] },
   ];
 
@@ -210,10 +210,10 @@ function StrategiesPage() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 2 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 9, font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                <input type="checkbox" checked={form.kill} onChange={(e) => setF("kill", e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--loss)" }} /> Kill switch — block all new orders
+                <input type="checkbox" checked={form.kill} onChange={(e) => setF("kill", e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--loss)" }} /> Kill switch — close all open positions + block new orders
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: 9, font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-secondary)", cursor: "pointer" }}>
-                <input type="checkbox" checked={form.dry} onChange={(e) => { if (!e.target.checked && !window.confirm("⚠️  Turning OFF dry-run switches the bot to LIVE real-money trading.\n\nReal orders will be placed on your Schwab account. Continue?")) return; setF("dry", e.target.checked); }} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} /> Dry-run — simulate, never send real orders
+                <input type="checkbox" checked={form.dry} onChange={(e) => { if (!e.target.checked && !window.confirm("⚠️  Turning OFF simulation switches the bot to LIVE real-money trading.\n\nReal orders will be placed on your Schwab account. Continue?")) return; setF("dry", e.target.checked); }} style={{ width: 16, height: 16, accentColor: "var(--accent)" }} /> Simulation — simulate, never send real orders
               </label>
             </div>
 

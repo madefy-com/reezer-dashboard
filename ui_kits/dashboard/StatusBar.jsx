@@ -71,7 +71,20 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies, cur
       height: "var(--topbar-h)", flex: "none", display: "flex", alignItems: "center",
       gap: 10, padding: "0 22px", borderBottom: "1px solid var(--border)", background: "var(--ink-1)",
     }}>
-      <NT.ModePill mode={mode} onToggle={() => setMode(mode === "LIVE" ? "DRY-RUN" : "LIVE")} />
+      {(() => {  /* mode pill — shows SIMULATION vs LIVE (toggle real-money on the Strategies page) */
+        const liveMode = mode === "LIVE";
+        const mc = liveMode ? "var(--live)" : "var(--dryrun)";
+        return (
+          <span title={liveMode ? "LIVE — real orders are sent" : "Simulation — no real orders are sent"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px 0 10px",
+              borderRadius: "var(--radius-sm)", background: liveMode ? "var(--live-bg)" : "var(--dryrun-bg)",
+              border: "1px solid color-mix(in srgb, " + mc + " 34%, transparent)", color: mc,
+              font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: mc, animation: liveMode ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }} />
+            {liveMode ? "LIVE" : "SIMULATION"}
+          </span>
+        );
+      })()}
 
       {/* STRATEGY — clickable; opens the active strategy's parameters */}
       <div style={{ position: "relative" }}>
@@ -155,7 +168,22 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies, cur
         )}
       </div>
 
-      <NT.KillSwitch state={kill} onToggle={() => setKill(kill === "ARMED" ? "TRIPPED" : "ARMED")} />
+      <NT.KillSwitch state={kill} onToggle={async () => {
+        const tripping = kill === "ARMED";  // ARMED -> deactivate (kill); else re-arm
+        if (tripping && !window.confirm("⚠️  DEACTIVATE — KILL SWITCH\n\nThis immediately CLOSES ALL open positions at market and blocks any new trades.\n\nContinue?")) return;
+        const prev = kill;
+        setKill(tripping ? "TRIPPED" : "ARMED");
+        try {
+          if (window.NT_CLIENT) {
+            const r = await window.NT_CLIENT.from("strategy_params")
+              .update({ kill_switch: tripping, updated_at: new Date().toISOString() }).eq("id", 1);
+            if (r.error) throw r.error;
+          }
+        } catch (e) {
+          setKill(prev);  // revert the UI if the bot won't have received it
+          alert("Kill switch didn't save: " + (e.message || e) + "\nCheck the connection and try again.");
+        }
+      }} />
 
       <div style={{ flex: 1 }}></div>
 

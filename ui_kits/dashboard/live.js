@@ -170,7 +170,7 @@
       discord: alerts.length ? buildDiscord(alerts) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       session: Object.assign({}, base.session || {}, {
-        mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "DRY-RUN"),
+        mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "SIMULATION"),
         budget: sp ? "$" + Math.round(Number(sp.trade_budget_usd)) : (runs[0] && runs[0].budget != null ? "$" + Math.round(runs[0].budget) : (base.session || {}).budget),
         strategy: sName,
       }),

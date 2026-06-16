@@ -2,7 +2,11 @@
 function App() {
   const [page, setPage] = React.useState("dashboard");
   const [mode, setMode] = React.useState(window.NT_DATA.session.mode);
-  const [kill, setKill] = React.useState("ARMED");
+  // kill switch reflects strategy_params.kill_switch (TRIPPED = killed/positions flattened)
+  const [kill, setKill] = React.useState(() => {
+    const s = window.NT_DATA.strategies && window.NT_DATA.strategies[0];
+    return (s && s.params && s.params.kill_switch) ? "TRIPPED" : "ARMED";
+  });
   const [clock, setClock] = React.useState("");
 
   // Live push: realtime.js fires "nt-data" when Reezer changes -> re-render

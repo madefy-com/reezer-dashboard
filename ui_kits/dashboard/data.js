@@ -35,7 +35,7 @@
     },
     session: {
       date: "", window: "09:30 – 12:00 ET", budget: "$300",
-      mode: "DRY-RUN", strategy: "Nitro 0DTE", user: "Trader",
+      mode: "SIMULATION", strategy: "Nitro 0DTE", user: "Trader",
     },
   };
 })();
