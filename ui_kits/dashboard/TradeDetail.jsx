@@ -10,9 +10,11 @@ function TradeDetail({ trade, onClose }) {
   // Pull the real price path + action log for this trade when the drawer opens.
   const tradeId = trade && trade.id;
   React.useEffect(() => {
-    let alive = true; setDetail(null);
+    let alive = true; setDetail(null);   // null = still loading (so we never flash a fake chart)
     if (window.NT_TRADE_DETAIL && tradeId != null) {
-      window.NT_TRADE_DETAIL(tradeId).then((d) => { if (alive) setDetail(d); });
+      window.NT_TRADE_DETAIL(tradeId).then((d) => { if (alive) setDetail(d || { samples: [], events: [] }); });
+    } else {
+      setDetail({ samples: [], events: [] });   // nothing to fetch -> "no data", not loading forever
     }
     return () => { alive = false; };
   }, [tradeId]);
@@ -47,8 +49,10 @@ function TradeDetail({ trade, onClose }) {
     </div>
   );
 
-  // ----- chart: REAL recorded price path when available, else a cosmetic fallback -----
+  // ----- chart: ONLY the REAL recorded price path. While the fetch is in flight we
+  // show a loading skeleton (never a fake curve); if it finishes with no path, a note.
   const pw = 392, ph = 64, padX = 10, padTop = 8, padBot = 8;
+  const loading = detail === null;
   const samples = (detail && detail.samples) || [];
   const events = (detail && detail.events) || [];
   const hasReal = samples.length > 1;
@@ -72,18 +76,6 @@ function TradeDetail({ trade, onClose }) {
       x: X(e.ts), y: Y(e.price), c: colorOf(e.type),
       label: e.type + (e.qty ? " " + e.qty : "") + " @ $" + (+e.price).toFixed(2),
     }));
-  } else {
-    const pathPts = exitNum === null
-      ? [[0, 0.5], [0.5, 0.42], [1, 0.4]]
-      : (() => {
-          const lo = Math.min(tr.entry, exitNum), hi = Math.max(tr.entry, exitNum);
-          const norm = (v) => hi === lo ? 0.5 : 1 - (v - lo) / (hi - lo);
-          const mid = up ? norm(tr.entry) - 0.12 : norm(tr.entry) + 0.12;
-          return [[0, norm(tr.entry)], [0.45, Math.max(0.05, Math.min(0.95, mid))], [1, norm(exitNum)]];
-        })();
-    linePath = pathPts.map((p, i) => (i ? "L" : "M") + (padX + p[0] * (pw - 2 * padX)).toFixed(1) + " " + (padTop + p[1] * (ph - padTop - padBot)).toFixed(1)).join(" ");
-    marks = [{ x: padX, y: padTop + pathPts[0][1] * (ph - padTop - padBot), c: "var(--text-tertiary)" },
-             { x: pw - padX, y: padTop + pathPts[pathPts.length - 1][1] * (ph - padTop - padBot), c: c }];
   }
 
   // ----- "what happened": the action log, newest update on top -----
@@ -145,8 +137,13 @@ function TradeDetail({ trade, onClose }) {
             <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)" }}>CONTRACT PRICE</span>
             <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
           </div>
-          <div style={{ position: "relative", cursor: hasReal ? "crosshair" : "default" }}
-            onMouseMove={hasReal && pts.length ? (e) => {
+          {loading ? (
+            <div style={{ height: 64, borderRadius: "var(--radius-sm)", background: "var(--surface-hover)", animation: "nt-pulse var(--blink) var(--ease-in-out) infinite" }} />
+          ) : !hasReal ? (
+            <div style={{ height: 64, display: "grid", placeItems: "center", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)" }}>No price path recorded for this trade</div>
+          ) : (
+          <div style={{ position: "relative", cursor: "crosshair" }}
+            onMouseMove={pts.length ? (e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               if (!rect.width) return;
               const vbX = (e.clientX - rect.left) / rect.width * pw;
@@ -156,7 +153,7 @@ function TradeDetail({ trade, onClose }) {
             } : undefined}
             onMouseLeave={() => setHover(null)}>
             <svg viewBox={`0 0 ${pw} ${ph}`} width="100%" style={{ display: "block" }} preserveAspectRatio="none">
-              {hasReal && entryY != null && (
+              {entryY != null && (
                 <line x1={padX} y1={entryY} x2={pw - padX} y2={entryY} stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="3 3" />
               )}
               <path d={linePath} fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -185,6 +182,7 @@ function TradeDetail({ trade, onClose }) {
               );
             })()}
           </div>
+          )}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20 }}>
