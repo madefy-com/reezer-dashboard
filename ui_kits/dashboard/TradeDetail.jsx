@@ -2,9 +2,19 @@
 function TradeDetail({ trade, onClose }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [shown, setShown] = React.useState(false);
+  const [detail, setDetail] = React.useState(null);   // { samples, events } — lazy-loaded
   const panelRef = React.useRef(null);
   React.useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
+  // Pull the real price path + action log for this trade when the drawer opens.
+  const tradeId = trade && trade.id;
+  React.useEffect(() => {
+    let alive = true; setDetail(null);
+    if (window.NT_TRADE_DETAIL && tradeId != null) {
+      window.NT_TRADE_DETAIL(tradeId).then((d) => { if (alive) setDetail(d); });
+    }
+    return () => { alive = false; };
+  }, [tradeId]);
   if (!trade) return null;
 
   const tr = trade;
@@ -36,16 +46,64 @@ function TradeDetail({ trade, onClose }) {
     </div>
   );
 
-  const pathPts = exitNum === null
-    ? [[0, 0.5], [0.5, 0.42], [1, 0.4]]
-    : (() => {
-        const lo = Math.min(tr.entry, exitNum), hi = Math.max(tr.entry, exitNum);
-        const norm = (v) => hi === lo ? 0.5 : 1 - (v - lo) / (hi - lo);
-        const mid = up ? norm(tr.entry) - 0.12 : norm(tr.entry) + 0.12;
-        return [[0, norm(tr.entry)], [0.45, Math.max(0.05, Math.min(0.95, mid))], [1, norm(exitNum)]];
-      })();
-  const pw = 392, ph = 60;
-  const linePath = pathPts.map((p, i) => (i ? "L" : "M") + (10 + p[0] * (pw - 20)).toFixed(1) + " " + (6 + p[1] * (ph - 12)).toFixed(1)).join(" ");
+  // ----- chart: REAL recorded price path when available, else a cosmetic fallback -----
+  const pw = 392, ph = 64, padX = 10, padTop = 8, padBot = 8;
+  const samples = (detail && detail.samples) || [];
+  const events = (detail && detail.events) || [];
+  const hasReal = samples.length > 1;
+  const Tms = (iso) => new Date(iso).getTime();
+  let linePath = "", marks = [], entryY = null;
+
+  if (hasReal) {
+    const tMin = Tms(samples[0].ts), tMax = Tms(samples[samples.length - 1].ts);
+    const tSpan = (tMax - tMin) || 1;
+    let pLo = Infinity, pHi = -Infinity;
+    samples.forEach((s) => { const v = +s.price; if (v < pLo) pLo = v; if (v > pHi) pHi = v; });
+    pLo = Math.min(pLo, tr.entry); pHi = Math.max(pHi, tr.entry);
+    const pSpan = (pHi - pLo) || 1;
+    const X = (iso) => padX + ((Tms(iso) - tMin) / tSpan) * (pw - 2 * padX);
+    const Y = (v) => padTop + (1 - (+v - pLo) / pSpan) * (ph - padTop - padBot);
+    linePath = samples.map((s, i) => (i ? "L" : "M") + X(s.ts).toFixed(1) + " " + Y(s.price).toFixed(1)).join(" ");
+    entryY = Y(tr.entry);
+    const colorOf = (t) => t === "trim" ? "var(--profit)" : t === "stop" ? "var(--loss)" : t === "entry" ? "var(--text-secondary)" : "var(--breakeven)";
+    marks = events.filter((e) => e.type !== "stop_set" && e.price != null).map((e) => ({
+      x: X(e.ts), y: Y(e.price), c: colorOf(e.type),
+      label: e.type + (e.qty ? " " + e.qty : "") + " @ $" + (+e.price).toFixed(2),
+    }));
+  } else {
+    const pathPts = exitNum === null
+      ? [[0, 0.5], [0.5, 0.42], [1, 0.4]]
+      : (() => {
+          const lo = Math.min(tr.entry, exitNum), hi = Math.max(tr.entry, exitNum);
+          const norm = (v) => hi === lo ? 0.5 : 1 - (v - lo) / (hi - lo);
+          const mid = up ? norm(tr.entry) - 0.12 : norm(tr.entry) + 0.12;
+          return [[0, norm(tr.entry)], [0.45, Math.max(0.05, Math.min(0.95, mid))], [1, norm(exitNum)]];
+        })();
+    linePath = pathPts.map((p, i) => (i ? "L" : "M") + (padX + p[0] * (pw - 2 * padX)).toFixed(1) + " " + (padTop + p[1] * (ph - padTop - padBot)).toFixed(1)).join(" ");
+    marks = [{ x: padX, y: padTop + pathPts[0][1] * (ph - padTop - padBot), c: "var(--text-tertiary)" },
+             { x: pw - padX, y: padTop + pathPts[pathPts.length - 1][1] * (ph - padTop - padBot), c: c }];
+  }
+
+  // ----- "what happened": the action log, newest update on top -----
+  const fmtT = (iso) => { try { const tz = (window.NT_DATA && window.NT_DATA.marketHours && window.NT_DATA.marketHours.display_tz) || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(iso)); } catch (e) { return String(iso).slice(11, 19); } };
+  const describe = (e) => {
+    const p = e.price != null ? "$" + (+e.price).toFixed(2) : "";
+    const n = (e.note || "").toLowerCase();
+    switch (e.type) {
+      case "entry": return { label: "Entry · bought " + e.qty, at: p, src: "alert" };
+      case "trim": return { label: "Partial · sold " + e.qty, at: p, src: "alert" };
+      case "stop_set":
+        if (n.indexOf("breakeven") >= 0) return { label: "Stop → breakeven", at: p, src: "rule" };
+        if (n.indexOf("trail") >= 0) return { label: "Trail stop → " + p, at: "", src: "rule" };
+        return { label: "Stop set" + (e.note ? " (" + e.note + ")" : ""), at: p, src: "rule" };
+      case "stop": return { label: "Stopped out · sold " + e.qty, at: p, src: "rule" };
+      case "close": return { label: "Closed · sold " + e.qty, at: p, src: "alert" };
+      case "take_half": return { label: "Took half · sold " + e.qty, at: p, src: "rule" };
+      case "take_profit": return { label: "Take-profit · sold " + e.qty, at: p, src: "rule" };
+      default: return { label: e.type + (e.qty ? " " + e.qty : ""), at: p, src: "rule" };
+    }
+  };
+  const timeline = events.slice().reverse();   // newest first
 
   return (
     <div ref={panelRef} style={{
@@ -86,9 +144,15 @@ function TradeDetail({ trade, onClose }) {
             <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
           </div>
           <svg viewBox={`0 0 ${pw} ${ph}`} width="100%" style={{ display: "block" }} preserveAspectRatio="none">
+            {hasReal && entryY != null && (
+              <line x1={padX} y1={entryY} x2={pw - padX} y2={entryY} stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="3 3" />
+            )}
             <path d={linePath} fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={10} cy={6 + pathPts[0][1] * (ph - 12)} r="3" fill="var(--text-tertiary)" />
-            <circle cx={pw - 10} cy={6 + pathPts[pathPts.length - 1][1] * (ph - 12)} r="3.5" fill={c} />
+            {marks.map((m, i) => (
+              <circle key={i} cx={Number(m.x).toFixed(1)} cy={Number(m.y).toFixed(1)} r="3.5" fill={m.c} stroke="var(--surface-inset)" strokeWidth="1">
+                {m.label ? <title>{m.label}</title> : null}
+              </circle>
+            ))}
           </svg>
         </div>
 
@@ -122,6 +186,34 @@ function TradeDetail({ trade, onClose }) {
             </div>
           </div>
         </div>
+
+        {timeline.length > 0 && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>What happened</span>
+              <span style={{ display: "inline-flex", gap: 10, font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><i data-lucide="bell" style={{ width: 11, height: 11 }}></i> alert</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><i data-lucide="cog" style={{ width: 11, height: 11 }}></i> rule</span>
+              </span>
+            </div>
+            <div style={{ marginTop: 8, border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+              {timeline.map((e, i) => {
+                const d = describe(e);
+                const isAlert = d.src === "alert";
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderTop: i ? "1px solid var(--border)" : "none", background: "var(--surface-inset)" }}>
+                    <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", width: 58, flex: "none" }}>{fmtT(e.ts)}</span>
+                    <span style={{ width: 15, flex: "none", display: "inline-flex", color: isAlert ? "var(--fired)" : "var(--text-tertiary)" }}>
+                      <i data-lucide={isAlert ? "bell" : "cog"} style={{ width: 13, height: 13 }}></i>
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0, font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-primary)" }}>{d.label}</span>
+                    {d.at ? <span className="num" style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-secondary)", flex: "none" }}>{d.at}</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

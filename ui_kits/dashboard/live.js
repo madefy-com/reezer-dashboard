@@ -56,6 +56,7 @@
       var stop = p.stop_price == null ? null : Number(p.stop_price);
       var label = strikeOf(p.strike) + (p.side || "");
       return {
+        id: p.id, runId: p.run_id, entryTs: p.entry_ts, exitTs: p.exit_ts,  // for the detail chart
         t: tOf(p.entry_ts), close: p.exit_ts ? tOf(p.exit_ts) : "—",
         tk: p.ticker, strike: label, side: p.side, qty: total,
         entry: entry, exit: exitShown, pnl: pnl, pct: pct,
@@ -207,6 +208,19 @@
       RAW.flags = (res[4] && res[4].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
+  };
+
+  // Lazy per-trade detail: the real price path + the action log for ONE position.
+  // Fetched only when the trade drawer opens, so we never bulk-load every tick.
+  window.NT_TRADE_DETAIL = function (positionId) {
+    var c = window.NT_CLIENT;
+    if (!c || positionId == null) return Promise.resolve(null);
+    return Promise.all([
+      c.from("price_samples").select("ts,price,bid,ask").eq("position_id", positionId).order("ts", { ascending: true }).limit(2000),
+      c.from("trade_events").select("ts,type,qty,price,note").eq("position_id", positionId).order("ts", { ascending: true }).limit(200),
+    ]).then(function (res) {
+      return { samples: (res[0] && res[0].data) || [], events: (res[1] && res[1].data) || [] };
+    }).catch(function (e) { console.warn("NT_TRADE_DETAIL failed:", e); return null; });
   };
 
   // Apply ONE realtime change in place (using the row the websocket delivered)
