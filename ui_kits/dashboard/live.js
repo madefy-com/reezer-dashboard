@@ -157,7 +157,7 @@
   //      (initial load + manual refresh); after that, realtime pushes patch it
   //      in place via NT_APPLY — no per-event network round-trip, so each update
   //      renders the instant the websocket message lands. ----
-  var RAW = { positions: [], alerts: [], runs: [], sp: null };
+  var RAW = { positions: [], alerts: [], runs: [], sp: null, flags: [] };
 
   function rebuild() {
     var base = window.NT_DATA || {};
@@ -179,6 +179,7 @@
       }),
     });
     if (strat) { out.strategy = strat; out.strategies = [strat]; }
+    out.flags = RAW.flags || [];
     return out;
   }
 
@@ -190,11 +191,13 @@
       c.from("alerts").select("*").order("ts", { ascending: false }).limit(300),
       c.from("runs").select("*").order("id", { ascending: false }).limit(1),
       c.from("strategy_params").select("*").eq("id", 1).maybeSingle(),
+      c.from("operator_flags").select("*").order("ts", { ascending: false }).limit(50),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
       RAW.runs = (res[2] && res[2].data) || [];
       RAW.sp = (res[3] && res[3].data) || null;
+      RAW.flags = (res[4] && res[4].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };
@@ -205,8 +208,8 @@
   window.NT_APPLY = function (table, eventType, newRow, oldRow) {
     if (table === "strategy_params") {
       if (newRow) RAW.sp = newRow;
-    } else if (table === "positions" || table === "alerts") {
-      var arr = RAW[table], row = newRow || oldRow;
+    } else if (table === "positions" || table === "alerts" || table === "operator_flags") {
+      var arr = RAW[table === "operator_flags" ? "flags" : table], row = newRow || oldRow;
       if (!row) return false;
       var i = arr.findIndex(function (r) { return r.id === row.id; });
       if (eventType === "DELETE") { if (i >= 0) arr.splice(i, 1); }
