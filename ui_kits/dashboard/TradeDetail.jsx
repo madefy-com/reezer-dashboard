@@ -3,6 +3,7 @@ function TradeDetail({ trade, onClose }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [shown, setShown] = React.useState(false);
   const [detail, setDetail] = React.useState(null);   // { samples, events } — lazy-loaded
+  const [hover, setHover] = React.useState(null);      // { idx, w } for the chart crosshair/tooltip
   const panelRef = React.useRef(null);
   React.useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
@@ -52,7 +53,7 @@ function TradeDetail({ trade, onClose }) {
   const events = (detail && detail.events) || [];
   const hasReal = samples.length > 1;
   const Tms = (iso) => new Date(iso).getTime();
-  let linePath = "", marks = [], entryY = null;
+  let linePath = "", marks = [], entryY = null, pts = [];
 
   if (hasReal) {
     const tMin = Tms(samples[0].ts), tMax = Tms(samples[samples.length - 1].ts);
@@ -65,6 +66,7 @@ function TradeDetail({ trade, onClose }) {
     const Y = (v) => padTop + (1 - (+v - pLo) / pSpan) * (ph - padTop - padBot);
     linePath = samples.map((s, i) => (i ? "L" : "M") + X(s.ts).toFixed(1) + " " + Y(s.price).toFixed(1)).join(" ");
     entryY = Y(tr.entry);
+    pts = samples.map((s) => ({ x: X(s.ts), y: Y(s.price), price: +s.price, ts: s.ts, gain: (+s.price / tr.entry - 1) * 100 }));
     const colorOf = (t) => t === "trim" ? "var(--profit)" : t === "stop" ? "var(--loss)" : t === "entry" ? "var(--text-secondary)" : "var(--breakeven)";
     marks = events.filter((e) => e.type !== "stop_set" && e.price != null).map((e) => ({
       x: X(e.ts), y: Y(e.price), c: colorOf(e.type),
@@ -143,17 +145,46 @@ function TradeDetail({ trade, onClose }) {
             <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)" }}>CONTRACT PRICE</span>
             <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
           </div>
-          <svg viewBox={`0 0 ${pw} ${ph}`} width="100%" style={{ display: "block" }} preserveAspectRatio="none">
-            {hasReal && entryY != null && (
-              <line x1={padX} y1={entryY} x2={pw - padX} y2={entryY} stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="3 3" />
-            )}
-            <path d={linePath} fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            {marks.map((m, i) => (
-              <circle key={i} cx={Number(m.x).toFixed(1)} cy={Number(m.y).toFixed(1)} r="3.5" fill={m.c} stroke="var(--surface-inset)" strokeWidth="1">
-                {m.label ? <title>{m.label}</title> : null}
-              </circle>
-            ))}
-          </svg>
+          <div style={{ position: "relative", cursor: hasReal ? "crosshair" : "default" }}
+            onMouseMove={hasReal && pts.length ? (e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              if (!rect.width) return;
+              const vbX = (e.clientX - rect.left) / rect.width * pw;
+              let best = 0, bd = Infinity;
+              for (let i = 0; i < pts.length; i++) { const d = Math.abs(pts[i].x - vbX); if (d < bd) { bd = d; best = i; } }
+              setHover({ idx: best, w: rect.width });
+            } : undefined}
+            onMouseLeave={() => setHover(null)}>
+            <svg viewBox={`0 0 ${pw} ${ph}`} width="100%" style={{ display: "block" }} preserveAspectRatio="none">
+              {hasReal && entryY != null && (
+                <line x1={padX} y1={entryY} x2={pw - padX} y2={entryY} stroke="var(--border-strong)" strokeWidth="1" strokeDasharray="3 3" />
+              )}
+              <path d={linePath} fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {marks.map((m, i) => (
+                <circle key={i} cx={Number(m.x).toFixed(1)} cy={Number(m.y).toFixed(1)} r="3.5" fill={m.c} stroke="var(--surface-inset)" strokeWidth="1">
+                  {m.label ? <title>{m.label}</title> : null}
+                </circle>
+              ))}
+              {hover && pts[hover.idx] && (
+                <g>
+                  <line x1={pts[hover.idx].x} y1={0} x2={pts[hover.idx].x} y2={ph} stroke="var(--text-tertiary)" strokeWidth="1" strokeDasharray="2 2" opacity="0.7" />
+                  <circle cx={pts[hover.idx].x} cy={pts[hover.idx].y} r="4" fill={c} stroke="var(--surface-card)" strokeWidth="1.5" />
+                </g>
+              )}
+            </svg>
+            {hover && pts[hover.idx] && (() => {
+              const g = pts[hover.idx].gain;
+              const gc = g > 0 ? "var(--profit)" : g < 0 ? "var(--loss)" : "var(--breakeven)";
+              const left = Math.max(42, Math.min(pts[hover.idx].x / pw * hover.w, hover.w - 42));
+              return (
+                <div style={{ position: "absolute", top: -2, left: left, transform: "translateX(-50%)", pointerEvents: "none",
+                  background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)", boxShadow: "var(--shadow-pop)", padding: "5px 9px", whiteSpace: "nowrap" }}>
+                  <span className="num" style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-mono)", color: gc }}>{(g > 0 ? "+" : g < 0 ? "−" : "") + Math.abs(g).toFixed(1) + "%"}</span>
+                  <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", marginLeft: 7 }}>${pts[hover.idx].price.toFixed(2)} · {fmtT(pts[hover.idx].ts)}</span>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 20 }}>
