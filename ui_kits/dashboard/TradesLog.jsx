@@ -2,10 +2,6 @@
 function TradesLog({ onSelect, fill = false }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const rows = window.NT_DATA.trades;
-  // streaming dot: green+blinking inside the streaming window, red outside (live)
-  const [, setTick] = React.useState(0);
-  React.useEffect(() => { const id = setInterval(() => setTick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
-  const streaming = ntSession(new Date()).streaming;
   const money = (n) => (n > 0 ? "+$" + n.toFixed(2) : n < 0 ? "\u2212$" + Math.abs(n).toFixed(2) : "$0.00");
   const pct = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toFixed(1) + "%";
   const tone = (n) => (n > 0 ? "var(--profit)" : n < 0 ? "var(--loss)" : "var(--breakeven)");
@@ -17,14 +13,6 @@ function TradesLog({ onSelect, fill = false }) {
 
   return (
     <NT.Card title="Trades" padding={20}
-      action={<span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-        <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%",
-          background: streaming ? "var(--profit)" : "var(--loss)",
-          animation: streaming ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }} />
-        <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-secondary)", letterSpacing: "var(--ls-snug)" }}>
-          {streaming ? "streaming" : "not streaming"}
-        </span>
-      </span>}
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
       <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "auto", padding: "0 20px 10px" }}>

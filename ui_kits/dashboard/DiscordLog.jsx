@@ -4,6 +4,20 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
   const feed = window.NT_DATA.discord;
   const sum = window.NT_DATA.summary14d;
 
+  // streaming dot next to the title: green+blinking inside the streaming window,
+  // red outside. (Moved here from the Trades card — streaming = live alert flow.)
+  const [, setTick] = React.useState(0);
+  React.useEffect(() => { const id = setInterval(() => setTick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
+  const streaming = ntSession(new Date()).streaming;
+  const Title = (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      Alerts
+      <span title={streaming ? "streaming" : "not streaming"} style={{ width: 8, height: 8, flex: "none", borderRadius: "50%",
+        background: streaming ? "var(--profit)" : "var(--loss)",
+        animation: streaming ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }} />
+    </span>
+  );
+
   const Summary = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: "var(--fired)" }}>{sum.fired} fired</span>
@@ -17,7 +31,7 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
   const legendCell = (w) => ({ ...legendBase, width: w, flex: "none" });
 
   return (
-    <NT.Card title="Alerts" padding={20} action={Summary}
+    <NT.Card title={Title} padding={20} action={Summary}
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
       <div style={{ flex: fill ? 1 : undefined, maxHeight: fill ? undefined : maxHeight, overflowY: "auto", overflowX: "hidden" }}>

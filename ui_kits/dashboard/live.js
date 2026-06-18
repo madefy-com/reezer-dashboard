@@ -120,9 +120,16 @@
   }
   function buildDiscord(alerts) {
     return alerts.map(function (a) {
-      return { t: tOf(a.ts), type: typeLabel(a.type), user: "alerts", ch: "alerts",
+      // discord_ts = when the trader posted; ts = when the bot received/acted.
+      // latency = the gap = Discord->order delay (the slippage-relevant window).
+      var dts = a.discord_ts ? new Date(a.discord_ts) : null;
+      var rts = a.ts ? new Date(a.ts) : null;
+      var lat = (dts && rts && !isNaN(dts.getTime()) && !isNaN(rts.getTime()))
+        ? Math.max(0, Math.round((rts - dts) / 1000)) : null;
+      return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—",
+        type: typeLabel(a.type), user: "alerts", ch: "alerts",
         symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
-        reason: a.reason || "", latency: "", action: "" };
+        reason: a.reason || "", latency: lat == null ? "" : lat + "s", action: "" };
     });
   }
 

@@ -33,18 +33,19 @@ function LogPage() {
         <div style={{ overflowX: "auto", padding: "0 20px 16px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
             <thead><tr>
-              <th style={th}>time</th><th style={th}>type</th><th style={th}>channel</th><th style={th}>symbol</th>
-              <th style={{ ...th, width: "40%" }}>message</th><th style={th}>latency</th><th style={th}>action</th><th style={{ ...th, paddingRight: 0 }}>result</th>
+              <th style={th}>alert</th><th style={th}>received</th><th style={th}>delay</th><th style={th}>type</th><th style={th}>channel</th><th style={th}>symbol</th>
+              <th style={{ ...th, width: "40%" }}>message</th><th style={th}>action</th><th style={{ ...th, paddingRight: 0 }}>result</th>
             </tr></thead>
             <tbody>
               {rows.map((m, i) => (
                 <tr key={i} style={{ opacity: m.fired ? 1 : 0.62 }}>
-                  <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.t.slice(0, 5)}</td>
+                  <td style={{ ...td, ...mono, color: m.alertT === "—" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{m.alertT === "—" ? "—" : m.alertT.slice(0, 8)}</td>
+                  <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.t.slice(0, 8)}</td>
+                  <td style={{ ...td, ...mono, color: m.latency ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: m.latency ? "var(--w-medium)" : "var(--w-regular)" }}>{m.latency || "—"}</td>
                   <td style={td}><NT.TypeChip type={m.type} /></td>
                   <td style={td}><span style={{ display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)" }}>#{m.ch}</span></td>
                   <td style={{ ...td, ...mono, color: m.symbol === "—" ? "var(--text-tertiary)" : "var(--text-secondary)", fontWeight: "var(--w-medium)" }}>{m.symbol}</td>
                   <td style={{ ...td, color: m.fired ? "var(--text-primary)" : "var(--text-tertiary)" }}>{m.msg}</td>
-                  <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.fired ? m.latency : "—"}</td>
                   <td style={{ ...td, ...mono, color: m.fired ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{m.fired ? m.action : "—"}</td>
                   <td style={{ ...td, paddingRight: 0 }}><NT.FiredBadge fired={m.fired} reason={m.reason} /></td>
                 </tr>
