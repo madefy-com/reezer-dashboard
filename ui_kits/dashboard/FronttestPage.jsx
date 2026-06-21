@@ -15,7 +15,8 @@ function FronttestPage() {
     setRows(null); setErr("");
     try {
       const [posR, peakR] = await Promise.all([
-        c.from("positions").select("id,ticker,strike,side,entry_price,exit_price,exit_ts,realized_pnl,orig_qty,qty,status").eq("status", "closed").order("id", { ascending: false }).limit(200),
+        // id < 990000 excludes replay/what-if rows (990xxx) — Exit Lab is for real taped trades only.
+        c.from("positions").select("id,ticker,strike,side,entry_price,exit_price,exit_ts,realized_pnl,orig_qty,qty,status").eq("status", "closed").lt("id", 990000).order("id", { ascending: false }).limit(200),
         c.from("fronttest_peak").select("position_id,peak_price,samples,last_ts").limit(500),
       ]);
       if (posR.error) throw posR.error;
