@@ -9,7 +9,7 @@ const NT_FMT = (d) => d.toLocaleDateString("en-US", { month: "short", day: "nume
 function ntRangeLabel(value, custom) {
   const now = new Date();
   if (value === "custom" && custom) return NT_FMT(custom.from) + " – " + NT_FMT(custom.to);
-  if (value === "week") { const s = new Date(now); s.setDate(now.getDate() - 6); return NT_FMT(s) + " – " + NT_FMT(now); }
+  if (value === "week") { const d = now.getDay(); const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (d === 0 ? -6 : 1 - d)); const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6); return NT_FMT(mon) + " – " + NT_FMT(sun); }
   if (value === "month") { const s = new Date(now.getFullYear(), now.getMonth(), 1); return NT_FMT(s) + " – " + NT_FMT(now); }
   return now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -20,7 +20,12 @@ function ntRangeBounds(value, custom) {
   const now = new Date();
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   if (value === "custom" && custom) { const t = custom.to; return { from: custom.from, to: new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59, 999) }; }
-  if (value === "week") { const s = new Date(now); s.setDate(now.getDate() - 6); s.setHours(0, 0, 0, 0); return { from: s, to: end }; }
+  if (value === "week") {  // calendar week, Monday -> Sunday
+    const d = now.getDay();
+    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (d === 0 ? -6 : 1 - d), 0, 0, 0, 0);
+    const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6, 23, 59, 59, 999);
+    return { from: mon, to: sun };
+  }
   if (value === "month") { return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: end }; }
   return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0), to: end };  // today
 }

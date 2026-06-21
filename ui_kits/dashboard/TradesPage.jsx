@@ -4,7 +4,7 @@
 function TradesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const rows = window.NT_DATA.trades;
-  const [range, setRange] = React.useState("today");
+  const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [sel, setSel] = React.useState(null);
 
   const money = (n) => (n > 0 ? "+$" + n.toFixed(2) : n < 0 ? "\u2212$" + Math.abs(n).toFixed(2) : "$0.00");
@@ -33,7 +33,7 @@ function TradesPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Trades" subtitle="Every order the bot has placed — click a row for the full breakdown"
-        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={setRange} /></span>} />
+        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /></span>} />
 
       {/* top frames — same KpiCard look as the dashboard */}
       <div className="nt-tkpi">

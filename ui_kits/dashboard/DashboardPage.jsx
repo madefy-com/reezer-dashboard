@@ -6,14 +6,14 @@
 /* StrategyViewSelect now lives in Shared.jsx (used by Dashboard + Trades). */
 
 function DashboardPage({ mode, kill }) {
-  const [range, setRange] = React.useState("today");
+  const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [sel, setSel] = React.useState(null);
   // keep the top date filter and the chart's range in sync (Today↔1D, week↔1W, month↔1M)
   const chartRange = ({ today: "1D", week: "1W", month: "1M", custom: "1M" })[range] || "1M";
-  const onChartRange = (cr) => setRange(({ "1D": "today", "1W": "week", "1M": "month" })[cr] || "today");
+  const onChartRange = (cr) => window.NT_SET_RANGE(({ "1D": "today", "1W": "week", "1M": "month" })[cr] || "week");
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title={greeting(window.NT_USER_NAME || window.NT_DATA.session.user)} right={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={setRange} /></div>} />
+      <PageHead title={greeting(window.NT_USER_NAME || window.NT_DATA.session.user)} right={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /></div>} />
       <KpiRow />
       <div className="nt-body" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gridTemplateRows: "minmax(0,1fr)", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", minHeight: 0 }}>

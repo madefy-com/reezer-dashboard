@@ -248,6 +248,12 @@
     out.strategies = stratList;
     out.strategy = stratList[0] || null;
     out.viewStrategy = view;
+    // date filter: persisted choice shared across all pages (default "week", Mon–Sun)
+    var dr = "week"; var custom = null;
+    try { dr = (window.localStorage && localStorage.getItem("nt_date_range")) || "week"; } catch (e) {}
+    if (dr === "custom") { try { var cc = JSON.parse(localStorage.getItem("nt_date_custom")); if (cc) custom = { from: new Date(cc.from), to: new Date(cc.to) }; } catch (e) {} }
+    out.dateRange = dr;
+    out.dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
     out.sources = (RAW.sources || []);
     out.brokerAccounts = (RAW.brokerAccounts || []);
     out.flags = RAW.flags || [];
@@ -257,6 +263,18 @@
   // Set the dashboard view filter (persisted) and re-render.
   window.NT_SET_VIEW = function (v) {
     try { window.localStorage.setItem("nt_view_strategy", v); } catch (e) {}
+    window.NT_DATA = rebuild();
+    window.dispatchEvent(new Event("nt-data"));
+  };
+
+  // Set the shared date filter (persisted across pages) and re-render. `bounds` is
+  // only stored for custom ranges; presets are recomputed each render (so "this week"
+  // stays current). Mirrors NT_SET_VIEW.
+  window.NT_SET_RANGE = function (value, bounds) {
+    try {
+      window.localStorage.setItem("nt_date_range", value);
+      if (value === "custom" && bounds) window.localStorage.setItem("nt_date_custom", JSON.stringify({ from: bounds.from, to: bounds.to }));
+    } catch (e) {}
     window.NT_DATA = rebuild();
     window.dispatchEvent(new Event("nt-data"));
   };

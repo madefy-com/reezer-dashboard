@@ -10,8 +10,8 @@ function FronttestPage() {
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   const [rows, setRows] = React.useState(null);   // null = loading
   const [err, setErr] = React.useState("");
-  const [range, setRange] = React.useState("month");
-  const [bounds, setBounds] = React.useState(() => window.ntRangeBounds("month", null));
+  const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
+  const bounds = window.NT_DATA.dateBounds || (window.ntRangeBounds ? window.ntRangeBounds(range, null) : null);
 
   const load = React.useCallback(async () => {
     const c = window.NT_CLIENT;
@@ -84,7 +84,7 @@ function FronttestPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Exit Lab" subtitle="Every trade across all strategies on the same alerts — compare what each strategy's exits did"
-        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><DateFilter value={range} onChange={(v, b) => { setRange(v); setBounds(b); }} /><NT.Button variant="ghost" size="md" onClick={load}>Refresh</NT.Button></span>} />
+        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /><NT.Button variant="ghost" size="md" onClick={load}>Refresh</NT.Button></span>} />
 
       <NT.Card title="Trades" padding={20} action={<StrategyViewSelect />}>
         {rows == null ? (
