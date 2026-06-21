@@ -13,6 +13,7 @@ window.NT_CHANGELOG = [
       "Strategies are now multiple cards, each linked to a live, fronttest (paper) or draft account — create, duplicate, delete, pick which sources it trades, and compare them side by side on the same alerts.",
       "New Sources page (Sources & settings) to manage the alert channels the bot watches; the Alerts page can filter by source.",
       "Top bar now shows a strategy summary (e.g. “1 live · 2 paper”) instead of a single-strategy picker.",
+      "Dashboard has a strategy filter (top right) — show all strategies, only the live ones, or a single one; your choice is remembered.",
     ],
   },
   {

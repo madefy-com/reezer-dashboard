@@ -213,11 +213,25 @@
     var anyLive = stratList.some(function (s) { return s.account === "live"; });
     var totBudget = stratList.reduce(function (a, s) { return a + (Number(s.params && s.params.trade_budget_usd) || 0); }, 0);
 
+    // dashboard view filter: 'all' | 'live' | <strategy_id>. Scopes the KPIs / trades /
+    // P&L to one strategy; the Strategies page + comparison always use the full set.
+    var view = "all";
+    try { view = (window.localStorage && localStorage.getItem("nt_view_strategy")) || "all"; } catch (e) {}
+    var liveIds = {};
+    stratList.forEach(function (s) { if (s.account === "live") liveIds[s.id] = true; });
+    var inView = function (sid) {
+      if (view === "all") return true;
+      if (view === "live") return !!liveIds[sid];
+      return String(sid) === String(view);
+    };
+    var vTrades = (trades || []).filter(function (t) { return inView(t.strategyId); });
+    var vPositions = positions.filter(function (p) { return inView(p.strategy_id); });
+
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     var out = Object.assign({}, base, {
-      trades: trades || base.trades,
-      kpis: trades ? buildKpis(trades) : base.kpis,
-      daily: positions.length ? buildDaily(positions) : base.daily,
+      trades: trades ? vTrades : base.trades,
+      kpis: trades ? buildKpis(vTrades) : base.kpis,
+      daily: positions.length ? buildDaily(vPositions) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       session: Object.assign({}, base.session || {}, {
@@ -228,10 +242,18 @@
     });
     out.strategies = stratList;
     out.strategy = stratList[0] || null;
+    out.viewStrategy = view;
     out.sources = (RAW.sources || []);
     out.flags = RAW.flags || [];
     return out;
   }
+
+  // Set the dashboard view filter (persisted) and re-render.
+  window.NT_SET_VIEW = function (v) {
+    try { window.localStorage.setItem("nt_view_strategy", v); } catch (e) {}
+    window.NT_DATA = rebuild();
+    window.dispatchEvent(new Event("nt-data"));
+  };
 
   window.NT_LIVE = function () {
     var c = window.NT_CLIENT;
