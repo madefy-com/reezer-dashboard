@@ -15,6 +15,16 @@ function ntRangeLabel(value, custom) {
 }
 const NT_ISO = (d) => d.toISOString().slice(0, 10);
 
+// Resolve a date-filter value -> {from, to} Date bounds (to is end-of-day, inclusive).
+function ntRangeBounds(value, custom) {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  if (value === "custom" && custom) { const t = custom.to; return { from: custom.from, to: new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59, 999) }; }
+  if (value === "week") { const s = new Date(now); s.setDate(now.getDate() - 6); s.setHours(0, 0, 0, 0); return { from: s, to: end }; }
+  if (value === "month") { return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: end }; }
+  return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0), to: end };  // today
+}
+
 function DateFilter({ value, onChange }) {
   const [open, setOpen] = React.useState(false);
   const [custom, setCustom] = React.useState(null);
@@ -24,11 +34,12 @@ function DateFilter({ value, onChange }) {
   const opts = [["today", "Today"], ["week", "This week"], ["month", "This month"]];
   const label = ntRangeLabel(value, custom);
 
-  const pick = (id) => { setCustom(null); setOpen(false); onChange(id); };
+  const pick = (id) => { setCustom(null); setOpen(false); onChange(id, ntRangeBounds(id, null)); };
   const apply = () => {
     const f = new Date(from + "T00:00:00"), t = new Date(to + "T00:00:00");
-    setCustom({ from: f <= t ? f : t, to: f <= t ? t : f });
-    setOpen(false); onChange("custom");
+    const c = { from: f <= t ? f : t, to: f <= t ? t : f };
+    setCustom(c);
+    setOpen(false); onChange("custom", ntRangeBounds("custom", c));
   };
 
   const inputStyle = {
@@ -267,5 +278,5 @@ function StrategyViewSelect() {
   return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
 }
 
-Object.assign(window, { greeting, DateFilter, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,
+Object.assign(window, { greeting, DateFilter, ntRangeBounds, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,
   ntSession, ntFmtTz, ntNextOpen, ntNextOpenLabel, ntTzInstant, ntTzDow });

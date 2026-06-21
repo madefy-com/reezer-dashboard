@@ -10,6 +10,8 @@ function FronttestPage() {
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   const [rows, setRows] = React.useState(null);   // null = loading
   const [err, setErr] = React.useState("");
+  const [range, setRange] = React.useState("month");
+  const [bounds, setBounds] = React.useState(() => window.ntRangeBounds("month", null));
 
   const load = React.useCallback(async () => {
     const c = window.NT_CLIENT;
@@ -53,7 +55,9 @@ function FronttestPage() {
   const view = String(window.NT_DATA.viewStrategy || "all");
   const liveIds = {}; strategies.forEach((s) => { if (s.account === "live") liveIds[s.id] = true; });
   const inView = (sid) => view === "all" ? true : view === "live" ? !!liveIds[sid] : String(sid) === view;
-  const shown = (rows || []).filter((r) => inView(r.sid));
+  const inDate = (iso) => { if (!bounds || !iso) return true; const d = new Date(iso); return d >= bounds.from && d <= bounds.to; };
+  const dateRows = (rows || []).filter((r) => inDate(r.when));   // date-filtered (all strategies) -> drives the stats
+  const shown = dateRows.filter((r) => inView(r.sid));           // + strategy filter -> drives the trades table
 
   const pct = (n) => (n == null ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(1) + "%");
   const money = (n) => (n > 0 ? "+$" : n < 0 ? "−$" : "$") + Math.abs(Math.round(n));
@@ -69,7 +73,7 @@ function FronttestPage() {
 
   // per-strategy stats rollup over the visible trades
   const stats = {};
-  shown.forEach((r) => {
+  dateRows.forEach((r) => {
     const s = stats[r.sid] || (stats[r.sid] = { sid: r.sid, n: 0, wins: 0, pnl: 0, retSum: 0, retN: 0, leftSum: 0, leftN: 0 });
     s.n++; if (r.pnl > 0) s.wins++; s.pnl += r.pnl;
     if (r.retPct != null) { s.retSum += r.retPct; s.retN++; }
@@ -80,16 +84,16 @@ function FronttestPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Exit Lab" subtitle="Every trade across all strategies on the same alerts — compare what each strategy's exits did"
-        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><NT.Button variant="ghost" size="md" onClick={load}>Refresh</NT.Button></span>} />
+        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><DateFilter value={range} onChange={(v, b) => { setRange(v); setBounds(b); }} /><NT.Button variant="ghost" size="md" onClick={load}>Refresh</NT.Button></span>} />
 
-      <NT.Card title="Trades · all strategies" padding={20}>
+      <NT.Card title="Trades" padding={20} action={<StrategyViewSelect />}>
         {rows == null ? (
           <div style={{ padding: "30px 0", textAlign: "center", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>Loading…</div>
         ) : shown.length === 0 ? (
           <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", gap: 8, alignItems: "center", color: "var(--text-tertiary)" }}>
             <Ico name="git-compare-arrows" size={26} />
-            <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>No trades to compare yet</span>
-            <span style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)" }}>Closed trades from every strategy show up here. {err ? "(" + err + ")" : ""}</span>
+            <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>No trades in this range</span>
+            <span style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)" }}>Try a wider date range or a different strategy. {err ? "(" + err + ")" : ""}</span>
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
@@ -123,7 +127,7 @@ function FronttestPage() {
 
       {statList.length > 0 && (
         <NT.Card title="Per-strategy stats" padding={20}
-          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>over the trades shown above</span>}>
+          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>all strategies in range</span>}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
               <thead><tr>
