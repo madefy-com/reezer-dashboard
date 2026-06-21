@@ -24,7 +24,7 @@ const NT_tierTr = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : N
 // account -> badge {label, color var, bg var}
 const NT_ACCT = {
   live: { label: "LIVE", c: "var(--live)", bg: "var(--live-bg)" },
-  fronttest: { label: "FRONTTEST", c: "var(--dryrun)", bg: "var(--dryrun-bg)" },
+  fronttest: { label: "PAPER", c: "var(--dryrun)", bg: "var(--dryrun-bg)" },
   draft: { label: "DRAFT", c: "var(--text-tertiary)", bg: "var(--surface-inset)" },
 };
 
@@ -191,7 +191,7 @@ function StrategyCard({ strat, sources }) {
 
             <NT_SSection>Account</NT_SSection>
             <div style={{ display: "inline-flex", width: "fit-content", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
-              {[["Live", "live"], ["Fronttest", "fronttest"], ["Draft", "draft"]].map((o) => {
+              {[["Live", "live"], ["Paper", "fronttest"], ["Draft", "draft"]].map((o) => {
                 const on = form.account === o[1]; const col = NT_ACCT[o[1]].c;
                 return <button key={o[1]} type="button" onClick={async () => {
                   if (o[1] === "live" && form.account !== "live") {
@@ -202,7 +202,7 @@ function StrategyCard({ strat, sources }) {
                 }} style={{ height: 30, padding: "0 14px", borderRadius: "var(--radius-xs)", cursor: "pointer", border: "1px solid " + (on ? "color-mix(in srgb, " + col + " 34%, transparent)" : "transparent"), background: on ? NT_ACCT[o[1]].bg : "transparent", color: on ? col : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{o[0]}</button>;
               })}
             </div>
-            <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>Live = real orders · Fronttest = paper (records on live prices, sends nothing) · Draft = not running.</span>
+            <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>Live = real orders · Paper = records on live prices, sends nothing · Draft = not running.</span>
 
             <NT_SSection>Sizing</NT_SSection>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -295,7 +295,7 @@ function StrategiesPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Strategies" subtitle="One card per strategy · linked to a live, fronttest (paper) or draft account"
+      <PageHead title="Strategies" subtitle="One card per strategy · linked to a live, paper or draft account"
         right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={createStrategy}>New strategy</NT.Button>} />
 
       {closedById.length > 1 && (

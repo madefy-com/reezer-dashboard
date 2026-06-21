@@ -10,7 +10,7 @@ window.NT_CHANGELOG = [
     v: "1.004", date: "2026-06-21",
     notes: [
       "Added a version number (bottom of the sidebar) and this Updates page, with the full history grouped by day.",
-      "Strategies are now multiple cards, each linked to a live, fronttest (paper) or draft account — create, duplicate, delete, pick which sources it trades, and compare them side by side on the same alerts.",
+      "Strategies are now multiple cards, each linked to a live, paper or draft account — create, duplicate, delete, pick which sources it trades, and compare them side by side on the same alerts.",
       "New Settings page to manage alert channels and broker accounts; the Alerts page can filter by source.",
       "Top bar now shows a strategy summary (e.g. “1 live · 2 paper”) instead of a single-strategy picker.",
       "Dashboard and Trades share a strategy filter (top right, on-brand dropdown) — show all strategies, only the live ones, or a single one; set the default under Settings.",
