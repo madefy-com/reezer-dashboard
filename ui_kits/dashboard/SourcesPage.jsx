@@ -1,0 +1,93 @@
+/* SourcesPage — manage alert sources (channels the bot watches). Several can be
+   enabled at once; each alert is tagged with its source and shown on the Alerts page. */
+function SourcesPage() {
+  const NT = window.NitroTraderDesignSystem_95e598;
+  const [, force] = React.useState(0);
+  React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
+  const sources = window.NT_DATA.sources || [];
+  const [form, setForm] = React.useState(null);
+  const [saving, setSaving] = React.useState(false);
+  const INP = { height: 38, padding: "0 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", width: "100%", boxSizing: "border-box" };
+
+  const openNew = () => setForm({ id: null, name: "", type: "discord", channel_url: "", enabled: true });
+  const openEdit = (s) => setForm({ id: s.id, name: s.name || "", type: s.type || "discord", channel_url: s.channel_url || "", enabled: !!s.enabled });
+  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = async () => {
+    if (!form.name.trim()) { await window.NT_ALERT("Give the source a name.", { title: "Source" }); return; }
+    setSaving(true);
+    const payload = { name: form.name.trim(), type: form.type, channel_url: form.channel_url.trim() || null, enabled: !!form.enabled, updated_at: new Date().toISOString() };
+    try {
+      const r = form.id ? await window.NT_CLIENT.from("sources").update(payload).eq("id", form.id)
+                        : await window.NT_CLIENT.from("sources").insert(payload);
+      if (r.error) throw r.error;
+      await window.NT_REFRESH(); setForm(null);
+    } catch (e) { await window.NT_ALERT("Save failed: " + (e.message || e), { title: "Source" }); }
+    setSaving(false);
+  };
+  const toggle = async (s) => {
+    try { const r = await window.NT_CLIENT.from("sources").update({ enabled: !s.enabled, updated_at: new Date().toISOString() }).eq("id", s.id); if (r.error) throw r.error; await window.NT_REFRESH(); }
+    catch (e) { await window.NT_ALERT("Couldn’t update: " + (e.message || e), { title: "Source" }); }
+  };
+  const del = async (s) => {
+    if (!(await window.NT_CONFIRM("Delete source “" + s.name + "”? Past alerts keep their tag.", { title: "Delete source", ok: "Delete", danger: true }))) return;
+    try { const r = await window.NT_CLIENT.from("sources").delete().eq("id", s.id); if (r.error) throw r.error; await window.NT_REFRESH(); }
+    catch (e) { await window.NT_ALERT("Delete failed: " + (e.message || e), { title: "Source" }); }
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
+      <PageHead title="Sources" subtitle="Alert channels the bot watches · enable several to run them at once"
+        right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
+        {sources.map((s) => (
+          <div key={s.id} style={{ background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 20, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{s.name}</div>
+                <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-mono)", color: "var(--text-tertiary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.type} · {s.channel_url || "uses default channel"}</div>
+              </div>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", background: s.enabled ? "var(--profit-bg)" : "var(--surface-inset)", color: s.enabled ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", flex: "none" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.enabled ? "var(--profit)" : "var(--text-tertiary)" }}></span>{s.enabled ? "ON" : "OFF"}
+              </span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <NT.Button variant="ghost" size="sm" onClick={() => del(s)}>Delete</NT.Button>
+              <NT.Button variant="ghost" size="sm" onClick={() => toggle(s)}>{s.enabled ? "Disable" : "Enable"}</NT.Button>
+              <NT.Button variant="primary" size="sm" icon={<Ico name="settings-2" size={14} />} onClick={() => openEdit(s)}>Edit</NT.Button>
+            </div>
+          </div>
+        ))}
+        {!sources.length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No sources yet — click “New source”.</div>}
+      </div>
+
+      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+        Enabling, disabling or adding a source takes effect when the bot next starts a session. A Discord source needs its own browser login.
+      </div>
+
+      {form && (
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget) setForm(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
+          <div style={{ width: 480, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)" }}>{form.id ? "Edit source" : "New source"}</span>
+              <button onClick={() => setForm(null)} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Name</span><input value={form.name} onChange={(e) => setF("name", e.target.value)} style={INP} /></label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Type</span>
+              <select value={form.type} onChange={(e) => setF("type", e.target.value)} style={INP}><option value="discord">discord</option><option value="webhook">webhook</option><option value="manual">manual</option></select></label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Channel URL</span><input value={form.channel_url} onChange={(e) => setF("channel_url", e.target.value)} placeholder="Empty = use the bot's default DISCORD_CHANNEL_URL" style={INP} /></label>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}><input type="checkbox" checked={form.enabled} onChange={(e) => setF("enabled", e.target.checked)} /><span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Enabled (watched while the bot runs)</span></label>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+              <NT.Button variant="ghost" size="md" onClick={() => setForm(null)}>Cancel</NT.Button>
+              <NT.Button variant="primary" size="md" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</NT.Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+Object.assign(window, { SourcesPage });

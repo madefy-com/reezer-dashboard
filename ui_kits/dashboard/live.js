@@ -56,7 +56,7 @@
       var stop = p.stop_price == null ? null : Number(p.stop_price);
       var label = strikeOf(p.strike) + (p.side || "");
       return {
-        id: p.id, runId: p.run_id, entryTs: p.entry_ts, exitTs: p.exit_ts,  // for the detail chart
+        id: p.id, runId: p.run_id, strategyId: p.strategy_id, entryTs: p.entry_ts, exitTs: p.exit_ts,  // detail chart + grouping
         t: tOf(p.entry_ts), close: p.exit_ts ? tOf(p.exit_ts) : "—",
         tk: p.ticker, strike: label, side: p.side, qty: total,
         entry: entry, exit: exitShown, pnl: pnl, pct: pct,
@@ -119,7 +119,8 @@
   function typeLabel(t) {
     return String(t || "").toUpperCase() === "UNKNOWN" ? "noise" : t;
   }
-  function buildDiscord(alerts) {
+  function buildDiscord(alerts, srcName) {
+    srcName = srcName || {};
     return alerts.map(function (a) {
       // discord_ts = when the trader posted; ts = when the bot received/acted.
       // latency = the gap = Discord->order delay (the slippage-relevant window).
@@ -128,65 +129,106 @@
       var lat = (dts && rts && !isNaN(dts.getTime()) && !isNaN(rts.getTime()))
         ? Math.max(0, Math.round((rts - dts) / 1000)) : null;
       return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—",
-        type: typeLabel(a.type), user: "alerts", ch: "alerts",
+        type: typeLabel(a.type), user: "alerts",
+        ch: (a.source_id != null && srcName[a.source_id]) || "alerts", srcId: a.source_id,
         symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
         reason: a.reason || "", latency: lat == null ? "" : lat + "s", action: "" };
     });
   }
 
-  function mapStrategy(sp, trades) {
-    if (!sp) return null;
+  function _params(sp) {
+    return {
+      trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
+      allowlist: sp.allowlist || "",
+      stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),
+      breakeven_at_pct: sp.breakeven_at_pct == null ? null : Number(sp.breakeven_at_pct),
+      take_profit_pct: sp.take_profit_pct == null ? null : Number(sp.take_profit_pct),
+      take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
+      trailing_tiers: Array.isArray(sp.trailing_tiers) ? sp.trailing_tiers : [],
+      max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
+      max_price_slippage_usd: sp.max_price_slippage_usd == null ? null : Number(sp.max_price_slippage_usd),
+      max_trades_per_day: Number(sp.max_trades_per_day),
+      kill_switch: !!sp.kill_switch, paused: !!sp.paused, dry_run: !!sp.dry_run,
+    };
+  }
+  function _stats(trades) {
     var closed = (trades || []).filter(function (t) { return t.result !== "OPEN"; });
     var pnl = (trades || []).reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
     var wins = closed.filter(function (t) { return t.result === "WIN"; }).length;
     var avg = closed.length ? Math.round((closed.reduce(function (a, t) { return a + t.pct; }, 0) / closed.length) * 10) / 10 : 0;
-    return {
-      name: sp.name || "Nitro 0DTE", status: sp.paused ? "paused" : "live",
+    return { trades: (trades || []).length, winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
+             pnl: Math.round(pnl), avgReturn: avg, closed: closed.length };
+  }
+  // legacy single strategy_params row -> strategy object (fallback path)
+  function mapStrategy(sp, trades) {
+    if (!sp) return null;
+    var s = _stats(trades);
+    return Object.assign({ name: sp.name || "Nitro 0DTE", account: sp.dry_run === false ? "live" : "fronttest",
+      status: sp.paused ? "paused" : (sp.dry_run === false ? "live" : "fronttest"),
       desc: sp.description || "Reads 0DTE options alerts and trades them on Schwab.",
-      trades: (trades || []).length, winRate: closed.length ? Math.round(wins / closed.length * 100) : 0,
-      pnl: Math.round(pnl), avgReturn: avg, alloc: "$" + Math.round(Number(sp.trade_budget_usd || 0)) + "/trade",
-      params: {
-        trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
-        allowlist: sp.allowlist || "",
-        stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),
-        breakeven_at_pct: sp.breakeven_at_pct == null ? null : Number(sp.breakeven_at_pct),
-        take_profit_pct: sp.take_profit_pct == null ? null : Number(sp.take_profit_pct),
-        take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
-        trailing_tiers: Array.isArray(sp.trailing_tiers) ? sp.trailing_tiers : [],
-        max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
-        max_price_slippage_usd: sp.max_price_slippage_usd == null ? null : Number(sp.max_price_slippage_usd),
-        max_trades_per_day: Number(sp.max_trades_per_day),
-        kill_switch: !!sp.kill_switch, paused: !!sp.paused, dry_run: !!sp.dry_run,
-      },
-    };
+      alloc: "$" + Math.round(Number(sp.trade_budget_usd || 0)) + "/trade", sourceIds: [], params: _params(sp) }, s);
+  }
+  // a `strategies` table row -> strategy object (the multi-strategy path)
+  function mapStrategyRow(row, trades, subById) {
+    var s = _stats(trades);
+    var account = String(row.account || "draft").toLowerCase();
+    return Object.assign({ id: row.id, account: account, name: row.name || "strategy",
+      status: account === "draft" ? "draft" : (row.paused ? "paused" : account),
+      desc: row.description || "Reads 0DTE options alerts and trades them on Schwab.",
+      alloc: "$" + Math.round(Number(row.trade_budget_usd || 0)) + "/trade",
+      sourceIds: (subById && subById[row.id]) || [], params: _params(row) }, s);
   }
 
   // ---- Local cache of the raw DB rows. NT_LIVE fills it from Supabase ONCE
   //      (initial load + manual refresh); after that, realtime pushes patch it
   //      in place via NT_APPLY — no per-event network round-trip, so each update
   //      renders the instant the websocket message lands. ----
-  var RAW = { positions: [], alerts: [], runs: [], sp: null, flags: [] };
+  var RAW = { positions: [], alerts: [], runs: [], sp: null, flags: [],
+              strategies: [], sources: [], strategySources: [] };
 
   function rebuild() {
     var base = window.NT_DATA || {};
-    var positions = RAW.positions, alerts = RAW.alerts, runs = RAW.runs, sp = RAW.sp;
+    var positions = RAW.positions, alerts = RAW.alerts, sp = RAW.sp;
     var sName = (sp && sp.name) || "Nitro 0DTE";
     var trades = positions.length ? buildTrades(positions, sName) : null;
-    var strat = mapStrategy(sp, trades);
+
+    // source id -> name (for the alerts feed); strategy id -> [source_id]
+    var srcName = {};
+    (RAW.sources || []).forEach(function (s) { srcName[s.id] = s.name; });
+    var subById = {};
+    (RAW.strategySources || []).forEach(function (r) { (subById[r.strategy_id] = subById[r.strategy_id] || []).push(r.source_id); });
+
+    // strategies from the `strategies` table (multi); fall back to the single strategy_params row
+    var stratList;
+    if ((RAW.strategies || []).length) {
+      stratList = RAW.strategies.map(function (row) {
+        var tr = (trades || []).filter(function (t) { return t.strategyId === row.id; });
+        return mapStrategyRow(row, tr, subById);
+      });
+    } else if (sp) {
+      stratList = [mapStrategy(sp, trades)];
+    } else {
+      stratList = (base.strategies || []);
+    }
+    var anyLive = stratList.some(function (s) { return s.account === "live"; });
+    var totBudget = stratList.reduce(function (a, s) { return a + (Number(s.params && s.params.trade_budget_usd) || 0); }, 0);
+
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     var out = Object.assign({}, base, {
       trades: trades || base.trades,
       kpis: trades ? buildKpis(trades) : base.kpis,
       daily: positions.length ? buildDaily(positions) : base.daily,
-      discord: alerts.length ? buildDiscord(alerts) : base.discord,
+      discord: alerts.length ? buildDiscord(alerts, srcName) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       session: Object.assign({}, base.session || {}, {
-        mode: (runs[0] && runs[0].mode === "live") ? "LIVE" : (sp && sp.dry_run === false ? "LIVE" : "SIMULATION"),
-        budget: sp ? "$" + Math.round(Number(sp.trade_budget_usd)) : (runs[0] && runs[0].budget != null ? "$" + Math.round(runs[0].budget) : (base.session || {}).budget),
-        strategy: sName,
+        mode: anyLive ? "LIVE" : "SIMULATION",
+        budget: totBudget ? "$" + Math.round(totBudget) : (base.session || {}).budget,
+        strategy: (stratList[0] && stratList[0].name) || sName,
       }),
     });
-    if (strat) { out.strategy = strat; out.strategies = [strat]; }
+    out.strategies = stratList;
+    out.strategy = stratList[0] || null;
+    out.sources = (RAW.sources || []);
     out.flags = RAW.flags || [];
     return out;
   }
@@ -200,14 +242,29 @@
       c.from("runs").select("*").order("id", { ascending: false }).limit(1),
       c.from("strategy_params").select("*").eq("id", 1).maybeSingle(),
       c.from("operator_flags").select("*").order("ts", { ascending: false }).limit(50),
+      c.from("strategies").select("*").order("id"),
+      c.from("sources").select("*").order("id"),
+      c.from("strategy_sources").select("strategy_id,source_id"),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
       RAW.runs = (res[2] && res[2].data) || [];
       RAW.sp = (res[3] && res[3].data) || null;
       RAW.flags = (res[4] && res[4].data) || [];
+      RAW.strategies = (res[5] && res[5].data) || [];
+      RAW.sources = (res[6] && res[6].data) || [];
+      RAW.strategySources = (res[7] && res[7].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
+  };
+
+  // Refetch everything and re-render (used after a dashboard write when we want the
+  // canonical server state rather than an optimistic patch).
+  window.NT_REFRESH = function () {
+    return window.NT_LIVE().then(function (d) {
+      if (d) { window.NT_DATA = d; window.dispatchEvent(new Event("nt-data")); }
+      return d;
+    });
   };
 
   // Lazy per-trade detail: the real price path + the action log for ONE position.
@@ -236,6 +293,13 @@
       if (eventType === "DELETE") { if (i >= 0) arr.splice(i, 1); }
       else if (i >= 0) { arr[i] = newRow; }    // in-place update keeps row order
       else { arr.unshift(newRow); }            // brand-new row -> newest first
+    } else if (table === "strategies" || table === "sources") {
+      var sarr = RAW[table === "strategies" ? "strategies" : "sources"], srow = newRow || oldRow;
+      if (!srow) return false;
+      var si = sarr.findIndex(function (r) { return r.id === srow.id; });
+      if (eventType === "DELETE") { if (si >= 0) sarr.splice(si, 1); }
+      else if (si >= 0) { sarr[si] = newRow; }
+      else { sarr.push(newRow); sarr.sort(function (a, b) { return (a.id || 0) - (b.id || 0); }); }
     } else {
       return false;
     }
