@@ -61,6 +61,12 @@ function Sidebar({ page, onNav }) {
             <Ico name="log-out" size={17} />
           </button>
         </div>
+        <button onClick={() => onNav("updates")} title="What's new"
+          style={{ alignSelf: "flex-start", marginTop: 4, background: "transparent", border: "none", cursor: "pointer",
+            padding: "4px 8px", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)",
+            color: page === "updates" ? "var(--accent)" : "var(--text-tertiary)" }}>
+          v{window.NT_VERSION || "1.0"} · what's new
+        </button>
       </div>
       <style>{`
         .nt-nav{ background: transparent; border: 1px solid transparent; color: var(--text-secondary); font-weight: var(--w-medium); }
