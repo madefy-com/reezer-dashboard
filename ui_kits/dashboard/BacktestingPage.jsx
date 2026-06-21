@@ -4,7 +4,7 @@ function BacktestingPage() {
   const bt = window.NT_DATA.backtest;
   const strategies = window.NT_DATA.strategies;
   const [strat, setStrat] = React.useState(bt.strategy);
-  const [range, setRange] = React.useState("month");
+  const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
 
   // equity curve geometry
   const eq = bt.equity;
@@ -31,7 +31,7 @@ function BacktestingPage() {
             </select>
             <span style={{ position: "absolute", right: 10, top: 9, pointerEvents: "none", color: "var(--text-tertiary)" }}><Ico name="chevron-down" size={14} /></span>
           </div>
-          <DateFilter value={range} onChange={setRange} />
+          <DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} />
           <NT.Button variant="primary" size="md" icon={<Ico name="play" size={15} />}>Run</NT.Button>
         </div>} />
 

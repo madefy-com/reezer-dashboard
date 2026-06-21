@@ -4,7 +4,7 @@ function LogPage() {
   const all = window.NT_DATA.discord;
   const sum = window.NT_DATA.summary14d;
   const sources = window.NT_DATA.sources || [];
-  const [range, setRange] = React.useState("today");
+  const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [filter, setFilter] = React.useState("all");
   const [src, setSrc] = React.useState("all");
   const rows = all
@@ -29,7 +29,7 @@ function LogPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Alerts" subtitle="Every Discord message the bot evaluated this session" right={<DateFilter value={range} onChange={setRange} />} />
+      <PageHead title="Alerts" subtitle="Every Discord message the bot evaluated this session" right={<DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} />} />
       <NT.Card padding={20}
         title={<div style={{ display: "flex", alignItems: "center", gap: 4 }}><Tab id="all" label="All" count={all.length} /><Tab id="fired" label="Fired" count={all.filter(m=>m.fired).length} /><Tab id="filtered" label="Filtered" count={all.filter(m=>!m.fired).length} /></div>}
         action={<span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
