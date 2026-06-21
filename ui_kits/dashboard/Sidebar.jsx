@@ -46,7 +46,7 @@ function Sidebar({ page, onNav }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 3, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
         <button className="nt-nav" data-on={(page === "sources" || page === "settings") ? "" : undefined} onClick={() => onNav("sources")}
           style={{ display: "flex", alignItems: "center", gap: 11, height: 38, padding: "0 10px", borderRadius: "var(--radius-md)", cursor: "pointer", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", textAlign: "left" }}>
-          <Ico name="settings" size={18} /> Sources &amp; settings
+          <Ico name="settings" size={18} /> Settings
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 8px 2px" }}>
           <div style={{ width: 30, height: 30, flex: "none", borderRadius: "50%", background: "var(--violet-soft)", border: "1px solid var(--violet-line)", display: "grid", placeItems: "center", font: "var(--w-semibold) 13px/1 var(--font-sans)", color: "var(--accent)" }}>
