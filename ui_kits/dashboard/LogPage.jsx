@@ -51,12 +51,12 @@ function LogPage() {
                   <td style={{ ...td, ...mono, color: m.alertT === "—" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{m.alertT === "—" ? "—" : m.alertT.slice(0, 8)}</td>
                   <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.t.slice(0, 8)}</td>
                   <td style={{ ...td, ...mono, color: m.latency ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: m.latency ? "var(--w-medium)" : "var(--w-regular)" }}>{m.latency || "—"}</td>
-                  <td style={td}><NT.TypeChip type={m.type} /></td>
+                  <td style={td}><NT_TypeChip type={m.type} /></td>
                   <td style={td}><span style={{ display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)" }}>#{m.ch}</span></td>
                   <td style={{ ...td, ...mono, color: m.symbol === "—" ? "var(--text-tertiary)" : "var(--text-secondary)", fontWeight: "var(--w-medium)" }}>{m.symbol}</td>
                   <td style={{ ...td, color: m.fired ? "var(--text-primary)" : "var(--text-tertiary)" }}>{m.msg}</td>
                   <td style={{ ...td, ...mono, color: m.fired ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{m.fired ? m.action : "—"}</td>
-                  <td style={{ ...td, paddingRight: 0 }}><NT.FiredBadge fired={m.fired} reason={m.reason} /></td>
+                  <td style={{ ...td, paddingRight: 0 }}><NT.FiredBadge fired={m.fired} /></td>
                 </tr>
               ))}
             </tbody>

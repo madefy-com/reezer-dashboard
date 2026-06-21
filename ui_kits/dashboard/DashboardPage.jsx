@@ -3,16 +3,7 @@
    Opening a trade slides a detail panel over the right column; click outside it to dismiss. */
 /* Dashboard view filter — scope KPIs/trades/P&L to one strategy (persisted).
    Hidden when there's only one strategy. */
-function StrategyViewSelect() {
-  const strategies = window.NT_DATA.strategies || [];
-  if (strategies.length < 2) return null;
-  const view = String(window.NT_DATA.viewStrategy || "all");
-  const anyLive = strategies.some((s) => s.account === "live");
-  const options = [{ value: "all", label: "All strategies" }]
-    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
-    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
-  return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
-}
+/* StrategyViewSelect now lives in Shared.jsx (used by Dashboard + Trades). */
 
 function DashboardPage({ mode, kill }) {
   const [range, setRange] = React.useState("today");

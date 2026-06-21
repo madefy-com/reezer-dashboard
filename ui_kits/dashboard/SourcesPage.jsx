@@ -45,32 +45,46 @@ function SourcesPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Settings" subtitle="Dashboard defaults and the alert sources the bot watches" />
 
-      <NT.Card title="Dashboard" padding={18}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
-            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Which strategy the dashboard shows — all strategies, only the live ones, or a single one. {strategies.length < 2 ? "Adds more once you have several strategies." : ""}</div>
+      <div style={{ maxWidth: 520 }}>
+        <NT.Card title="Dashboard" padding={18}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
+              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Which strategy the dashboard shows by default — all, only the live ones, or a single one.{strategies.length < 2 ? " More appear once you have several strategies." : ""}</div>
+            </div>
+            <NT_Select value={view} options={viewOptions} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />
           </div>
-          <NT_Select value={view} options={viewOptions} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />
-        </div>
-      </NT.Card>
+        </NT.Card>
+      </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
-        <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Sources</span>
+        <div>
+          <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Alert sources</span>
+          <span style={{ marginLeft: 10, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>channels the bot reads alerts from</span>
+        </div>
         <NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
         {sources.map((s) => (
-          <div key={s.id} style={{ background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 20, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div key={s.id} style={{ background: "var(--surface-card)", border: "1px solid " + (s.enabled ? "var(--border)" : "var(--border)"), borderRadius: "var(--radius-lg)", padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14, opacity: s.enabled ? 1 : 0.72 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{s.name}</div>
-                <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-mono)", color: "var(--text-tertiary)", marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.type} · {s.channel_url || "uses default channel"}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+                <span style={{ width: 34, height: 34, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}>
+                  <Ico name={s.type === "discord" ? "message-square-dot" : s.type === "webhook" ? "webhook" : "inbox"} size={17} />
+                </span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{s.name}</div>
+                  <span style={{ display: "inline-flex", alignItems: "center", height: 17, padding: "0 7px", marginTop: 4, borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase" }}>{s.type}</span>
+                </div>
               </div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", background: s.enabled ? "var(--profit-bg)" : "var(--surface-inset)", color: s.enabled ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", flex: "none" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.enabled ? "var(--profit)" : "var(--text-tertiary)" }}></span>{s.enabled ? "ON" : "OFF"}
               </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", color: "var(--text-tertiary)", minWidth: 0 }}>
+              <Ico name="link" size={13} />
+              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.channel_url || "uses the bot's default channel"}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <NT.Button variant="ghost" size="sm" onClick={() => del(s)}>Delete</NT.Button>
@@ -84,6 +98,30 @@ function SourcesPage() {
 
       <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
         Enabling, disabling or adding a source takes effect when the bot next starts a session. A Discord source needs its own browser login.
+      </div>
+
+      {/* ---- Broker accounts (where LIVE strategies send real orders) ---- */}
+      <div style={{ marginTop: 8 }}>
+        <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Broker accounts</span>
+        <span style={{ marginLeft: 10, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>where live strategies place real orders</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
+        {(window.NT_DATA.brokerAccounts || []).map((b) => (
+          <div key={b.id} style={{ background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+              <span style={{ width: 34, height: 34, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}><Ico name="landmark" size={17} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{b.label || "Broker account"}</div>
+                <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", marginTop: 4 }}>Schwab{b.account_ref ? " · ••••" + String(b.account_ref).slice(-4) : ""}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)" }}>
+              <Ico name="shield-check" size={13} style={{ color: "var(--profit)" }} />
+              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>API key, secret & account number live in the bot's server config — never stored in the dashboard.</span>
+            </div>
+          </div>
+        ))}
+        {!(window.NT_DATA.brokerAccounts || []).length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No broker accounts yet.</div>}
       </div>
 
       {form && (

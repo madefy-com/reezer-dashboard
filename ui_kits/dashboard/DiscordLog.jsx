@@ -52,9 +52,7 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
             }}>
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", width: 42, flex: "none" }}>{m.t.slice(0, 5)}</span>
               <span style={{ width: 78, flex: "none", display: "inline-flex" }}>
-                {String(m.type).toUpperCase() === "NOISE"
-                  ? <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", height: 20, minWidth: 58, padding: "0 9px", borderRadius: "var(--radius-xs)", background: "var(--filtered-bg)", color: "var(--filtered)", border: "1px solid var(--border)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase" }}>noise</span>
-                  : <NT.TypeChip type={m.type} />}
+                <NT_TypeChip type={m.type} />
               </span>
               <span className="num" style={{ width: 74, flex: "none", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: m.symbol === "—" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{m.symbol}</span>
               <span style={{ flex: 1, minWidth: 0, font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", color: muted ? "var(--text-tertiary)" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

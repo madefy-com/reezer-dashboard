@@ -65,7 +65,7 @@ function FronttestPage() {
         </div>
       </NT.Card>
 
-      <NT.Card title="Taped trades · peak vs live exit" padding={20}
+      <NT.Card title="Taped trades · peak vs actual exit" padding={20}
         action={rows && rows.length ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>avg left on table <b style={{ color: "var(--profit)" }}>{pct(avgLeft)}</b></span> : null}>
         {rows == null ? (
           <div style={{ padding: "30px 0", textAlign: "center", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>Loading…</div>
@@ -80,7 +80,7 @@ function FronttestPage() {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead><tr>
                 <th style={thL}>closed</th><th style={thL}>contract</th><th style={th}>qty</th>
-                <th style={th}>entry</th><th style={th}>live exit</th><th style={th}>live p&l %</th>
+                <th style={th}>entry</th><th style={th}>exit</th><th style={th}>realized %</th>
                 <th style={th}>peak %</th><th style={th}>left on table</th><th style={th}>tape</th>
               </tr></thead>
               <tbody>

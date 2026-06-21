@@ -33,7 +33,7 @@ function TradesPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Trades" subtitle="Every order the bot has placed — click a row for the full breakdown"
-        right={<DateFilter value={range} onChange={setRange} />} />
+        right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={setRange} /></span>} />
 
       {/* top frames — same KpiCard look as the dashboard */}
       <div className="nt-tkpi">

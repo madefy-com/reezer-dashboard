@@ -235,5 +235,41 @@ function NT_Select({ value, options, onChange, icon, minWidth }) {
   );
 }
 
-Object.assign(window, { greeting, DateFilter, PageHead, NT_Select,
+/* NT_TypeChip — alert type pill. PARTIAL + CLOSE share the brightest (amber)
+   colour so the profit-taking signals stand out most; ENTRY is calmer; WATCH
+   neutral; NOISE grey. Used by both the dashboard feed and the Alerts page so
+   they always match. */
+function NT_TypeChip({ type }) {
+  const T = String(type || "").toUpperCase();
+  const STAND = { c: "#f3b54a", b: "rgba(243,181,74,0.14)", bd: "rgba(243,181,74,0.34)" };  // close + partial
+  const M = {
+    ENTRY:   { c: "#6f93c0", b: "rgba(111,147,192,0.13)", bd: "rgba(111,147,192,0.28)" },
+    PARTIAL: STAND, CLOSE: STAND,
+    WATCH:   { c: "var(--text-secondary)", b: "var(--surface-inset)", bd: "var(--border)" },
+    NOISE:   { c: "var(--text-tertiary)", b: "var(--surface-inset)", bd: "var(--border)" },
+    UNKNOWN: { c: "var(--text-tertiary)", b: "var(--surface-inset)", bd: "var(--border)" },
+  };
+  const s = M[T] || M.NOISE;
+  const label = (T === "NOISE" || T === "UNKNOWN") ? "noise" : T.toLowerCase();
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", height: 20, minWidth: 58,
+      padding: "0 9px", borderRadius: "var(--radius-xs)", background: s.b, color: s.c, border: "1px solid " + s.bd,
+      font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase" }}>{label}</span>
+  );
+}
+
+/* StrategyViewSelect — the view filter shared by the Dashboard and Trades pages
+   (all / live only / a single strategy). Hidden until there are 2+ strategies. */
+function StrategyViewSelect() {
+  const strategies = window.NT_DATA.strategies || [];
+  if (strategies.length < 2) return null;
+  const view = String(window.NT_DATA.viewStrategy || "all");
+  const anyLive = strategies.some((s) => s.account === "live");
+  const options = [{ value: "all", label: "All strategies" }]
+    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
+    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
+  return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
+}
+
+Object.assign(window, { greeting, DateFilter, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,
   ntSession, ntFmtTz, ntNextOpen, ntNextOpenLabel, ntTzInstant, ntTzDow });

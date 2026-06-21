@@ -60,7 +60,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies }) {
       {/* STRATEGIES — read-only summary; click to manage on the Strategies page */}
       <button onClick={() => onNav && onNav("strategies")} className="nt-strat-pill" title="Manage strategies" style={{ ...pill, cursor: "pointer" }}>
         <span style={dot(counts.live ? "var(--live)" : "var(--dryrun)", !!counts.live)}></span>
-        <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-semibold)" }}>{list.length}</span>&nbsp;{list.length === 1 ? "strategy" : "strategies"}
+        <span><span style={{ color: "var(--text-primary)", fontWeight: "var(--w-semibold)" }}>{list.length}</span> {list.length === 1 ? "strategy" : "strategies"}</span>
         <span style={{ color: "var(--text-tertiary)", letterSpacing: 0 }}>
           {(counts.live ? " · " + counts.live + " live" : "") + (counts.fronttest ? " · " + counts.fronttest + " paper" : "") + (counts.draft ? " · " + counts.draft + " draft" : "")}
         </span>

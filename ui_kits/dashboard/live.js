@@ -128,11 +128,13 @@
       var rts = a.ts ? new Date(a.ts) : null;
       var lat = (dts && rts && !isNaN(dts.getTime()) && !isNaN(rts.getTime()))
         ? Math.max(0, Math.round((rts - dts) / 1000)) : null;
+      var ACT = { ENTRY: "entered", PARTIAL: "trimmed", CLOSE: "closed", WATCH: "staged" };
       return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—",
         type: typeLabel(a.type), user: "alerts",
         ch: (a.source_id != null && srcName[a.source_id]) || "alerts", srcId: a.source_id,
         symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
-        reason: a.reason || "", latency: lat == null ? "" : lat + "s", action: "" };
+        reason: a.reason || "", latency: lat == null ? "" : lat + "s",
+        action: (a.fired && ACT[String(a.type).toUpperCase()]) || "" };
     });
   }
 
@@ -244,6 +246,7 @@
     out.strategy = stratList[0] || null;
     out.viewStrategy = view;
     out.sources = (RAW.sources || []);
+    out.brokerAccounts = (RAW.brokerAccounts || []);
     out.flags = RAW.flags || [];
     return out;
   }
@@ -267,6 +270,7 @@
       c.from("strategies").select("*").order("id"),
       c.from("sources").select("*").order("id"),
       c.from("strategy_sources").select("strategy_id,source_id"),
+      c.from("broker_accounts").select("*").order("id"),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -276,6 +280,7 @@
       RAW.strategies = (res[5] && res[5].data) || [];
       RAW.sources = (res[6] && res[6].data) || [];
       RAW.strategySources = (res[7] && res[7].data) || [];
+      RAW.brokerAccounts = (res[8] && res[8].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };

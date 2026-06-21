@@ -136,7 +136,7 @@ function StrategyCard({ strat, sources }) {
   ];
 
   return (
-    <div style={{ background: "var(--surface-card)", border: "1px solid " + (acct === "live" ? "var(--violet-line)" : "var(--border)"), borderRadius: "var(--radius-lg)", padding: 22, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ height: "100%", boxSizing: "border-box", background: "var(--surface-card)", border: "1px solid " + (acct === "live" ? "var(--violet-line)" : "var(--border)"), borderRadius: "var(--radius-lg)", padding: 22, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ font: "var(--w-semibold) var(--t-h3)/1.2 var(--font-sans)", letterSpacing: "var(--ls-snug)" }}>{strat.name}</div>
@@ -319,7 +319,7 @@ function StrategiesPage() {
         </NT.Card>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 560px))", gap: "var(--gap-grid)", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 560px))", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         {strategies.map((s) => <StrategyCard key={s.id || s.name} strat={s} sources={sources} />)}
         {!strategies.length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No strategies yet — click “New strategy”.</div>}
       </div>
