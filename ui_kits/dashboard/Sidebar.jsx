@@ -62,8 +62,8 @@ function Sidebar({ page, onNav }) {
           </button>
         </div>
         <button onClick={() => onNav("updates")} title="What's new"
-          style={{ alignSelf: "flex-start", marginTop: 4, background: "transparent", border: "none", cursor: "pointer",
-            padding: "4px 8px", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)",
+          style={{ alignSelf: "flex-end", marginTop: 4, background: "transparent", border: "none", cursor: "pointer",
+            padding: "4px 14px", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)",
             color: page === "updates" ? "var(--accent)" : "var(--text-tertiary)" }}>
           v{window.NT_VERSION || "1.0"}
         </button>
