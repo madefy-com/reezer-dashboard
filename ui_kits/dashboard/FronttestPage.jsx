@@ -26,15 +26,17 @@ function FronttestPage() {
       const out = (posR.data || []).map((p) => {
         const entry = Number(p.entry_price);
         const total = Number(p.orig_qty || p.qty);
+        const pnl = Number(p.realized_pnl || 0);
         const pk = peaks[p.id];
         const exit = p.exit_price == null ? null : Number(p.exit_price);
-        const exitPct = (entry && exit != null) ? (exit / entry - 1) * 100 : null;
+        // realized % = the trade's OVERALL return (includes partial sells), not just final-exit vs entry
+        const retPct = (entry && total) ? (pnl / (entry * 100 * total)) * 100 : null;
         const peakPx = pk ? Number(pk.peak_price) : null;
         const peakPct = (entry && peakPx != null) ? (peakPx / entry - 1) * 100 : null;
-        const left = (peakPct != null && exitPct != null) ? Math.max(0, peakPct - exitPct) : null;
+        const left = (peakPct != null && retPct != null) ? Math.max(0, peakPct - retPct) : null;
         return {
           id: p.id, sid: p.strategy_id, tk: p.ticker, label: String(Number(p.strike)) + (p.side || ""), qty: total,
-          when: p.exit_ts, entry: entry, exit: exit, exitPct: exitPct, pnl: Number(p.realized_pnl || 0),
+          when: p.exit_ts, entry: entry, exit: exit, retPct: retPct, pnl: pnl,
           peakPx: peakPx, peakPct: peakPct, left: left, samples: pk ? pk.samples : 0,
         };
       });
@@ -70,7 +72,7 @@ function FronttestPage() {
   shown.forEach((r) => {
     const s = stats[r.sid] || (stats[r.sid] = { sid: r.sid, n: 0, wins: 0, pnl: 0, retSum: 0, retN: 0, leftSum: 0, leftN: 0 });
     s.n++; if (r.pnl > 0) s.wins++; s.pnl += r.pnl;
-    if (r.exitPct != null) { s.retSum += r.exitPct; s.retN++; }
+    if (r.retPct != null) { s.retSum += r.retPct; s.retN++; }
     if (r.left != null) { s.leftSum += r.left; s.leftN++; }
   });
   const statList = Object.values(stats).sort((a, b) => b.pnl - a.pnl);
@@ -106,7 +108,7 @@ function FronttestPage() {
                     <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
                     <td style={td}>{r.entry.toFixed(2)}</td>
                     <td style={td}>{r.exit == null ? "—" : r.exit.toFixed(2)}</td>
-                    <td style={{ ...td, color: tone(r.exitPct) }}>{pct(r.exitPct)}</td>
+                    <td style={{ ...td, color: tone(r.retPct) }}>{pct(r.retPct)}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                     <td style={{ ...td, color: tone(r.peakPct) }}>{pct(r.peakPct)}</td>
                     <td style={{ ...td, color: r.left ? "var(--profit)" : "var(--text-tertiary)" }}>{r.left == null ? "—" : pct(r.left)}</td>
