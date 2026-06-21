@@ -17,6 +17,8 @@ window.NT_CHANGELOG = [
       "Alerts feed: shows the real channel name and the action the bot took, a cleaner result, and clearer type colours — CLOSE and PARTIAL share a bright colour to stand out, ENTRY is calmer.",
       "Polish: strategy cards line up to equal height; native dropdowns restyled to match the app.",
       "Renamed Fronttesting → Exit Lab (and hid Backtesting for now); Alerts page gains a Source column; alert type colours softened (ENTRY/PARTIAL/CLOSE share a calmer amber, WATCH blue); strategy-card buttons aligned; Settings rebuilt into consistent Dashboard / Alert sources / Broker accounts sections.",
+      "Renamed the “fronttest” account type to “Paper” everywhere (clearer now the page is Exit Lab); internal value unchanged.",
+      "New strategy option “Stop to breakeven after first exit” (off = let the runner ride on its trailing/initial stop). The bot used to always do this; now it’s per-strategy — which is what lets a trailing strategy actually catch a runner.",
     ],
   },
   {

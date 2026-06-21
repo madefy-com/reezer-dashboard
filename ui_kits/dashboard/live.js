@@ -146,6 +146,7 @@
       allowlist: sp.allowlist || "",
       stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),
       breakeven_at_pct: sp.breakeven_at_pct == null ? null : Number(sp.breakeven_at_pct),
+      breakeven_after_partial: sp.breakeven_after_partial !== false,
       take_profit_pct: sp.take_profit_pct == null ? null : Number(sp.take_profit_pct),
       take_half_at_pct: sp.take_half_at_pct == null ? null : Number(sp.take_half_at_pct),
       trailing_tiers: Array.isArray(sp.trailing_tiers) ? sp.trailing_tiers : [],

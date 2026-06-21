@@ -44,6 +44,7 @@ function StrategyCard({ strat, sources }) {
       budget: p.trade_budget_usd, maxC: p.max_contracts_per_trade, allowlist: p.allowlist || "",
       stop: p.stop_loss_pct == null ? "" : NT_pct(p.stop_loss_pct),
       be: p.breakeven_at_pct == null ? "" : NT_pct(p.breakeven_at_pct),
+      beAfter: p.breakeven_after_partial !== false,
       tp: p.take_profit_pct == null ? "" : NT_pct(p.take_profit_pct),
       half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
       maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
@@ -75,6 +76,7 @@ function StrategyCard({ strat, sources }) {
       trade_budget_usd: Number(form.budget) || 0, max_contracts_per_trade: Number(form.maxC) || 0,
       allowlist: tickers.join(","),
       stop_loss_pct: pctOpt(form.stop), breakeven_at_pct: pctOpt(form.be), take_profit_pct: pctOpt(form.tp),
+      breakeven_after_partial: !!form.beAfter,
       take_half_at_pct: pctOpt(form.half), trailing_tiers: tiers,
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_slippage_usd: opt(form.maxSlip) == null ? null : (Number(form.maxSlip) || 0),
@@ -129,7 +131,7 @@ function StrategyCard({ strat, sources }) {
 
   const groups = [
     { g: "Sizing", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts / trade", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist, true]] },
-    { g: "Exits / risk", items: [["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+    { g: "Exits / risk", items: [["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after first exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join("  ·  ") : "off", true],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources", true]] },
@@ -220,6 +222,18 @@ function StrategyCard({ strat, sources }) {
               <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 2 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Stop to breakeven after first exit</div>
+                <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>After the first partial, protect the runner at entry. Off = let it ride (trailing / stop only).</div>
+              </div>
+              <div style={{ display: "inline-flex", flex: "none", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
+                {[["Off", false], ["On", true]].map((o) => {
+                  const on = !!form.beAfter === o[1];
+                  return <button key={o[0]} type="button" onClick={() => setF("beAfter", o[1])} style={{ height: 28, padding: "0 16px", borderRadius: "var(--radius-xs)", cursor: "pointer", border: "1px solid " + (on ? "var(--border-strong)" : "transparent"), background: on ? "var(--surface-hover)" : "transparent", color: on ? "var(--text-primary)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{o[0]}</button>;
+                })}
+              </div>
+            </div>
 
             <NT_SSection>Trailing stop</NT_SSection>
             <div style={{ display: "inline-flex", width: "fit-content", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
@@ -283,7 +297,7 @@ function StrategiesPage() {
       const r = await window.NT_CLIENT.from("strategies").insert({
         name: "New strategy", description: "", account: "draft",
         trade_budget_usd: 400, max_contracts_per_trade: 10, allowlist: "QQQ,NVDA,TSLA",
-        stop_loss_pct: 0.2, breakeven_at_pct: 0.2, take_half_at_pct: 0.3, trailing_tiers: [],
+        stop_loss_pct: 0.2, breakeven_at_pct: 0.2, breakeven_after_partial: true, take_half_at_pct: 0.3, trailing_tiers: [],
       });
       if (r.error) throw r.error;
       await window.NT_REFRESH();
