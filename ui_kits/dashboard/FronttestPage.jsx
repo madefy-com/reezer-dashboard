@@ -55,7 +55,7 @@ function FronttestPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Fronttesting" subtitle="Forward-test exit management on the live alert stream · separate from your live dashboard"
+      <PageHead title="Exit Lab" subtitle="Replay alternative exit settings on the real recorded price paths · separate from your live dashboard"
         right={<NT.Button variant="ghost" size="md" onClick={load}>Refresh</NT.Button>} />
 
       <NT.Card padding={18}>

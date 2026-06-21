@@ -170,7 +170,7 @@ function StrategyCard({ strat, sources }) {
         </div>
       ))}
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+      <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={del}>Delete</NT.Button>
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={duplicate}>Duplicate</NT.Button>
         <NT.Button variant="primary" size="md" icon={<Ico name="settings-2" size={15} />} onClick={openEdit}>Edit</NT.Button>

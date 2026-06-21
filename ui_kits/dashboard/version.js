@@ -16,6 +16,7 @@ window.NT_CHANGELOG = [
       "Dashboard and Trades share a strategy filter (top right, on-brand dropdown) — show all strategies, only the live ones, or a single one; set the default under Settings.",
       "Alerts feed: shows the real channel name and the action the bot took, a cleaner result, and clearer type colours — CLOSE and PARTIAL share a bright colour to stand out, ENTRY is calmer.",
       "Polish: strategy cards line up to equal height; native dropdowns restyled to match the app.",
+      "Renamed Fronttesting → Exit Lab (and hid Backtesting for now); Alerts page gains a Source column; alert type colours softened (ENTRY/PARTIAL/CLOSE share a calmer amber, WATCH blue); strategy-card buttons aligned; Settings rebuilt into consistent Dashboard / Alert sources / Broker accounts sections.",
     ],
   },
   {

@@ -1,10 +1,11 @@
-/* SourcesPage — manage alert sources (channels the bot watches). Several can be
-   enabled at once; each alert is tagged with its source and shown on the Alerts page. */
+/* SourcesPage (Settings) — dashboard defaults, alert sources, broker accounts.
+   Three sections, each a header + a matching card grid so everything lines up. */
 function SourcesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   const sources = window.NT_DATA.sources || [];
+  const brokers = window.NT_DATA.brokerAccounts || [];
   const strategies = window.NT_DATA.strategies || [];
   const anyLive = strategies.some((s) => s.account === "live");
   const viewOptions = [{ value: "all", label: "All strategies" }]
@@ -14,6 +15,17 @@ function SourcesPage() {
   const [form, setForm] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
   const INP = { height: 38, padding: "0 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", width: "100%", boxSizing: "border-box" };
+
+  // shared layout tokens so every section aligns
+  const GRID = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "var(--gap-grid)", alignItems: "stretch" };
+  const CARD = { height: "100%", boxSizing: "border-box", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14 };
+  const ICON = { width: 34, height: 34, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" };
+  const Section = (title, sub, action) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 6 }}>
+      <div><span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>{title}</span><span style={{ marginLeft: 10, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{sub}</span></div>
+      {action || null}
+    </div>
+  );
 
   const openNew = () => setForm({ id: null, name: "", type: "discord", channel_url: "", enabled: true });
   const openEdit = (s) => setForm({ id: s.id, name: s.name || "", type: s.type || "discord", channel_url: s.channel_url || "", enabled: !!s.enabled });
@@ -41,87 +53,83 @@ function SourcesPage() {
     catch (e) { await window.NT_ALERT("Delete failed: " + (e.message || e), { title: "Source" }); }
   };
 
+  const statusPill = (on) => (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", background: on ? "var(--profit-bg)" : "var(--surface-inset)", color: on ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", flex: "none" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: on ? "var(--profit)" : "var(--text-tertiary)" }}></span>{on ? "ON" : "OFF"}
+    </span>
+  );
+  const inset = (icon, text, color) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", minWidth: 0 }}>
+      <Ico name={icon} size={13} style={color ? { color } : undefined} />
+      <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-" + (icon === "link" ? "mono" : "sans") + ")", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: icon === "link" ? "nowrap" : "normal" }}>{text}</span>
+    </div>
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Settings" subtitle="Dashboard defaults and the alert sources the bot watches" />
+      <PageHead title="Settings" subtitle="Dashboard defaults, alert sources and broker accounts" />
 
-      <div style={{ maxWidth: 520 }}>
-        <NT.Card title="Dashboard" padding={18}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ---- Dashboard ---- */}
+      {Section("Dashboard", "how the dashboard opens")}
+      <div style={GRID}>
+        <div style={CARD}>
+          <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+            <span style={ICON}><Ico name="eye" size={17} /></span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
-              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Which strategy the dashboard shows by default — all, only the live ones, or a single one.{strategies.length < 2 ? " More appear once you have several strategies." : ""}</div>
+              <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>Default view</div>
+              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Which strategy the dashboard shows by default.</div>
             </div>
-            <NT_Select value={view} options={viewOptions} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />
           </div>
-        </NT.Card>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
-        <div>
-          <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Alert sources</span>
-          <span style={{ marginLeft: 10, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>channels the bot reads alerts from</span>
+          <div style={{ marginTop: "auto" }}><NT_Select value={view} options={viewOptions} icon="filter" minWidth={220} onChange={(v) => window.NT_SET_VIEW(v)} /></div>
         </div>
-        <NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
+      {/* ---- Alert sources ---- */}
+      {Section("Alert sources", "channels the bot reads alerts from",
+        <NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>)}
+      <div style={GRID}>
         {sources.map((s) => (
-          <div key={s.id} style={{ background: "var(--surface-card)", border: "1px solid " + (s.enabled ? "var(--border)" : "var(--border)"), borderRadius: "var(--radius-lg)", padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 14, opacity: s.enabled ? 1 : 0.72 }}>
+          <div key={s.id} style={{ ...CARD, opacity: s.enabled ? 1 : 0.72 }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
-                <span style={{ width: 34, height: 34, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}>
-                  <Ico name={s.type === "discord" ? "message-square-dot" : s.type === "webhook" ? "webhook" : "inbox"} size={17} />
-                </span>
+                <span style={ICON}><Ico name={s.type === "discord" ? "message-square-dot" : s.type === "webhook" ? "webhook" : "inbox"} size={17} /></span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{s.name}</div>
                   <span style={{ display: "inline-flex", alignItems: "center", height: 17, padding: "0 7px", marginTop: 4, borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase" }}>{s.type}</span>
                 </div>
               </div>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", background: s.enabled ? "var(--profit-bg)" : "var(--surface-inset)", color: s.enabled ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", flex: "none" }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.enabled ? "var(--profit)" : "var(--text-tertiary)" }}></span>{s.enabled ? "ON" : "OFF"}
-              </span>
+              {statusPill(s.enabled)}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", color: "var(--text-tertiary)", minWidth: 0 }}>
-              <Ico name="link" size={13} />
-              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-mono)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.channel_url || "uses the bot's default channel"}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            {inset("link", s.channel_url || "uses the bot's default channel")}
+            <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <NT.Button variant="ghost" size="sm" onClick={() => del(s)}>Delete</NT.Button>
               <NT.Button variant="ghost" size="sm" onClick={() => toggle(s)}>{s.enabled ? "Disable" : "Enable"}</NT.Button>
               <NT.Button variant="primary" size="sm" icon={<Ico name="settings-2" size={14} />} onClick={() => openEdit(s)}>Edit</NT.Button>
             </div>
           </div>
         ))}
-        {!sources.length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No sources yet — click “New source”.</div>}
+        {!sources.length && <div style={{ ...CARD, color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", justifyContent: "center", alignItems: "center", textAlign: "center" }}>No sources yet — click “New source”.</div>}
       </div>
-
       <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
         Enabling, disabling or adding a source takes effect when the bot next starts a session. A Discord source needs its own browser login.
       </div>
 
-      {/* ---- Broker accounts (where LIVE strategies send real orders) ---- */}
-      <div style={{ marginTop: 8 }}>
-        <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Broker accounts</span>
-        <span style={{ marginLeft: 10, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>where live strategies place real orders</span>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
-        {(window.NT_DATA.brokerAccounts || []).map((b) => (
-          <div key={b.id} style={{ background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 18, boxShadow: "var(--shadow-sm)", display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* ---- Broker accounts ---- */}
+      {Section("Broker accounts", "where live strategies place real orders")}
+      <div style={GRID}>
+        {brokers.map((b) => (
+          <div key={b.id} style={CARD}>
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-              <span style={{ width: 34, height: 34, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" }}><Ico name="landmark" size={17} /></span>
+              <span style={ICON}><Ico name="landmark" size={17} /></span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{b.label || "Broker account"}</div>
                 <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", marginTop: 4 }}>Schwab{b.account_ref ? " · ••••" + String(b.account_ref).slice(-4) : ""}</div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)" }}>
-              <Ico name="shield-check" size={13} style={{ color: "var(--profit)" }} />
-              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>API key, secret & account number live in the bot's server config — never stored in the dashboard.</span>
-            </div>
+            <div style={{ marginTop: "auto" }}>{inset("shield-check", "API key, secret & account number stay in the bot's server config — never in the dashboard.", "var(--profit)")}</div>
           </div>
         ))}
-        {!(window.NT_DATA.brokerAccounts || []).length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No broker accounts yet.</div>}
+        {!brokers.length && <div style={{ ...CARD, color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", justifyContent: "center", alignItems: "center", textAlign: "center" }}>No broker accounts yet.</div>}
       </div>
 
       {form && (

@@ -241,14 +241,10 @@ function NT_Select({ value, options, onChange, icon, minWidth }) {
    they always match. */
 function NT_TypeChip({ type }) {
   const T = String(type || "").toUpperCase();
-  const STAND = { c: "#f3b54a", b: "rgba(243,181,74,0.14)", bd: "rgba(243,181,74,0.34)" };  // close + partial
-  const M = {
-    ENTRY:   { c: "#6f93c0", b: "rgba(111,147,192,0.13)", bd: "rgba(111,147,192,0.28)" },
-    PARTIAL: STAND, CLOSE: STAND,
-    WATCH:   { c: "var(--text-secondary)", b: "var(--surface-inset)", bd: "var(--border)" },
-    NOISE:   { c: "var(--text-tertiary)", b: "var(--surface-inset)", bd: "var(--border)" },
-    UNKNOWN: { c: "var(--text-tertiary)", b: "var(--surface-inset)", bd: "var(--border)" },
-  };
+  const AMBER = { c: "#c9a45e", b: "rgba(201,164,94,0.13)", bd: "rgba(201,164,94,0.30)" };  // entry/partial/close — the trade actions, dimmed amber
+  const BLUE  = { c: "#6f93c0", b: "rgba(111,147,192,0.13)", bd: "rgba(111,147,192,0.28)" };  // watch
+  const GREY  = { c: "var(--text-tertiary)", b: "var(--surface-inset)", bd: "var(--border)" };
+  const M = { ENTRY: AMBER, PARTIAL: AMBER, CLOSE: AMBER, WATCH: BLUE, NOISE: GREY, UNKNOWN: GREY };
   const s = M[T] || M.NOISE;
   const label = (T === "NOISE" || T === "UNKNOWN") ? "noise" : T.toLowerCase();
   return (

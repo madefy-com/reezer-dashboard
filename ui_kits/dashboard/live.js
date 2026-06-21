@@ -119,8 +119,9 @@
   function typeLabel(t) {
     return String(t || "").toUpperCase() === "UNKNOWN" ? "noise" : t;
   }
-  function buildDiscord(alerts, srcName) {
-    srcName = srcName || {};
+  function buildDiscord(alerts, srcName, srcType) {
+    srcName = srcName || {}; srcType = srcType || {};
+    var cap = function (s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : "—"; };
     return alerts.map(function (a) {
       // discord_ts = when the trader posted; ts = when the bot received/acted.
       // latency = the gap = Discord->order delay (the slippage-relevant window).
@@ -131,6 +132,7 @@
       var ACT = { ENTRY: "entered", PARTIAL: "trimmed", CLOSE: "closed", WATCH: "staged" };
       return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—",
         type: typeLabel(a.type), user: "alerts",
+        src: (a.source_id != null && cap(srcType[a.source_id])) || "Discord",
         ch: (a.source_id != null && srcName[a.source_id]) || "alerts", srcId: a.source_id,
         symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
         reason: a.reason || "", latency: lat == null ? "" : lat + "s",
@@ -194,9 +196,9 @@
     var sName = (sp && sp.name) || "Nitro 0DTE";
     var trades = positions.length ? buildTrades(positions, sName) : null;
 
-    // source id -> name (for the alerts feed); strategy id -> [source_id]
-    var srcName = {};
-    (RAW.sources || []).forEach(function (s) { srcName[s.id] = s.name; });
+    // source id -> name/type (for the alerts feed); strategy id -> [source_id]
+    var srcName = {}, srcType = {};
+    (RAW.sources || []).forEach(function (s) { srcName[s.id] = s.name; srcType[s.id] = s.type; });
     var subById = {};
     (RAW.strategySources || []).forEach(function (r) { (subById[r.strategy_id] = subById[r.strategy_id] || []).push(r.source_id); });
 
@@ -234,7 +236,7 @@
       trades: trades ? vTrades : base.trades,
       kpis: trades ? buildKpis(vTrades) : base.kpis,
       daily: positions.length ? buildDaily(vPositions) : base.daily,
-      discord: alerts.length ? buildDiscord(alerts, srcName) : base.discord,
+      discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       session: Object.assign({}, base.session || {}, {
         mode: anyLive ? "LIVE" : "SIMULATION",
