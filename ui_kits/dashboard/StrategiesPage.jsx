@@ -304,34 +304,10 @@ function StrategiesPage() {
     } catch (e) { await window.NT_ALERT("Couldn’t create: " + (e.message || e), { title: "New strategy" }); }
   };
 
-  // comparison strip: same alerts, different P&L
-  const closedById = strategies.filter((s) => (s.trades || 0) > 0);
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Strategies" subtitle="One card per strategy · linked to a live, paper or draft account"
         right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={createStrategy}>New strategy</NT.Button>} />
-
-      {closedById.length > 1 && (
-        <NT.Card title="Comparison — same alerts, different money management" padding={18}>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}>
-              <thead><tr>{["strategy", "account", "trades", "win rate", "avg ret", "p&l"].map((h, i) => (
-                <th key={i} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", textAlign: i < 2 ? "left" : "right", padding: "6px 10px 10px 0" }}>{h}</th>))}</tr></thead>
-              <tbody>{closedById.map((s, i) => (
-                <tr key={i}>
-                  <td style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{s.name}</td>
-                  <td style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)" }}><span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", color: (NT_ACCT[s.account] || NT_ACCT.draft).c }}>{(NT_ACCT[s.account] || NT_ACCT.draft).label}</span></td>
-                  <td className="num" style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)", textAlign: "right", font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", color: "var(--text-secondary)" }}>{s.trades}</td>
-                  <td className="num" style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)", textAlign: "right", font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", color: "var(--text-secondary)" }}>{(s.winRate || 0)}%</td>
-                  <td className="num" style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)", textAlign: "right", font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", color: (s.avgReturn || 0) >= 0 ? "var(--profit)" : "var(--loss)" }}>{((s.avgReturn || 0) >= 0 ? "+" : "−") + Math.abs(s.avgReturn || 0).toFixed(1) + "%"}</td>
-                  <td className="num" style={{ padding: "9px 10px 9px 0", borderTop: "1px solid var(--border)", textAlign: "right", font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: (s.pnl || 0) >= 0 ? "var(--profit)" : "var(--loss)" }}>{((s.pnl || 0) >= 0 ? "+$" : "−$") + Math.abs(s.pnl || 0)}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        </NT.Card>
-      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 560px))", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         {strategies.map((s) => <StrategyCard key={s.id || s.name} strat={s} sources={sources} />)}

@@ -19,6 +19,7 @@ window.NT_CHANGELOG = [
       "Renamed Fronttesting → Exit Lab (and hid Backtesting for now); Alerts page gains a Source column; alert type colours softened (ENTRY/PARTIAL/CLOSE share a calmer amber, WATCH blue); strategy-card buttons aligned; Settings rebuilt into consistent Dashboard / Alert sources / Broker accounts sections.",
       "Renamed the “fronttest” account type to “Paper” everywhere (clearer now the page is Exit Lab); internal value unchanged.",
       "New strategy option “Stop to breakeven after first exit” (off = let the runner ride on its trailing/initial stop). The bot used to always do this; now it’s per-strategy — which is what lets a trailing strategy actually catch a runner.",
+      "Strategy comparison moved to the Exit Lab: it now lists every trade across all strategies (with a strategy column + the shared strategy filter) and a per-strategy stats rollup below. The Strategies page is back to just the cards.",
     ],
   },
   {
