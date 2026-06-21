@@ -6,16 +6,12 @@
 function StrategyViewSelect() {
   const strategies = window.NT_DATA.strategies || [];
   if (strategies.length < 2) return null;
-  const view = window.NT_DATA.viewStrategy || "all";
+  const view = String(window.NT_DATA.viewStrategy || "all");
   const anyLive = strategies.some((s) => s.account === "live");
-  return (
-    <select value={view} onChange={(e) => window.NT_SET_VIEW(e.target.value)} title="Which strategy the dashboard shows"
-      style={{ height: 30, padding: "0 10px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-secondary)", colorScheme: "dark", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>
-      <option value="all">All strategies</option>
-      {anyLive && <option value="live">Live only</option>}
-      {strategies.map((s) => <option key={s.id || s.name} value={s.id}>{s.name}</option>)}
-    </select>
-  );
+  const options = [{ value: "all", label: "All strategies" }]
+    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
+    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
+  return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
 }
 
 function DashboardPage({ mode, kill }) {

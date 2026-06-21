@@ -194,5 +194,46 @@ function ntNextOpenLabel(now) {
   return wd + ntFmtTz(ms, tz);
 }
 
-Object.assign(window, { greeting, DateFilter, PageHead,
+/* NT_Select — on-brand dropdown (button + popover) matching DateFilter. */
+function NT_Select({ value, options, onChange, icon, minWidth }) {
+  const [open, setOpen] = React.useState(false);
+  React.useEffect(() => { if (open && window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); }, [open]);
+  const cur = options.find((o) => String(o.value) === String(value)) || options[0] || { label: "—" };
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen((o) => !o)} style={{
+        display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px", cursor: "pointer",
+        borderRadius: "var(--radius-sm)", border: "1px solid " + (open ? "var(--violet-line)" : "var(--border-strong)"),
+        background: open ? "var(--violet-soft)" : "var(--surface-card)", color: "var(--text-secondary)",
+        font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", whiteSpace: "nowrap",
+      }}>
+        {icon && <Ico name={icon} size={14} />}
+        <span style={{ color: "var(--text-primary)" }}>{cur.label}</span>
+        <Ico name="chevron-down" size={13} />
+      </button>
+      {open && (
+        <React.Fragment>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }}></div>
+          <div style={{ position: "absolute", top: 38, left: 0, zIndex: 41, minWidth: minWidth || 190, padding: 5,
+            background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", gap: 2 }}>
+            {options.map((o) => {
+              const on = String(o.value) === String(value);
+              return (
+                <button key={String(o.value)} className="nt-opt" onClick={() => { onChange(o.value); setOpen(false); }} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, height: 32, padding: "0 10px", textAlign: "left", cursor: "pointer", width: "100%",
+                  borderRadius: "var(--radius-sm)", border: "1px solid " + (on ? "var(--violet-line)" : "transparent"),
+                  background: on ? "var(--violet-soft)" : "transparent", color: on ? "var(--accent)" : "var(--text-secondary)",
+                  font: (on ? "var(--w-semibold)" : "var(--w-medium)") + " var(--t-xs)/1 var(--font-sans)",
+                }}>{o.label}{on && <Ico name="check" size={14} />}</button>
+              );
+            })}
+          </div>
+          <style>{`.nt-opt:hover{ background: var(--surface-hover) !important; color: var(--text-primary) !important; }`}</style>
+        </React.Fragment>
+      )}
+    </div>
+  );
+}
+
+Object.assign(window, { greeting, DateFilter, PageHead, NT_Select,
   ntSession, ntFmtTz, ntNextOpen, ntNextOpenLabel, ntTzInstant, ntTzDow });

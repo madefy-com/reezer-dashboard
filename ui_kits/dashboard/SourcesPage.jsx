@@ -5,6 +5,12 @@ function SourcesPage() {
   const [, force] = React.useState(0);
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   const sources = window.NT_DATA.sources || [];
+  const strategies = window.NT_DATA.strategies || [];
+  const anyLive = strategies.some((s) => s.account === "live");
+  const viewOptions = [{ value: "all", label: "All strategies" }]
+    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
+    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
+  const view = String(window.NT_DATA.viewStrategy || "all");
   const [form, setForm] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
   const INP = { height: 38, padding: "0 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", width: "100%", boxSizing: "border-box" };
@@ -37,8 +43,22 @@ function SourcesPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Sources" subtitle="Alert channels the bot watches · enable several to run them at once"
-        right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>} />
+      <PageHead title="Settings" subtitle="Dashboard defaults and the alert sources the bot watches" />
+
+      <NT.Card title="Dashboard" padding={18}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
+            <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Which strategy the dashboard shows — all strategies, only the live ones, or a single one. {strategies.length < 2 ? "Adds more once you have several strategies." : ""}</div>
+          </div>
+          <NT_Select value={view} options={viewOptions} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />
+        </div>
+      </NT.Card>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 4 }}>
+        <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)" }}>Sources</span>
+        <NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={openNew}>New source</NT.Button>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 480px))", gap: "var(--gap-grid)", alignItems: "start" }}>
         {sources.map((s) => (

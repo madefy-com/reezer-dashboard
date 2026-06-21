@@ -33,10 +33,9 @@ function LogPage() {
       <NT.Card padding={20}
         title={<div style={{ display: "flex", alignItems: "center", gap: 4 }}><Tab id="all" label="All" count={all.length} /><Tab id="fired" label="Fired" count={all.filter(m=>m.fired).length} /><Tab id="filtered" label="Filtered" count={all.filter(m=>!m.fired).length} /></div>}
         action={<span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-          {sources.length > 1 && <select value={src} onChange={(e) => setSrc(e.target.value)} style={{ height: 26, padding: "0 8px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-secondary)", colorScheme: "dark", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>
-            <option value="all">All sources</option>
-            {sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>}
+          {sources.length > 1 && <NT_Select value={String(src)} icon="filter" minWidth={170}
+            options={[{ value: "all", label: "All sources" }].concat(sources.map((s) => ({ value: String(s.id), label: s.name })))}
+            onChange={(v) => setSrc(v)} />}
           <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}><span style={{ color: "var(--fired)" }}>{sum.fired} fired</span> · {sum.filtered} filtered · 14d</span>
         </span>}
         bodyStyle={{ padding: 0 }}>
