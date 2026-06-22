@@ -11,6 +11,7 @@ window.NT_CHANGELOG = [
     notes: [
       "New Machines panel in Settings — see each of your boxes at a glance: online/offline, which one is currently active (trading), when it was last seen, and its Schwab / Discord / Supabase connection health. Updates live.",
       "Groundwork for unattended daily auto-run with automatic failover across multiple boxes (most of it is bot-side); the dashboard now surfaces box status + re-auth reminders.",
+      "“Connect a box” now matches how your Macs actually work: since the nitro-trader folder is in iCloud, it’s already on every Mac — so connecting one is just opening Documents → nitro-trader and double-clicking the installer. No download, no copying files. Each box keeps its own private login/data locally so they can’t clash.",
     ],
   },
   {
