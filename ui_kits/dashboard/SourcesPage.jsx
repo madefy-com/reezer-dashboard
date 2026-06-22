@@ -133,7 +133,8 @@ function SourcesPage() {
       </div>
 
       {/* ---- Machines (failover boxes) ---- */}
-      {(window.NT_DATA.machines || []).length > 0 && (() => {
+      {(() => {
+        const machines = window.NT_DATA.machines || [];
         const ago = (ts) => { if (!ts) return "never"; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
         const online = (m) => m.last_seen && (Date.now() - new Date(m.last_seen).getTime()) < 120000;
         const hchip = (label, ok) => (
@@ -158,7 +159,7 @@ function SourcesPage() {
           <React.Fragment>
             {Section("Machines", "your boxes — status + remote verify / restart / re-login / pause")}
             <div style={GRID}>
-              {(window.NT_DATA.machines || []).map((m) => {
+              {machines.map((m) => {
                 const on = online(m); const act = on && m.active;
                 return (
                   <div key={m.machine_id} style={{ ...CARD, opacity: on ? 1 : 0.7 }}>
@@ -195,6 +196,24 @@ function SourcesPage() {
                   </div>
                 );
               })}
+              {!machines.length && (
+                <div style={{ ...CARD, gridColumn: "1 / -1", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                    <span style={ICON}><Ico name="server" size={17} /></span>
+                    <div>
+                      <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>Connect a box</div>
+                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>One command on the PC, just once — then you run everything from here.</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid var(--border)" }}>
+                    <code style={{ flex: 1, font: "var(--w-medium) var(--t-xs)/1.4 var(--font-mono)", color: "var(--text-primary)", overflowX: "auto", whiteSpace: "nowrap" }}>bash deploy/setup.sh</code>
+                    <button onClick={() => { try { navigator.clipboard.writeText("bash deploy/setup.sh"); } catch (e) {} }} style={{ flex: "none", height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-card)", color: "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>Copy</button>
+                  </div>
+                  <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                    It installs the bot, walks you through the Schwab + Discord logins, and connects the box. The box then appears here — verify, restart, re-login, pause, and failover are all done from this panel. The box only runs during the trading window, not 24/7.
+                  </div>
+                </div>
+              )}
             </div>
           </React.Fragment>
         );
