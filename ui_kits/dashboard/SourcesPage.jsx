@@ -202,15 +202,15 @@ function SourcesPage() {
                     <span style={ICON}><Ico name="server" size={17} /></span>
                     <div>
                       <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>Connect a box</div>
-                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>One command on the PC, just once — then you run everything from here.</div>
+                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>One double-click on each Mac, just once — then everything is right here.</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid var(--border)" }}>
-                    <code style={{ flex: 1, font: "var(--w-medium) var(--t-xs)/1.4 var(--font-mono)", color: "var(--text-primary)", overflowX: "auto", whiteSpace: "nowrap" }}>bash deploy/setup.sh</code>
-                    <button onClick={() => { try { navigator.clipboard.writeText("bash deploy/setup.sh"); } catch (e) {} }} style={{ flex: "none", height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-card)", color: "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>Copy</button>
+                    <Ico name="mouse-pointer-click" size={15} style={{ color: "var(--text-secondary)" }} />
+                    <span style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-primary)" }}>Double-click <b>Connect-this-Mac.command</b> in the nitro-trader folder</span>
                   </div>
                   <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                    It installs the bot, walks you through the Schwab + Discord logins, and connects the box. The box then appears here — verify, restart, re-login, pause, and failover are all done from this panel. The box only runs during the trading window, not 24/7.
+                    It installs the bot, opens a browser for the one-time Schwab + Discord logins, and connects the box. The moment it finishes the box shows up here — and verify / restart / re-login / pause / failover are all dashboard buttons from then on. (First time, right-click → Open if macOS warns.) Each box runs only during the trading window, not 24/7.
                   </div>
                 </div>
               )}
