@@ -202,15 +202,15 @@ function SourcesPage() {
                     <span style={ICON}><Ico name="server" size={17} /></span>
                     <div>
                       <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>Connect a box</div>
-                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>One double-click on each Mac, just once — then everything is right here.</div>
+                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>Your nitro-trader folder is already on every Mac via iCloud — connecting each one is a single double-click.</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid var(--border)" }}>
                     <Ico name="mouse-pointer-click" size={15} style={{ color: "var(--text-secondary)" }} />
-                    <span style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-primary)" }}>Double-click <b>Connect-this-Mac.command</b> in the nitro-trader folder</span>
+                    <span style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-primary)" }}>On each Mac: Documents → nitro-trader → double-click <b>Connect-this-Mac.command</b></span>
                   </div>
                   <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                    It installs the bot, opens a browser for the one-time Schwab + Discord logins, and connects the box. The moment it finishes the box shows up here — and verify / restart / re-login / pause / failover are all dashboard buttons from then on. (First time, right-click → Open if macOS warns.) Each box runs only during the trading window, not 24/7.
+                    It installs the bot on that Mac, opens a browser for its one-time Discord login (Schwab is already shared — no second login), and schedules it. The box shows up here within seconds — verify / restart / re-login / pause / failover are all dashboard buttons from then on. (First time, right-click → Open if macOS warns.) Each box runs only during the trading window, not 24/7.
                   </div>
                 </div>
               )}
