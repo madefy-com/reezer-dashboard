@@ -3,9 +3,16 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.004";
+window.NT_VERSION = "1.005";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.005", date: "2026-06-22",
+    notes: [
+      "New Machines panel in Settings — see each of your boxes at a glance: online/offline, which one is currently active (trading), when it was last seen, and its Schwab / Discord / Supabase connection health. Updates live.",
+      "Groundwork for unattended daily auto-run with automatic failover across multiple boxes (most of it is bot-side); the dashboard now surfaces box status + re-auth reminders.",
+    ],
+  },
   {
     v: "1.004", date: "2026-06-21",
     notes: [

@@ -132,6 +132,51 @@ function SourcesPage() {
         {!brokers.length && <div style={{ ...CARD, color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", justifyContent: "center", alignItems: "center", textAlign: "center" }}>No broker accounts yet.</div>}
       </div>
 
+      {/* ---- Machines (failover boxes) ---- */}
+      {(window.NT_DATA.machines || []).length > 0 && (() => {
+        const ago = (ts) => { if (!ts) return "never"; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
+        const online = (m) => m.last_seen && (Date.now() - new Date(m.last_seen).getTime()) < 120000;
+        const hchip = (label, ok) => (
+          <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)",
+            background: ok === true ? "color-mix(in srgb, var(--profit) 13%, transparent)" : ok === false ? "color-mix(in srgb, var(--loss) 14%, transparent)" : "var(--surface-inset)",
+            color: ok === true ? "var(--profit)" : ok === false ? "var(--loss)" : "var(--text-tertiary)",
+            font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>{ok === true ? "✓" : ok === false ? "✗" : "–"} {label}</span>
+        );
+        return (
+          <React.Fragment>
+            {Section("Machines", "your boxes — online, which is active, and connection health")}
+            <div style={GRID}>
+              {(window.NT_DATA.machines || []).map((m) => {
+                const on = online(m); const act = on && m.active;
+                return (
+                  <div key={m.machine_id} style={{ ...CARD, opacity: on ? 1 : 0.7 }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+                        <span style={ICON}><Ico name="server" size={17} /></span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)" }}>{m.machine_id}</div>
+                          <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>seen {ago(m.last_seen)}</div>
+                        </div>
+                      </div>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", flex: "none", letterSpacing: "var(--ls-caps)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)",
+                        background: act ? "var(--violet-soft)" : on ? "var(--profit-bg)" : "var(--surface-inset)",
+                        color: act ? "var(--accent)" : on ? "var(--profit)" : "var(--text-tertiary)",
+                        border: act ? "1px solid var(--violet-line)" : "1px solid transparent" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: act ? "var(--accent)" : on ? "var(--profit)" : "var(--text-tertiary)", animation: act ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }}></span>
+                        {act ? "ACTIVE" : on ? "STANDBY" : "OFFLINE"}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                      {hchip("Schwab", m.schwab_ok)}{hchip("Discord", m.discord_ok)}{hchip("Supabase", m.supabase_ok)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </React.Fragment>
+        );
+      })()}
+
       {form && (
         <div onMouseDown={(e) => { if (e.target === e.currentTarget) setForm(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
           <div style={{ width: 480, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>

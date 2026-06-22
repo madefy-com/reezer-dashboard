@@ -256,6 +256,7 @@
     out.dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
     out.sources = (RAW.sources || []);
     out.brokerAccounts = (RAW.brokerAccounts || []);
+    out.machines = (RAW.machines || []);
     out.flags = RAW.flags || [];
     return out;
   }
@@ -292,6 +293,7 @@
       c.from("sources").select("*").order("id"),
       c.from("strategy_sources").select("strategy_id,source_id"),
       c.from("broker_accounts").select("*").order("id"),
+      c.from("machines").select("*").order("machine_id"),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -302,6 +304,7 @@
       RAW.sources = (res[6] && res[6].data) || [];
       RAW.strategySources = (res[7] && res[7].data) || [];
       RAW.brokerAccounts = (res[8] && res[8].data) || [];
+      RAW.machines = (res[9] && res[9].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };
