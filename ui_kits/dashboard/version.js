@@ -14,6 +14,7 @@ window.NT_CHANGELOG = [
       "“Connect a box” now matches how your Macs actually work: since the nitro-trader folder is in iCloud, it’s already on every Mac — so connecting one is just opening Documents → nitro-trader and double-clicking the installer. No download, no copying files. Each box keeps its own private login/data locally so they can’t clash.",
       "Settings page rebuilt to match the rest of the app: each section (Dashboard, Alert sources, Broker accounts, Machines) is now a full-width panel with its title inside the card and a proper table — no more everything squeezed into narrow cards on the right.",
       "Better contrast everywhere: secondary text, captions and table/card borders are lighter on dark (and darker on light) so labels and dividers are easier to read across all pages.",
+      "Machines status is clearer: a box outside its trading window now reads “OFF-HOURS” (it auto-starts at the next session) instead of an alarming “OFFLINE”. A box only shows OFFLINE if it goes missing during a live session. You set up each Mac once — nothing is ever run daily.",
     ],
   },
   {

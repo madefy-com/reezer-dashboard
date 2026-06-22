@@ -78,15 +78,22 @@ function SourcesPage() {
   const cmdBtn = (mid, command, label, danger) => (
     <button key={label} onClick={() => issueCmd(mid, command)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: danger ? "var(--loss)" : "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
   );
+  // Is the bot SUPPOSED to be running right now? (only then is "not seen" a real problem)
+  const sess = (function () { try { return window.ntSession(new Date()); } catch (e) { return null; } })();
+  const inWindow = !!(sess && sess.streaming);
+  const nextLabel = (function () { try { return window.ntNextOpenLabel(new Date()); } catch (e) { return "the next session"; } })();
   const machineBadge = (m) => {
     const on = online(m), act = on && m.active;
+    const offProblem = !on && inWindow;        // should be running now, but isn't → real alert
+    const label = act ? "ACTIVE" : on ? "STANDBY" : offProblem ? "OFFLINE" : "OFF-HOURS";
+    const col = act ? "var(--accent)" : on ? "var(--profit)" : offProblem ? "var(--loss)" : "var(--text-tertiary)";
+    const bg = act ? "var(--violet-soft)" : on ? "var(--profit-bg)" : offProblem ? "var(--loss-bg)" : "var(--surface-inset)";
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", letterSpacing: "var(--ls-caps)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)",
-        background: act ? "var(--violet-soft)" : on ? "var(--profit-bg)" : "var(--surface-inset)",
-        color: act ? "var(--accent)" : on ? "var(--profit)" : "var(--text-tertiary)",
-        border: act ? "1px solid var(--violet-line)" : "1px solid transparent" }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: act ? "var(--accent)" : on ? "var(--profit)" : "var(--text-tertiary)", animation: act ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }}></span>
-        {act ? "ACTIVE" : on ? "STANDBY" : "OFFLINE"}
+      <span title={offProblem ? "In the trading window but not reporting — check this box" : on ? "Bot running" : "Outside the trading window — starts itself at the next session"}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", letterSpacing: "var(--ls-caps)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)",
+        background: bg, color: col, border: act ? "1px solid var(--violet-line)" : offProblem ? "1px solid var(--loss-line)" : "1px solid transparent" }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: col, animation: act ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }}></span>
+        {label}
       </span>
     );
   };
@@ -181,6 +188,7 @@ function SourcesPage() {
       <NT.Card title="Machines" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}
         action={machines.length ? <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{machines.length} box{machines.length === 1 ? "" : "es"}</span> : null}>
         {machines.length ? (
+          <React.Fragment>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 820 }}>
               <thead><tr><th style={th}>Box</th><th style={th}>Status</th><th style={th}>Health</th><th style={th}>Last seen</th><th style={thR}>Controls</th></tr></thead>
@@ -215,6 +223,10 @@ function SourcesPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+            <b style={{ color: "var(--text-secondary)" }}>OFF-HOURS</b> just means the bot isn't in its trading window right now — it starts itself at the next session ({nextLabel}) and flips to ACTIVE on its own. You set up each Mac once; nothing is ever run daily. (A box only reads <b style={{ color: "var(--loss)" }}>OFFLINE</b> if it's missing <i>during</i> a session.)
+          </div>
+          </React.Fragment>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
