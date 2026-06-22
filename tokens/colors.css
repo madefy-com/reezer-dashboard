@@ -20,14 +20,14 @@
   --ink-2:  #151518;   /* card surface */
   --ink-3:  #1B1B1F;   /* inset / elevated surface */
   --ink-4:  #232328;   /* hover surface */
-  --line-1: rgba(255,255,255,0.07);  /* hairline border */
-  --line-2: rgba(255,255,255,0.12);  /* stronger border */
-  --line-3: rgba(255,255,255,0.20);
+  --line-1: rgba(255,255,255,0.11);  /* hairline border */
+  --line-2: rgba(255,255,255,0.18);  /* stronger border */
+  --line-3: rgba(255,255,255,0.26);
 
-  --fg-1: #FAFAFB;   /* primary text / big numbers */
-  --fg-2: #A2A2AC;   /* secondary text, labels */
-  --fg-3: #6C6C77;   /* tertiary, captions, axis */
-  --fg-4: #45454E;   /* disabled, faint */
+  --fg-1: #FBFBFC;   /* primary text / big numbers */
+  --fg-2: #C2C2CC;   /* secondary text, labels */
+  --fg-3: #92929E;   /* tertiary, captions, axis */
+  --fg-4: #56565F;   /* disabled, faint */
 
   /* ---- Semantic P&L ---- */
   --profit:      #21C77A;   /* WIN / gain */
@@ -84,14 +84,14 @@
   --ink-2:  #FFFFFF;   /* card surface */
   --ink-3:  #F4F4F6;   /* inset */
   --ink-4:  #ECECEF;   /* hover */
-  --line-1: rgba(15, 15, 20, 0.09);
-  --line-2: rgba(15, 15, 20, 0.14);
-  --line-3: rgba(15, 15, 20, 0.22);
+  --line-1: rgba(15, 15, 20, 0.13);
+  --line-2: rgba(15, 15, 20, 0.20);
+  --line-3: rgba(15, 15, 20, 0.28);
 
-  --fg-1: #15151A;
-  --fg-2: #5B5B66;
-  --fg-3: #8A8A95;
-  --fg-4: #B6B6BE;
+  --fg-1: #111116;
+  --fg-2: #46464F;
+  --fg-3: #6B6B76;
+  --fg-4: #A6A6AE;
 
   --violet-soft: rgba(110, 91, 242, 0.10);
   --violet-line: rgba(110, 91, 242, 0.28);
