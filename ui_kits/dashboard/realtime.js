@@ -35,5 +35,12 @@
       });
     });
     ch.subscribe(function (status) { console.log("[reezer realtime]", status); });
+
+    // Safety-net poll: the websocket push can be silently blocked (RLS, proxy,
+    // dropped socket). Refetch every 10s while the tab is visible so the dashboard
+    // stays live without a manual refresh. (Realtime above still gives instant
+    // updates when the socket is healthy; this just guarantees freshness.)
+    setInterval(function () { if (!document.hidden) refresh(); }, 10000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(); });
   };
 })();
