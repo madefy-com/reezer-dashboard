@@ -15,6 +15,8 @@ window.NT_CHANGELOG = [
       "Settings page rebuilt to match the rest of the app: each section (Dashboard, Alert sources, Broker accounts, Machines) is now a full-width panel with its title inside the card and a proper table — no more everything squeezed into narrow cards on the right.",
       "Better contrast everywhere: secondary text, captions and table/card borders are lighter on dark (and darker on light) so labels and dividers are easier to read across all pages.",
       "Machines status is clearer: a box outside its trading window now reads “OFF-HOURS” (it auto-starts at the next session) instead of an alarming “OFFLINE”. A box only shows OFFLINE if it goes missing during a live session. You set up each Mac once — nothing is ever run daily.",
+      "Streaming hours are now a real, editable setting (Settings → Streaming window): set when the trader streams — in US Eastern, with your local time shown beneath — plus how many minutes early the bot wakes. The top-bar Streaming row and the box “should it be running” logic both read it.",
+      "The bot now runs on the streaming window, not the whole market day. It scans from your lead time before the start through the end, then keeps managing any still-open trades until they close (with a market-close safety net) and stops as soon as it’s flat — instead of idling until the 16:00 ET close every day.",
     ],
   },
   {

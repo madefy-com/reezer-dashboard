@@ -180,13 +180,22 @@ function ntSession(now) {
   const open  = ntTzInstant(now, tz, roHM[0], roHM[1]);
   const close = ntTzInstant(now, tz, rcHM[0], rcHM[1]);
   const winH  = (SP && SP.streaming && SP.streaming.window_hours) || 2.5;
-  const streamEnd = open + winH * 3600 * 1000;
+  // Explicit STREAMING window (session_config, in ET) is the source of truth; fall back
+  // to open + window_hours. `scanning` adds the bot's lead time (it wakes early).
+  const SC = window.NT_DATA.sessionConfig || {};
+  const ssHM = MH.streaming_start_et ? ntHM(MH.streaming_start_et) : roHM;
+  const seHM = MH.streaming_end_et ? ntHM(MH.streaming_end_et) : null;
+  const streamStart = ntTzInstant(now, tz, ssHM[0], ssHM[1]);
+  const streamEnd = seHM ? ntTzInstant(now, tz, seHM[0], seHM[1]) : (open + winH * 3600 * 1000);
+  const lead = (SC.scan_lead_min != null ? SC.scan_lead_min : 30);
+  const scanStart = streamStart - lead * 60000;
   const t = now.getTime();
   let state = "closed";
   if (!weekend && t >= pre && t < open) state = "premarket";
   else if (!weekend && t >= open && t < close) state = "open";
-  const streaming = !weekend && t >= open && t < streamEnd;
-  return { state, streaming, pre, open, close, streamEnd, weekend, now: t };
+  const streaming = !weekend && t >= streamStart && t < streamEnd;
+  const scanning = !weekend && t >= scanStart && t < streamEnd;
+  return { state, streaming, scanning, pre, open, close, streamStart, scanStart, streamEnd, weekend, now: t };
 }
 /* Next future regular-open epoch (skips weekends), for the "closed" label. */
 function ntNextOpen(now) {

@@ -17,6 +17,23 @@ function SourcesPage() {
   const view = String(window.NT_DATA.viewStrategy || "all");
   const [form, setForm] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
+
+  // ---- streaming window (session_config) ----
+  const SC0 = window.NT_DATA.sessionConfig || {};
+  const MH = window.NT_DATA.marketHours || { market_tz: "America/New_York", display_tz: "Europe/Amsterdam" };
+  const [win, setWin] = React.useState({ start: SC0.streaming_start_et || "09:30", end: SC0.streaming_end_et || "12:00", lead: SC0.scan_lead_min != null ? SC0.scan_lead_min : 30 });
+  const [savingWin, setSavingWin] = React.useState(false);
+  const dispOf = (hhmm) => { try { const a = String(hhmm).split(":"); const inst = window.ntTzInstant(new Date(), MH.market_tz, Number(a[0]), Number(a[1])); return window.ntFmtTz(inst, MH.display_tz); } catch (e) { return ""; } };
+  const dispZone = (MH.display_tz || "Europe/Amsterdam").split("/")[1].replace("_", " ");
+  const saveWin = async () => {
+    setSavingWin(true);
+    try {
+      const r = await window.NT_CLIENT.from("session_config").update({ streaming_start_et: win.start, streaming_end_et: win.end, scan_lead_min: Number(win.lead) || 30, updated_at: new Date().toISOString() }).eq("id", 1);
+      if (r.error) throw r.error;
+      await window.NT_REFRESH();
+    } catch (e) { await window.NT_ALERT("Save failed: " + (e.message || e), { title: "Streaming window" }); }
+    setSavingWin(false);
+  };
   const INP = { height: 38, padding: "0 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", width: "100%", boxSizing: "border-box" };
 
   // ---- shared table styles (match TradesPage) ----
@@ -80,7 +97,7 @@ function SourcesPage() {
   );
   // Is the bot SUPPOSED to be running right now? (only then is "not seen" a real problem)
   const sess = (function () { try { return window.ntSession(new Date()); } catch (e) { return null; } })();
-  const inWindow = !!(sess && sess.streaming);
+  const inWindow = !!(sess && sess.scanning);   // bot should be up from 30 min before streaming
   const nextLabel = (function () { try { return window.ntNextOpenLabel(new Date()); } catch (e) { return "the next session"; } })();
   const machineBadge = (m) => {
     const on = online(m), act = on && m.active;
@@ -114,6 +131,31 @@ function SourcesPage() {
             <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which strategy the dashboard shows when it first opens.</div>
           </div>
           <NT_Select value={view} options={viewOptions} icon="filter" minWidth={240} onChange={(v) => window.NT_SET_VIEW(v)} />
+        </div>
+      </NT.Card>
+
+      {/* ---- Streaming window ---- */}
+      <NT.Card title="Streaming window" padding={20}
+        action={<NT.Button variant="primary" size="sm" onClick={saveWin} disabled={savingWin}>{savingWin ? "Saving…" : "Save"}</NT.Button>}>
+        <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)", marginBottom: 16 }}>
+          When the trader streams alerts. The bot wakes <b style={{ color: "var(--text-primary)" }}>{win.lead} min before</b> the start, scans through the end, then stops — it doesn't run the whole market day. Times are US&nbsp;Eastern; the {dispZone} equivalent is shown under each.
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-end" }}>
+          {[["Start (ET)", "start"], ["End (ET)", "end"]].map(([lbl, key]) => (
+            <label key={key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{lbl}</span>
+              <input type="time" value={win[key]} onChange={(e) => setWin((w) => ({ ...w, [key]: e.target.value }))} style={{ ...INP, width: 150 }} />
+              <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>= {dispOf(win[key])} {dispZone}</span>
+            </label>
+          ))}
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Scan lead</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <input type="number" min={0} max={120} value={win.lead} onChange={(e) => setWin((w) => ({ ...w, lead: e.target.value }))} style={{ ...INP, width: 90 }} />
+              <span style={{ font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>min early</span>
+            </span>
+            <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>start scanning before the open</span>
+          </label>
         </div>
       </NT.Card>
 

@@ -20,7 +20,7 @@
     if (!window.NT_CLIENT || client) return;
     client = window.NT_CLIENT;  // shared client (also used by auth)
     var ch = client.channel("reezer-live");
-    ["alerts", "positions", "trade_events", "operator_flags", "strategies", "sources", "machines", "machine_commands"].forEach(function (t) {
+    ["alerts", "positions", "trade_events", "operator_flags", "strategies", "sources", "machines", "machine_commands", "session_config"].forEach(function (t) {
       ch.on("postgres_changes", { event: "*", schema: "public", table: t }, function (payload) {
         var tbl = payload.table, ev = payload.eventType;
         // positions/alerts/operator_flags/strategies/sources carry everything the UI

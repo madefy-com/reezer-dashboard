@@ -232,6 +232,7 @@
     var vTrades = (trades || []).filter(function (t) { return inView(t.strategyId); });
     var vPositions = positions.filter(function (p) { return inView(p.strategy_id); });
 
+    var sc = RAW.sessionConfig || base.sessionConfig || null;
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     var out = Object.assign({}, base, {
       trades: trades ? vTrades : base.trades,
@@ -239,10 +240,15 @@
       daily: positions.length ? buildDaily(vPositions) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
+      // streaming window is the single source of truth (session_config); ntSession + the
+      // bot both read it. Inject the ET start/end into marketHours so the helpers see them.
+      marketHours: Object.assign({}, base.marketHours, sc ? { streaming_start_et: sc.streaming_start_et, streaming_end_et: sc.streaming_end_et } : {}),
+      sessionConfig: sc || base.sessionConfig || null,
       session: Object.assign({}, base.session || {}, {
         mode: anyLive ? "LIVE" : "SIMULATION",
         budget: totBudget ? "$" + Math.round(totBudget) : (base.session || {}).budget,
         strategy: (stratList[0] && stratList[0].name) || sName,
+        window: sc ? (sc.streaming_start_et + " – " + sc.streaming_end_et + " ET") : (base.session || {}).window,
       }),
     });
     out.strategies = stratList;
@@ -296,6 +302,7 @@
       c.from("broker_accounts").select("*").order("id"),
       c.from("machines").select("*").order("machine_id"),
       c.from("machine_commands").select("*").order("id", { ascending: false }).limit(40),
+      c.from("session_config").select("*").eq("id", 1).maybeSingle(),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -308,6 +315,7 @@
       RAW.brokerAccounts = (res[8] && res[8].data) || [];
       RAW.machines = (res[9] && res[9].data) || [];
       RAW.machineCommands = (res[10] && res[10].data) || [];
+      RAW.sessionConfig = (res[11] && res[11].data) || null;
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };

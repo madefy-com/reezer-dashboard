@@ -105,7 +105,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies }) {
               {sessionRow("var(--dryrun)", sess.state === "premarket", "Pre-market", ntFmtTz(sess.pre, TZ) + " – " + ntFmtTz(sess.open, TZ))}
               {sessionRow("var(--profit)", sess.state === "open", "Regular / open", ntFmtTz(sess.open, TZ) + " – " + ntFmtTz(sess.close, TZ))}
               {sessionRow("var(--loss)", false, "Closed", "after " + ntFmtTz(sess.close, TZ))}
-              {sessionRow("var(--profit)", sess.streaming, "Streaming", ntFmtTz(sess.open, TZ) + " – " + ntFmtTz(sess.streamEnd, TZ))}
+              {sessionRow("var(--accent)", sess.streaming, "Streaming", ntFmtTz(sess.streamStart, TZ) + " – " + ntFmtTz(sess.streamEnd, TZ))}
               <div style={{ marginTop: 10, font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
                 Shown in {TZ.split("/")[1].replace("_", " ")} · market hours US Eastern. Both auto-correct for summer/winter.
               </div>
