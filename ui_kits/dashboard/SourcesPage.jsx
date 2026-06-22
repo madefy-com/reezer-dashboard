@@ -142,9 +142,21 @@ function SourcesPage() {
             color: ok === true ? "var(--profit)" : ok === false ? "var(--loss)" : "var(--text-tertiary)",
             font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>{ok === true ? "✓" : ok === false ? "✗" : "–"} {label}</span>
         );
+        const cmds = window.NT_DATA.machineCommands || [];        // newest first (id desc)
+        const lastCmd = (mid) => cmds.find((c) => c.machine_id === mid);
+        const issueCmd = async (mid, command) => {
+          try {
+            const r = await window.NT_CLIENT.from("machine_commands").insert({ machine_id: mid, command });
+            if (r.error) throw r.error;
+            await window.NT_REFRESH();
+          } catch (e) { await window.NT_ALERT("Couldn’t send command: " + (e.message || e), { title: "Box command" }); }
+        };
+        const cmdBtn = (mid, command, label, danger) => (
+          <button key={label} onClick={() => issueCmd(mid, command)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: danger ? "var(--loss)" : "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
+        );
         return (
           <React.Fragment>
-            {Section("Machines", "your boxes — online, which is active, and connection health")}
+            {Section("Machines", "your boxes — status + remote verify / restart / re-login / pause")}
             <div style={GRID}>
               {(window.NT_DATA.machines || []).map((m) => {
                 const on = online(m); const act = on && m.active;
@@ -169,6 +181,17 @@ function SourcesPage() {
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                       {hchip("Schwab", m.schwab_ok)}{hchip("Discord", m.discord_ok)}{hchip("Supabase", m.supabase_ok)}
                     </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "auto", paddingTop: 4 }}>
+                      {cmdBtn(m.machine_id, "preflight", "Verify")}
+                      {cmdBtn(m.machine_id, "restart", "Restart")}
+                      {cmdBtn(m.machine_id, "relogin-discord", "Re-login")}
+                      {cmdBtn(m.machine_id, m.paused ? "resume" : "pause", m.paused ? "Resume" : "Pause", !m.paused)}
+                    </div>
+                    {(() => { const lc = lastCmd(m.machine_id); return lc ? (
+                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-mono)", color: lc.status === "error" ? "var(--loss)" : lc.status === "done" ? "var(--text-tertiary)" : "var(--accent)", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {lc.command}: {lc.status}{lc.result ? " — " + lc.result : ""}
+                      </div>
+                    ) : null; })()}
                   </div>
                 );
               })}

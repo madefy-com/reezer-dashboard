@@ -257,6 +257,7 @@
     out.sources = (RAW.sources || []);
     out.brokerAccounts = (RAW.brokerAccounts || []);
     out.machines = (RAW.machines || []);
+    out.machineCommands = (RAW.machineCommands || []);
     out.flags = RAW.flags || [];
     return out;
   }
@@ -294,6 +295,7 @@
       c.from("strategy_sources").select("strategy_id,source_id"),
       c.from("broker_accounts").select("*").order("id"),
       c.from("machines").select("*").order("machine_id"),
+      c.from("machine_commands").select("*").order("id", { ascending: false }).limit(40),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -305,6 +307,7 @@
       RAW.strategySources = (res[7] && res[7].data) || [];
       RAW.brokerAccounts = (res[8] && res[8].data) || [];
       RAW.machines = (res[9] && res[9].data) || [];
+      RAW.machineCommands = (res[10] && res[10].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };
