@@ -92,6 +92,11 @@ function SourcesPage() {
     try { const r = await window.NT_CLIENT.from("machine_commands").insert({ machine_id: mid, command }); if (r.error) throw r.error; await window.NT_REFRESH(); }
     catch (e) { await window.NT_ALERT("Couldn’t send command: " + (e.message || e), { title: "Box command" }); }
   };
+  const removeMachine = async (mid) => {
+    if (!(await window.NT_CONFIRM("Remove “" + mid + "”? It'll come back on its own if that box checks in again — use this to clear a stale/duplicate entry.", { title: "Remove box", ok: "Remove", danger: true }))) return;
+    try { const r = await window.NT_CLIENT.from("machines").delete().eq("machine_id", mid); if (r.error) throw r.error; await window.NT_REFRESH(); }
+    catch (e) { await window.NT_ALERT("Couldn’t remove: " + (e.message || e), { title: "Remove box" }); }
+  };
   const cmdBtn = (mid, command, label, danger) => (
     <button key={label} onClick={() => issueCmd(mid, command)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: danger ? "var(--loss)" : "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
   );
@@ -257,6 +262,7 @@ function SourcesPage() {
                           {cmdBtn(m.machine_id, "restart", "Restart")}
                           {cmdBtn(m.machine_id, "relogin-discord", "Re-login")}
                           {cmdBtn(m.machine_id, m.paused ? "resume" : "pause", m.paused ? "Resume" : "Pause", !m.paused)}
+                          {!online(m) && <button onClick={() => removeMachine(m.machine_id)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>Remove</button>}
                         </span>
                       </td>
                     </tr>
