@@ -18,6 +18,8 @@ window.NT_CHANGELOG = [
       "Streaming hours are now a real, editable setting (Settings → Streaming window): set when the trader streams — in US Eastern, with your local time shown beneath — plus how many minutes early the bot wakes. The top-bar Streaming row and the box “should it be running” logic both read it.",
       "The bot now runs on the streaming window, not the whole market day. It scans from your lead time before the start through the end, then keeps managing any still-open trades until they close (with a market-close safety net) and stops as soon as it’s flat — instead of idling until the 16:00 ET close every day.",
       "Machines: an offline/stale box now has a Remove button so you can clear a duplicate or a box you no longer use (it reappears on its own if it checks in again). Boxes also use a stable name now, so one Mac can’t show up twice.",
+      "New safety alert: during the streaming window, if no box is actually trading, a red “Session at risk” banner appears at the top of every page — so a crashed, asleep, or offline box can never fail silently again.",
+      "Recovered last week’s trades (the June 16 and June 18 wins) that had been dropped from the cloud, and fixed the underlying ID clash that caused them to be overwritten.",
     ],
   },
   {

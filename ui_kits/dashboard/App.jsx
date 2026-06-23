@@ -38,6 +38,36 @@ function FlagBanner() {
   );
 }
 
+/* Watchdog: the dashboard's own health check. During the streaming window, if NO box is
+   actively trading, show a loud red banner — this is exactly the "schedule failed / bot
+   crashed / box asleep" case that otherwise fails silently. Recomputes every second (the
+   App clock tick re-renders this child). */
+function WatchdogBanner() {
+  let sess = null;
+  try { sess = window.ntSession(new Date()); } catch (e) { return null; }
+  if (!sess || !sess.scanning) return null;                 // only during the trading window
+  const machines = (window.NT_DATA && window.NT_DATA.machines) || [];
+  const online = (m) => m.last_seen && (Date.now() - new Date(m.last_seen).getTime()) < 120000;
+  if (machines.some((m) => m.active && online(m))) return null;   // a box is trading -> all good
+  const anyOnline = machines.some(online);
+  const msg = anyOnline
+    ? "A box is online but none is actively trading (standby or paused) — new alerts won't be acted on."
+    : "No box is running. The streaming window is open but no machine is online — alerts aren't being caught.";
+  return (
+    <div style={{ flex: "0 0 auto" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 26px",
+        background: "rgba(220,38,38,0.18)", borderBottom: "1px solid rgba(220,38,38,0.6)",
+        color: "#fca5a5", font: "600 13px/1.4 var(--font-sans)" }}>
+        <i data-lucide="alert-octagon" style={{ width: 17, height: 17, flex: "0 0 auto" }} />
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <b style={{ color: "#fecaca" }}>Session at risk</b>{"  "}{msg}
+        </span>
+        <span style={{ flex: "0 0 auto", font: "500 12px var(--font-sans)", color: "#fecaca", opacity: 0.9 }}>Settings → Machines</span>
+      </div>
+    </div>
+  );
+}
+
 /* App — Reezer operator dashboard shell with page routing. */
 function App() {
   const [page, setPage] = React.useState("dashboard");
@@ -85,6 +115,7 @@ function App() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage} strategies={strategies} />
         <FlagBanner />
+        <WatchdogBanner />
         <main style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{
             maxWidth: "var(--content-max)", width: "100%", margin: "0 auto", padding: "22px 26px 24px",
