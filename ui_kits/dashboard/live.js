@@ -229,8 +229,15 @@
       if (view === "live") return !!liveIds[sid];
       return String(sid) === String(view);
     };
-    var vTrades = (trades || []).filter(function (t) { return inView(t.strategyId); });
-    var vPositions = positions.filter(function (p) { return inView(p.strategy_id); });
+    // date filter (shared, persisted) — applied ALONGSIDE the strategy view so trades,
+    // KPIs and the P&L chart all reflect the selected range (not just the trades table).
+    var dr = "week", custom = null;
+    try { dr = (window.localStorage && localStorage.getItem("nt_date_range")) || "week"; } catch (e) {}
+    if (dr === "custom") { try { var cc = JSON.parse(localStorage.getItem("nt_date_custom")); if (cc) custom = { from: new Date(cc.from), to: new Date(cc.to) }; } catch (e) {} }
+    var dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
+    var inDate = function (ts) { if (!dateBounds || !ts) return true; var d = new Date(ts); return d >= dateBounds.from && d <= dateBounds.to; };
+    var vTrades = (trades || []).filter(function (t) { return inView(t.strategyId) && inDate(t.entryTs); });
+    var vPositions = positions.filter(function (p) { return inView(p.strategy_id) && inDate(p.entry_ts); });
 
     var sc = RAW.sessionConfig || base.sessionConfig || null;
     var fired = alerts.filter(function (a) { return a.fired; }).length;
@@ -254,12 +261,8 @@
     out.strategies = stratList;
     out.strategy = stratList[0] || null;
     out.viewStrategy = view;
-    // date filter: persisted choice shared across all pages (default "week", Mon–Sun)
-    var dr = "week"; var custom = null;
-    try { dr = (window.localStorage && localStorage.getItem("nt_date_range")) || "week"; } catch (e) {}
-    if (dr === "custom") { try { var cc = JSON.parse(localStorage.getItem("nt_date_custom")); if (cc) custom = { from: new Date(cc.from), to: new Date(cc.to) }; } catch (e) {} }
     out.dateRange = dr;
-    out.dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
+    out.dateBounds = dateBounds;
     out.sources = (RAW.sources || []);
     out.brokerAccounts = (RAW.brokerAccounts || []);
     out.machines = (RAW.machines || []);

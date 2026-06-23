@@ -20,6 +20,10 @@ window.NT_CHANGELOG = [
       "Machines: an offline/stale box now has a Remove button so you can clear a duplicate or a box you no longer use (it reappears on its own if it checks in again). Boxes also use a stable name now, so one Mac can’t show up twice.",
       "New safety alert: during the streaming window, if no box is actually trading, a red “Session at risk” banner appears at the top of every page — so a crashed, asleep, or offline box can never fail silently again.",
       "Recovered last week’s trades (the June 16 and June 18 wins) that had been dropped from the cloud, and fixed the underlying ID clash that caused them to be overwritten.",
+      "The date filter now changes everything: Trades, the P&L chart and the stat cards all follow the selected range — not just the trades list. (Alerts always show the latest, regardless of range.)",
+      "New “Default date range” in Settings → Dashboard, alongside Default view — pick the range the dashboard opens on.",
+      "Exit Lab: the per-strategy stats now follow the same strategy filter as the trades above them, so the “left on table” numbers can’t disagree (e.g. 13.6% above vs 63% below).",
+      "Per-trade P&L charts fixed: today’s trades were drawing a flat, week-wide line because of leftover samples from the ID clash — cleaned, so each chart now spans just its own trade.",
     ],
   },
   {
