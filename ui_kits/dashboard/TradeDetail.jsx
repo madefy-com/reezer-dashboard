@@ -83,18 +83,21 @@ function TradeDetail({ trade, onClose }) {
   const describe = (e) => {
     const p = e.price != null ? "$" + (+e.price).toFixed(2) : "";
     const n = (e.note || "").toLowerCase();
+    const why = e.note ? " · " + e.note : "";   // the real trigger (alert phrase / rule)
     switch (e.type) {
       case "entry": return { label: "Entry · bought " + e.qty, at: p, src: "alert" };
-      case "trim": return { label: "Partial · sold " + e.qty, at: p, src: "alert" };
+      case "trim": return { label: "Partial · sold " + e.qty + why, at: p, src: "alert" };
       case "stop_set":
         if (n.indexOf("breakeven") >= 0) return { label: "Stop → breakeven", at: p, src: "rule" };
         if (n.indexOf("trail") >= 0) return { label: "Trail stop → " + p, at: "", src: "rule" };
         return { label: "Stop set" + (e.note ? " (" + e.note + ")" : ""), at: p, src: "rule" };
       case "stop": return { label: "Stopped out · sold " + e.qty, at: p, src: "rule" };
-      case "close": return { label: "Closed · sold " + e.qty, at: p, src: "alert" };
-      case "take_half": return { label: "Took half · sold " + e.qty, at: p, src: "rule" };
-      case "take_profit": return { label: "Take-profit · sold " + e.qty, at: p, src: "rule" };
-      default: return { label: e.type + (e.qty ? " " + e.qty : ""), at: p, src: "rule" };
+      case "close": return { label: "Closed · sold " + e.qty + why, at: p, src: "alert" };
+      case "take_half": return { label: "Took half · sold " + e.qty + why, at: p, src: "rule" };
+      case "take_profit": return { label: "Take-profit · sold " + e.qty + why, at: p, src: "rule" };
+      case "target": return { label: "Target hit · sold " + e.qty + why, at: p, src: "rule" };
+      case "eod": return { label: "EOD flatten · sold " + e.qty, at: p, src: "rule" };
+      default: return { label: e.type + (e.qty ? " " + e.qty : "") + why, at: p, src: "rule" };
     }
   };
   const timeline = events.slice().reverse();   // newest first

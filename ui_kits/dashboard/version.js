@@ -24,6 +24,8 @@ window.NT_CHANGELOG = [
       "New “Default date range” in Settings → Dashboard, alongside Default view — pick the range the dashboard opens on.",
       "Exit Lab: the per-strategy stats now follow the same strategy filter as the trades above them, so the “left on table” numbers can’t disagree (e.g. 13.6% above vs 63% below).",
       "Per-trade P&L charts fixed: today’s trades were drawing a flat, week-wide line because of leftover samples from the ID clash — cleaned, so each chart now spans just its own trade.",
+      "The trade log now shows the REAL trigger of every exit: rule-driven take-halves/targets show a ⚙️ with the reason (e.g. “+32% rule”), and alert-driven exits show a 🔔 with the actual alert (e.g. “Closed · LOCKED IN MAJORITY”) — so a rule no longer looks like an alert, and “Closed” no longer hides which alert caused it.",
+      "Exit behaviour: a “LOCKED IN MAJORITY”-style scale alert no longer force-closes your runner once you’ve already taken half — the runner now rides its stop (trailing / breakeven), so a trailing strategy can catch a bigger move. An explicit “closed” alert still closes fully.",
     ],
   },
   {
