@@ -52,6 +52,8 @@ function StrategyCard({ strat, sources }) {
       t1at: NT_tierAt(p, 0), t1pct: NT_tierTr(p, 0), t2at: NT_tierAt(p, 1), t2pct: NT_tierTr(p, 1), t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxSlip: p.max_price_slippage_usd == null ? "" : p.max_price_slippage_usd,
       maxTrades: p.max_trades_per_day == null ? "" : p.max_trades_per_day,
+      ignoreExits: !!p.ignore_exit_alerts,
+      dayPct: Object.assign({ mon: 100, tue: 100, wed: 100, thu: 100, fri: 100 }, p.budget_day_pct || {}),
       sourceIds: (strat.sourceIds || []).slice(),
     });
   };
@@ -81,6 +83,9 @@ function StrategyCard({ strat, sources }) {
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_slippage_usd: opt(form.maxSlip) == null ? null : (Number(form.maxSlip) || 0),
       max_trades_per_day: opt(form.maxTrades) == null ? null : (Number(form.maxTrades) || 0),
+      ignore_exit_alerts: !!form.ignoreExits,
+      // keep only days that differ from 100% (so the stored object stays minimal)
+      budget_day_pct: Object.fromEntries(Object.entries(form.dayPct || {}).map(function (e) { return [e[0], Number(e[1])]; }).filter(function (e) { return e[1] !== 100; })),
       updated_at: new Date().toISOString(),
     };
     try {
@@ -106,6 +111,7 @@ function StrategyCard({ strat, sources }) {
         allowlist: p.allowlist, stop_loss_pct: p.stop_loss_pct, breakeven_at_pct: p.breakeven_at_pct,
         take_profit_pct: p.take_profit_pct, take_half_at_pct: p.take_half_at_pct, trailing_tiers: p.trailing_tiers || [],
         max_hold_minutes: p.max_hold_minutes, max_price_slippage_usd: p.max_price_slippage_usd, max_trades_per_day: p.max_trades_per_day,
+        ignore_exit_alerts: !!p.ignore_exit_alerts, budget_day_pct: p.budget_day_pct || {},
       });
       if (r.error) throw r.error;
       await window.NT_REFRESH();
@@ -130,8 +136,9 @@ function StrategyCard({ strat, sources }) {
   const srcNames = (strat.sourceIds || []).map((id) => { const s = (sources || []).find((x) => x.id === id); return s ? s.name : id; });
 
   const groups = [
-    { g: "Sizing", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts / trade", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist, true]] },
-    { g: "Exits / risk", items: [["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after first exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+    { g: "Sizing", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts / trade", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist, true],
+      ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join("  ·  ") : "full every day", true]] },
+    { g: "Exits / risk", items: [["Exits", p.ignore_exit_alerts ? "rules only (ignore alerts)" : "follow alerts + rules"], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after first exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join("  ·  ") : "off", true],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources", true]] },
@@ -212,8 +219,32 @@ function StrategyCard({ strat, sources }) {
               <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
             <NT_SField label="Allowlist" hint="Comma-separated tickers the bot may trade."><input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} /></NT_SField>
+            <NT_SField label="Budget by weekday (%)" hint="Trade this % of the budget on each day. 100 = full size; e.g. Mon 50% halves it.">
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+                {[["Mon", "mon"], ["Tue", "tue"], ["Wed", "wed"], ["Thu", "thu"], ["Fri", "fri"]].map(function (d) {
+                  return (
+                    <label key={d[1]} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                      <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{d[0]}</span>
+                      <input type="number" min={0} max={100} value={(form.dayPct || {})[d[1]]} onChange={(e) => setF("dayPct", Object.assign({}, form.dayPct, { [d[1]]: e.target.value }))} style={{ ...NT_SINPUT, textAlign: "center", padding: "0 6px" }} />
+                    </label>
+                  );
+                })}
+              </div>
+            </NT_SField>
 
             <NT_SSection>Exits / risk</NT_SSection>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Manage exits by rules only</div>
+                <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>Follow ENTRY alerts, but ignore the trader's partial/close alerts — exits come only from the rules below.</div>
+              </div>
+              <div style={{ display: "inline-flex", flex: "none", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
+                {[["Off", false], ["On", true]].map((o) => {
+                  const on = !!form.ignoreExits === o[1];
+                  return <button key={o[0]} type="button" onClick={() => setF("ignoreExits", o[1])} style={{ height: 28, padding: "0 16px", borderRadius: "var(--radius-xs)", cursor: "pointer", border: "1px solid " + (on ? "var(--border-strong)" : "transparent"), background: on ? "var(--surface-hover)" : "transparent", color: on ? "var(--text-primary)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{o[0]}</button>;
+                })}
+              </div>
+            </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -4 }}>Leave any field empty to skip that rule and follow the alerts.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <NT_SField label="Stop loss (%)" hint="Empty = no auto stop"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>

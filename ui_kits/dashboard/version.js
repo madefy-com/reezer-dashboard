@@ -10,6 +10,8 @@ window.NT_CHANGELOG = [
     v: "1.007", date: "2026-06-24",
     notes: [
       "Exit Lab fix: the per-strategy stats now ALWAYS cover all strategies (date filter only), as agreed — the strategy filter narrows only the Trades table above it. Yesterday's change had wrongly made the stats follow the strategy filter too.",
+      "New strategy option “Manage exits by rules only”: the strategy still takes new ENTRY alerts but ignores the trader’s partial/close alerts — exits come purely from your own stop / breakeven / trailing / targets. Lets a strategy run its full plan.",
+      "New per-strategy “Budget by weekday (%)”: trade a percentage of the budget on each weekday (Mon–Fri). e.g. Monday 50% on a $400 budget = $200/trade that day. 100% = full size.",
     ],
   },
   {
