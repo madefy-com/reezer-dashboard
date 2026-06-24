@@ -128,32 +128,59 @@ def _run_row(row_json, entry_json, tape_json):   # row = a strategy_params row (
     say("loading engine…");
     await ensure(say);
 
-    say("loading trades…");
-    const pres = await db.from("positions").select("*").eq("strategy_id", strat.id).order("entry_ts");
-    if (pres.error) throw pres.error;
-    const positions = pres.data || [];
+    // what this strategy would ACT ON: its allowlist (tickers) + its sources (alert channels).
+    // Replay always works off the shared pool of recorded alert-trades — NOT just this
+    // strategy's own positions — so a brand-new strategy still has trades to replay.
+    const allow = (row.allowlist || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+    const srcRes = await db.from("strategy_sources").select("source_id").eq("strategy_id", strat.id);
+    if (srcRes.error) throw srcRes.error;
+    const listen = (srcRes.data || []).map((r) => r.source_id);   // [] = listens to every source
+
+    say("loading available trades…");
+    const poolRes = await db.from("replay_pool").select("*").order("entry_ts");
+    if (poolRes.error) throw poolRes.error;
+    const pool = (poolRes.data || []).filter((t) => {
+      const okTicker = !allow.length || allow.indexOf(String(t.ticker || "").toUpperCase()) >= 0;
+      const okSource = !listen.length || t.source_id == null || listen.indexOf(t.source_id) >= 0;
+      return okTicker && okSource;
+    });
+
+    // size each matched trade to THIS strategy's budget (+ weekday %, capped), like the live entry rule
+    const dayKey = (iso) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(iso)).toLowerCase().slice(0, 3); } catch (e) { return ""; } };
+    const sizeFor = (t) => {
+      const dp = row.budget_day_pct || {};
+      const pct = dp[dayKey(t.entry_ts)] != null ? Number(dp[dayKey(t.entry_ts)]) : 100;
+      const eff = Number(row.trade_budget_usd || 0) * (pct / 100);
+      const costPer = Number(t.entry_price) * 100;
+      let q = costPer > 0 ? Math.floor(eff / costPer) : 0;
+      const cap = Number(row.max_contracts_per_trade || 0);
+      if (cap > 0) q = Math.min(q, cap);
+      return q;
+    };
 
     const trades = [];
-    let skipped = 0;
-    for (let i = 0; i < positions.length; i++) {
-      const p = positions[i];
-      say("replaying " + (i + 1) + "/" + positions.length + " (" + (p.ticker || "?") + ")…");
+    let skipped = 0, unaffordable = 0;
+    for (let i = 0; i < pool.length; i++) {
+      const t = pool[i];
+      say("replaying " + (i + 1) + "/" + pool.length + " (" + (t.ticker || "?") + ")…");
+      const qty = sizeFor(t);
+      if (qty < 1) { unaffordable++; continue; }   // budget can't afford one contract -> not taken
       const tres = await db.from("fronttest_tape").select("ts,price,bid,ask")
-        .eq("position_id", p.id).order("ts").limit(6000);
+        .eq("position_id", t.position_id).order("ts").limit(6000);
       if (tres.error) throw tres.error;
       const tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
-      if (!tape.length) { skipped++; continue; }   // no tape -> can't replay this one
-      const entry = { ticker: p.ticker, osi_symbol: p.symbol, side: p.side, strike: p.strike,
-                      qty: (p.orig_qty || p.qty || 1), fill_price: p.entry_price, opened_at: p.entry_ts };
+      if (!tape.length) { skipped++; continue; }
+      const entry = { ticker: t.ticker, osi_symbol: String(t.ticker || ""), side: t.side, strike: t.strike,
+                      qty: qty, fill_price: t.entry_price, opened_at: t.entry_ts };
       const r = runStrategy(row, entry, tape);
-      trades.push({ position_id: p.id, ticker: p.ticker, side: p.side, strike: p.strike,
-                    entry_price: Number(p.entry_price), orig_qty: entry.qty, entry_ts: p.entry_ts,
+      trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
+                    entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
                     realized: r.realized, exit_price: r.exit_price, peak_gain_pct: r.peak_gain_pct,
-                    orig_realized: Number(p.realized_pnl || 0), events: r.events });
+                    orig_realized: Number(t.recorded_pnl || 0), events: r.events });
     }
 
     const sum = (f) => Math.round(trades.reduce((a, t) => a + f(t), 0) * 100) / 100;
-    const summary = { trades: trades.length, skipped: skipped,
+    const summary = { trades: trades.length, matched: pool.length, skipped: skipped, unaffordable: unaffordable,
                       realized: sum((t) => t.realized), orig_realized: sum((t) => t.orig_realized) };
     const snap = { strategy_id: strat.id, replayed_at: new Date().toISOString(),
                    settings_hash: JSON.stringify([row.stop_loss_pct, row.breakeven_at_pct, row.take_profit_pct,

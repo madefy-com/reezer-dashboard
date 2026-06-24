@@ -254,10 +254,10 @@ function StrategyCard({ strat, sources }) {
             {replay.result && (() => { const s = replay.result.summary; const list = replay.result.trades || []; const d = Math.round((s.realized - s.orig_realized) * 100) / 100; return (
               <React.Fragment>
                 <div style={{ font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
-                  Re-ran <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> recorded trade{s.trades === 1 ? "" : "s"} through this strategy's <b style={{ color: "var(--text-primary)" }}>current</b> settings.{s.skipped ? " (" + s.skipped + " had no recorded tape and were skipped.)" : ""}
+                  Replayed <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> of {s.matched} available alert-trade{s.matched === 1 ? "" : "s"} this strategy matches (allowlist + sources), at its <b style={{ color: "var(--text-primary)" }}>current</b> settings.{s.unaffordable ? " " + s.unaffordable + " didn’t fit the budget." : ""}{s.skipped ? " " + s.skipped + " had no tape." : ""}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  {[["Replay P&L", s.realized], ["Original P&L", s.orig_realized]].map((x, i) => (
+                  {[["Replay P&L", s.realized], ["Recorded P&L", s.orig_realized]].map((x, i) => (
                     <div key={i} style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
                       <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)", textTransform: "uppercase" }}>{x[0]}</div>
                       <div className="num" style={{ font: "var(--w-medium) var(--t-h3)/1 var(--font-mono)", marginTop: 6, color: x[1] > 0 ? "var(--profit)" : x[1] < 0 ? "var(--loss)" : "var(--text-primary)" }}>{money(x[1])}</div>
@@ -265,7 +265,7 @@ function StrategyCard({ strat, sources }) {
                   ))}
                 </div>
                 <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                  {d === 0 ? "Same as the originals." : (d > 0 ? "+$" + d : "−$" + Math.abs(d)) + " vs the originals with these settings."} Click a trade for its replayed chart &amp; log — the originals stay untouched.
+                  {d === 0 ? "Same as the recorded outcomes." : (d > 0 ? "+$" + d : "−$" + Math.abs(d)) + " vs the recorded outcomes."} Click a trade for its replayed chart &amp; log — the recorded trades stay untouched.
                 </div>
                 {list.length > 0 && (
                   <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
