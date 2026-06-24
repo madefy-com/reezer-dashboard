@@ -55,15 +55,18 @@ def _entry(e):
     e["right"] = Right.CALL if (e.get("side") or "C").upper().startswith("C") else Right.PUT
     return e
 
-def _run(cfg_json, entry_json, tape_json):       # cfg = explicit Config kwargs (self-test)
+def _alerts(j):
+    return json.loads(j) if (j and j != "null") else None
+
+def _run(cfg_json, entry_json, tape_json, alerts_json):   # cfg = explicit Config kwargs (self-test)
     cfg = Config(**json.loads(cfg_json))
     tape = [tuple(t) for t in json.loads(tape_json)]
-    return json.dumps(replay_trade(cfg, _entry(json.loads(entry_json)), tape))
+    return json.dumps(replay_trade(cfg, _entry(json.loads(entry_json)), tape, alerts=_alerts(alerts_json)))
 
-def _run_row(row_json, entry_json, tape_json):   # row = a strategy_params row (real strategy)
+def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy_params row
     cfg = Config(**row_to_kwargs(json.loads(row_json)))
     tape = [tuple(t) for t in json.loads(tape_json)]
-    return json.dumps(replay_trade(cfg, _entry(json.loads(entry_json)), tape))
+    return json.dumps(replay_trade(cfg, _entry(json.loads(entry_json)), tape, alerts=_alerts(alerts_json)))
 
 {"cfg": _run, "row": _run_row}
 `);
@@ -73,21 +76,23 @@ def _run_row(row_json, entry_json, tape_json):   # row = a strategy_params row (
     return _ready;
   }
 
-  function _call(which, cfgOrRow, entry, tape) {
+  function _call(which, cfgOrRow, entry, tape, alerts) {
     if (!_runFn) throw new Error("Replay.ensure() must resolve first");
     const fn = _runFn.get(which);
     const out = fn(JSON.stringify(cfgOrRow || {}),
                    JSON.stringify(entry || {}),
-                   JSON.stringify(tape || []));
+                   JSON.stringify(tape || []),
+                   JSON.stringify(alerts || null));
     fn.destroy();
     return JSON.parse(out);
   }
 
   // explicit Config kwargs (used by the self-test)
-  function run(cfgKwargs, entry, tape) { return _call("cfg", cfgKwargs, entry, tape); }
+  function run(cfgKwargs, entry, tape) { return _call("cfg", cfgKwargs, entry, tape, null); }
 
-  // a real strategy_params row -> the bot's row_to_kwargs -> Config
-  function runStrategy(row, entry, tape) { return _call("row", row, entry, tape); }
+  // a real strategy_params row -> the bot's row_to_kwargs -> Config; alerts = the trade's
+  // recorded PARTIAL/CLOSE alerts (applied only if the strategy doesn't ignore exit alerts)
+  function runStrategy(row, entry, tape, alerts) { return _call("row", row, entry, tape, alerts); }
 
   async function selfTest(onStatus) {
     await ensure(onStatus);
@@ -158,6 +163,21 @@ def _run_row(row_json, entry_json, tape_json):   # row = a strategy_params row (
       return q;
     };
 
+    // the trader's recorded exit alerts (partials/closes). A strategy that follows alerts
+    // (ignore_exit_alerts off) replays them; a rules-only strategy ignores them (engine guard).
+    const alRes = await db.from("alerts").select("ts,type,ticker").in("type", ["PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
+    const exitAlerts = alRes.error ? [] : (alRes.data || []);
+    const entriesByTicker = {};
+    (poolRes.data || []).forEach((t) => { (entriesByTicker[t.ticker] = entriesByTicker[t.ticker] || []).push(t.entry_ts); });
+    Object.keys(entriesByTicker).forEach((k) => entriesByTicker[k].sort());
+    const alertsFor = (t) => {
+      const arr = entriesByTicker[t.ticker] || [];
+      let end = null;
+      for (let j = 0; j < arr.length; j++) { if (arr[j] > t.entry_ts) { end = arr[j]; break; } }
+      return exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end))
+                       .map((a) => ({ ts: a.ts, type: a.type }));
+    };
+
     const trades = [];
     let skipped = 0, unaffordable = 0;
     for (let i = 0; i < pool.length; i++) {
@@ -172,7 +192,7 @@ def _run_row(row_json, entry_json, tape_json):   # row = a strategy_params row (
       if (!tape.length) { skipped++; continue; }
       const entry = { ticker: t.ticker, osi_symbol: String(t.ticker || ""), side: t.side, strike: t.strike,
                       qty: qty, fill_price: t.entry_price, opened_at: t.entry_ts };
-      const r = runStrategy(row, entry, tape);
+      const r = runStrategy(row, entry, tape, alertsFor(t));
       trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
                     entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
                     realized: r.realized, exit_price: r.exit_price, peak_gain_pct: r.peak_gain_pct,
