@@ -13,6 +13,7 @@ window.NT_CHANGELOG = [
       "New strategy option “Manage exits by rules only”: the strategy still takes new ENTRY alerts but ignores the trader’s partial/close alerts — exits come purely from your own stop / breakeven / trailing / targets. Lets a strategy run its full plan.",
       "New per-strategy “Budget by weekday (%)”: trade a percentage of the budget on each weekday (Mon–Fri). e.g. Monday 50% on a $400 budget = $200/trade that day. 100% = full size.",
       "Fix: those two new options now stick. They were saving to the database fine, but the dashboard wasn't reading them back, so reopening the editor showed the old values. The editor now shows what you saved.",
+      "Strategy cards are easier to read: each section (Sizing, Exits & risk, Sources) now has a clear header with an icon and a divider line, the settings are laid out in two columns instead of one long list, and default/“off” values are dimmed so your customised settings stand out.",
     ],
   },
   {

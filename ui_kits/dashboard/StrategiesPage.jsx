@@ -136,12 +136,12 @@ function StrategyCard({ strat, sources }) {
   const srcNames = (strat.sourceIds || []).map((id) => { const s = (sources || []).find((x) => x.id === id); return s ? s.name : id; });
 
   const groups = [
-    { g: "Sizing", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts / trade", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist, true],
-      ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join("  ·  ") : "full every day", true]] },
-    { g: "Exits / risk", items: [["Exits", p.ignore_exit_alerts ? "rules only (ignore alerts)" : "follow alerts + rules"], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after first exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
-      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join("  ·  ") : "off", true],
+    { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist],
+      ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
+    { g: "Exits & risk", icon: "shield", items: [["Exits", p.ignore_exit_alerts ? "rules only" : "follow alerts"], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join(" · ") : "off"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
-    { g: "Sources", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources", true]] },
+    { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
   ];
 
   return (
@@ -165,19 +165,25 @@ function StrategyCard({ strat, sources }) {
         ))}
       </div>
 
-      {groups.map((grp, gi) => (
-        <div key={gi} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-secondary)" }}>{grp.g}</span>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: "8px 24px" }}>
-            {grp.items.map((it, ii) => (
-              <div key={ii} style={{ gridColumn: it[2] ? "1 / -1" : "auto", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)" }}>{it[0]}</span>
-                <span className="num" style={{ font: "var(--w-medium) var(--t-sm)/1.3 var(--font-mono)", color: "var(--text-primary)", textAlign: "right" }}>{it[1]}</span>
-              </div>
-            ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(178px, 1fr))", gap: "18px 26px" }}>
+        {groups.map((grp, gi) => (
+          <div key={gi} style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, paddingBottom: 8, marginBottom: 5, borderBottom: "1px solid var(--border-strong)" }}>
+              <Ico name={grp.icon} size={14} style={{ color: "var(--text-secondary)" }} />
+              <span style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{grp.g}</span>
+            </div>
+            {grp.items.map((it, ii) => {
+              const muted = ["off", "full every day", "follow alerts", "all sources"].indexOf(it[1]) >= 0;
+              return (
+                <div key={ii} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, padding: "4px 0" }}>
+                  <span style={{ font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", flex: "none" }}>{it[0]}</span>
+                  <span className="num" style={{ font: "var(--w-medium) var(--t-sm)/1.35 var(--font-mono)", color: muted ? "var(--text-tertiary)" : "var(--text-primary)", textAlign: "right", minWidth: 0, overflowWrap: "anywhere" }}>{it[1]}</span>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={del}>Delete</NT.Button>
