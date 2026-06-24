@@ -1,5 +1,5 @@
 /* TradeDetail — slides over the right column (chart + firing log), perfectly aligned. */
-function TradeDetail({ trade, onClose }) {
+function TradeDetail({ trade, onClose, detailOverride }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [shown, setShown] = React.useState(false);
   const [detail, setDetail] = React.useState(null);   // { samples, events } — lazy-loaded
@@ -11,13 +11,15 @@ function TradeDetail({ trade, onClose }) {
   const tradeId = trade && trade.id;
   React.useEffect(() => {
     let alive = true; setDetail(null);   // null = still loading (so we never flash a fake chart)
-    if (window.NT_TRADE_DETAIL && tradeId != null) {
+    if (detailOverride) {
+      setDetail(detailOverride);   // replay: render the provided path + events, no fetch
+    } else if (window.NT_TRADE_DETAIL && tradeId != null) {
       window.NT_TRADE_DETAIL(tradeId).then((d) => { if (alive) setDetail(d || { samples: [], events: [] }); });
     } else {
       setDetail({ samples: [], events: [] });   // nothing to fetch -> "no data", not loading forever
     }
     return () => { alive = false; };
-  }, [tradeId]);
+  }, [tradeId, detailOverride]);
   if (!trade) return null;
 
   const tr = trade;

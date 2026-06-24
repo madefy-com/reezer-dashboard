@@ -130,6 +130,48 @@ function StrategyCard({ strat, sources }) {
     setBusy(false);
   };
 
+  const [replay, setReplay] = React.useState(null);   // {status} | {result} | {error}
+  const canReplay = acct === "fronttest" || acct === "draft";
+  const doReplay = async () => {
+    if (!window.Replay) { await window.NT_ALERT("Replay engine not loaded yet — refresh and try again.", { title: "Replay" }); return; }
+    setBusy(true);
+    setReplay({ status: "Starting…" });
+    try {
+      const res = await window.Replay.replayStrategy(strat, window.NT_CLIENT, (m) => setReplay({ status: m }));
+      setReplay({ result: res });
+      await window.NT_REFRESH();   // refresh so replay-aware views pick up the new snapshot
+    } catch (e) { setReplay({ error: (e && e.message) || String(e) }); }
+    setBusy(false);
+  };
+
+  const [viewTrade, setViewTrade] = React.useState(null);   // {loading} | {tr, detail}
+  const tFmt = (iso) => { try { const tz = (window.NT_DATA && window.NT_DATA.marketHours && window.NT_DATA.marketHours.display_tz) || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(iso)); } catch (e) { return String(iso || "").slice(11, 19); } };
+  // open ONE replayed trade in the existing TradeDetail view: chart line = the real
+  // recorded tape, markers + log = the replay's events. The originals are never read.
+  const openReplayTrade = async (st) => {
+    setViewTrade({ loading: true });
+    let samples = [];
+    try {
+      const t = await window.NT_CLIENT.from("fronttest_tape").select("ts,price").eq("position_id", st.position_id).order("ts").limit(6000);
+      samples = (t.data || []).map((r) => ({ ts: r.ts, price: Number(r.price) }));
+    } catch (e) {}
+    const events = (st.events || []).filter((e) => e.type !== "_closed");
+    const lastTs = events.length ? events[events.length - 1].ts : st.entry_ts;
+    const qty = Number(st.orig_qty || 1), entry = Number(st.entry_price), pnl = Math.round(st.realized);
+    const cost = entry * 100 * qty, holdS = Math.max(0, Math.round((new Date(lastTs) - new Date(st.entry_ts)) / 1000));
+    const label = String(Number(st.strike)) + (st.side || "");
+    const tr = {
+      id: st.position_id, tk: st.ticker, strike: label, side: st.side, qty: qty,
+      entry: entry, exit: st.exit_price, pnl: pnl, pct: cost ? Math.round((pnl / cost * 100) * 10) / 10 : 0,
+      result: pnl > 0 ? "WIN" : pnl < 0 ? "LOSS" : "BE", status: "done",
+      strat: strat.name, hold: Math.floor(holdS / 60) + "m " + (holdS % 60) + "s",
+      stopped: events.some((e) => e.type === "stop"),
+      t: tFmt(st.entry_ts), close: tFmt(lastTs),
+      trigger: { type: "ENTRY", user: "alerts", msg: st.ticker + " " + label },
+    };
+    setViewTrade({ tr: tr, detail: { samples: samples, events: events } });
+  };
+
   const money = (n) => (n > 0 ? "+$" + n : n < 0 ? "−$" + Math.abs(n) : "$0");
   const tone = (n) => (n > 0 ? "var(--profit)" : n < 0 ? "var(--loss)" : "var(--text-primary)");
   const pctOff = (v) => (v == null ? "off" : NT_pct(v) + "%");
@@ -186,10 +228,78 @@ function StrategyCard({ strat, sources }) {
       </div>
 
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
+        {canReplay && <NT.Button variant="ghost" size="sm" disabled={busy} onClick={doReplay} icon={<Ico name="rotate-ccw" size={14} />}>{busy && replay && replay.status ? "Replaying…" : "Replay"}</NT.Button>}
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={del}>Delete</NT.Button>
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={duplicate}>Duplicate</NT.Button>
         <NT.Button variant="primary" size="md" icon={<Ico name="settings-2" size={15} />} onClick={openEdit}>Edit</NT.Button>
       </div>
+
+      {replay && (
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget && !(replay.status)) setReplay(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
+          <div style={{ width: 460, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14, maxHeight: "88vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)" }}>Replay · {strat.name}</span>
+              {!replay.status && <button onClick={() => setReplay(null)} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>}
+            </div>
+
+            {replay.status && <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", color: "var(--text-secondary)", font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)" }}>
+              <span style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid var(--border-strong)", borderTopColor: "var(--accent)", animation: "nt-spin 0.7s linear infinite" }}></span>
+              {replay.status}<span style={{ color: "var(--text-tertiary)" }}> (first run loads the engine, ~5s)</span>
+            </div>}
+
+            {replay.error && <div style={{ color: "var(--loss)", font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)" }}>Replay failed: {replay.error}</div>}
+
+            {replay.result && (() => { const s = replay.result.summary; const list = replay.result.trades || []; const d = Math.round((s.realized - s.orig_realized) * 100) / 100; return (
+              <React.Fragment>
+                <div style={{ font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
+                  Re-ran <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> recorded trade{s.trades === 1 ? "" : "s"} through this strategy's <b style={{ color: "var(--text-primary)" }}>current</b> settings.{s.skipped ? " (" + s.skipped + " had no recorded tape and were skipped.)" : ""}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {[["Replay P&L", s.realized], ["Original P&L", s.orig_realized]].map((x, i) => (
+                    <div key={i} style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
+                      <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)", textTransform: "uppercase" }}>{x[0]}</div>
+                      <div className="num" style={{ font: "var(--w-medium) var(--t-h3)/1 var(--font-mono)", marginTop: 6, color: x[1] > 0 ? "var(--profit)" : x[1] < 0 ? "var(--loss)" : "var(--text-primary)" }}>{money(x[1])}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                  {d === 0 ? "Same as the originals." : (d > 0 ? "+$" + d : "−$" + Math.abs(d)) + " vs the originals with these settings."} Click a trade for its replayed chart &amp; log — the originals stay untouched.
+                </div>
+                {list.length > 0 && (
+                  <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+                    {list.map((t, i) => { const rp = Math.round(t.realized), op = Math.round(t.orig_realized); const rc = rp > 0 ? "var(--profit)" : rp < 0 ? "var(--loss)" : "var(--text-secondary)"; return (
+                      <button key={i} onClick={() => openReplayTrade(t)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", border: "none", borderTop: i ? "1px solid var(--border)" : "none", background: "var(--surface-inset)", cursor: "pointer", textAlign: "left" }}>
+                        <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{t.ticker} <span style={{ color: "var(--text-tertiary)" }}>{String(Number(t.strike)) + (t.side || "")}</span></span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{money(op)} →</span>
+                          <span className="num" style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: rc }}>{money(rp)}</span>
+                          <Ico name="chevron-right" size={15} style={{ color: "var(--text-tertiary)" }} />
+                        </span>
+                      </button>
+                    ); })}
+                  </div>
+                )}
+              </React.Fragment>
+            ); })()}
+
+            {!replay.status && <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 6 }}>
+              <NT.Button variant="primary" size="md" onClick={() => setReplay(null)}>Done</NT.Button>
+            </div>}
+          </div>
+        </div>
+      )}
+
+      {viewTrade && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 65, background: "rgba(8,8,10,0.6)", display: "grid", placeItems: "center", padding: 20 }}>
+          <div style={{ position: "relative", width: 460, maxWidth: "94vw", height: "82vh", maxHeight: 760 }}>
+            {viewTrade.loading
+              ? <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)" }}><span style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid var(--border-strong)", borderTopColor: "var(--accent)", animation: "nt-spin 0.7s linear infinite" }}></span></div>
+              : <TradeDetail trade={viewTrade.tr} detailOverride={viewTrade.detail} onClose={() => setViewTrade(null)} />}
+          </div>
+        </div>
+      )}
 
       {form && (
         <div onMouseDown={(e) => { if (e.target === e.currentTarget) closeEdit(); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>

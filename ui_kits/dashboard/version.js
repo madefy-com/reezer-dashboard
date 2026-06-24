@@ -14,6 +14,7 @@ window.NT_CHANGELOG = [
       "New per-strategy “Budget by weekday (%)”: trade a percentage of the budget on each weekday (Mon–Fri). e.g. Monday 50% on a $400 budget = $200/trade that day. 100% = full size.",
       "Fix: those two new options now stick. They were saving to the database fine, but the dashboard wasn't reading them back, so reopening the editor showed the old values. The editor now shows what you saved.",
       "Strategy cards are easier to read: each section (Sizing, Exits & risk, Sources) now has a clear header with an icon and a divider line, the settings are laid out in two columns instead of one long list, and default/“off” values are dimmed so your customised settings stand out.",
+      "New “Replay” on paper/draft strategy cards: re-run all of that strategy’s recorded trades through its CURRENT settings — instantly, right in your browser — to see what those settings would have done. It shows replay vs original P&L and a per-trade list; click any trade for its replayed price chart and full action log. Results are saved in a separate place, so your real trades are never touched and you can always compare against the originals. (Runs the exact same engine the bot uses, so every setting — now and future — is reflected automatically.)",
     ],
   },
   {
