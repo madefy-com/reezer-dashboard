@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.006";
+window.NT_VERSION = "1.007";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.007", date: "2026-06-24",
+    notes: [
+      "Exit Lab fix: the per-strategy stats now ALWAYS cover all strategies (date filter only), as agreed — the strategy filter narrows only the Trades table above it. Yesterday's change had wrongly made the stats follow the strategy filter too.",
+    ],
+  },
   {
     v: "1.006", date: "2026-06-23",
     notes: [

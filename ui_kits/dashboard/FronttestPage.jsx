@@ -71,10 +71,11 @@ function FronttestPage() {
   const td = { font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", padding: "11px 0", borderTop: "1px solid var(--border)", textAlign: "right", color: "var(--text-primary)", whiteSpace: "nowrap" };
   const tdL = { ...td, textAlign: "left" };
 
-  // per-strategy stats rollup over the SAME rows shown in the table (date + strategy
-  // filter) — so the stats can't disagree with the trades above them.
+  // per-strategy stats ALWAYS cover ALL strategies (date filter only) — the strategy
+  // filter affects only the Trades table above, never this comparison rollup. So each
+  // strategy is always listed and the numbers are comparable across all of them.
   const stats = {};
-  shown.forEach((r) => {
+  dateRows.forEach((r) => {
     const s = stats[r.sid] || (stats[r.sid] = { sid: r.sid, n: 0, wins: 0, pnl: 0, retSum: 0, retN: 0, leftSum: 0, leftN: 0 });
     s.n++; if (r.pnl > 0) s.wins++; s.pnl += r.pnl;
     if (r.retPct != null) { s.retSum += r.retPct; s.retN++; }
@@ -128,7 +129,7 @@ function FronttestPage() {
 
       {statList.length > 0 && (
         <NT.Card title="Per-strategy stats" padding={20}
-          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{view === "all" ? "all strategies in range" : "filtered to " + (sName(view) || "one strategy")}</span>}>
+          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>all strategies · date range only</span>}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
               <thead><tr>
