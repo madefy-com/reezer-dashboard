@@ -3,9 +3,23 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.005";
+window.NT_VERSION = "1.006";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.006", date: "2026-06-23",
+    notes: [
+      "Machines: an offline/stale box now has a Remove button so you can clear a duplicate or a box you no longer use (it reappears on its own if it checks in again). Boxes also use a stable name now, so one Mac can’t show up twice.",
+      "New safety alert: during the streaming window, if no box is actually trading, a red “Session at risk” banner appears at the top of every page — so a crashed, asleep, or offline box can never fail silently again.",
+      "Recovered last week’s trades (the June 16 and June 18 wins) that had been dropped from the cloud, and fixed the underlying ID clash that caused them to be overwritten.",
+      "The date filter now changes everything: Trades, the P&L chart and the stat cards all follow the selected range — not just the trades list. (Alerts always show the latest, regardless of range.)",
+      "New “Default date range” in Settings → Dashboard, alongside Default view — pick the range the dashboard opens on.",
+      "Exit Lab: the per-strategy stats now follow the same strategy filter as the trades above them, so the “left on table” numbers can’t disagree (e.g. 13.6% above vs 63% below).",
+      "Per-trade P&L charts fixed: today’s trades were drawing a flat, week-wide line because of leftover samples from the ID clash — cleaned, so each chart now spans just its own trade.",
+      "The trade log now shows the REAL trigger of every exit: rule-driven take-halves/targets show a ⚙️ with the reason (e.g. “+32% rule”), and alert-driven exits show a 🔔 with the actual alert (e.g. “Closed · LOCKED IN MAJORITY”) — so a rule no longer looks like an alert, and “Closed” no longer hides which alert caused it.",
+      "A scale alert (“LOCKED IN MAJORITY”) no longer force-closes your runner — it takes half once to lock in profit, then lets the runner ride its stop (so a trailing strategy can actually trail).",
+    ],
+  },
   {
     v: "1.005", date: "2026-06-22",
     notes: [
@@ -17,14 +31,6 @@ window.NT_CHANGELOG = [
       "Machines status is clearer: a box outside its trading window now reads “OFF-HOURS” (it auto-starts at the next session) instead of an alarming “OFFLINE”. A box only shows OFFLINE if it goes missing during a live session. You set up each Mac once — nothing is ever run daily.",
       "Streaming hours are now a real, editable setting (Settings → Streaming window): set when the trader streams — in US Eastern, with your local time shown beneath — plus how many minutes early the bot wakes. The top-bar Streaming row and the box “should it be running” logic both read it.",
       "The bot now runs on the streaming window, not the whole market day. It scans from your lead time before the start through the end, then keeps managing any still-open trades until they close (with a market-close safety net) and stops as soon as it’s flat — instead of idling until the 16:00 ET close every day.",
-      "Machines: an offline/stale box now has a Remove button so you can clear a duplicate or a box you no longer use (it reappears on its own if it checks in again). Boxes also use a stable name now, so one Mac can’t show up twice.",
-      "New safety alert: during the streaming window, if no box is actually trading, a red “Session at risk” banner appears at the top of every page — so a crashed, asleep, or offline box can never fail silently again.",
-      "Recovered last week’s trades (the June 16 and June 18 wins) that had been dropped from the cloud, and fixed the underlying ID clash that caused them to be overwritten.",
-      "The date filter now changes everything: Trades, the P&L chart and the stat cards all follow the selected range — not just the trades list. (Alerts always show the latest, regardless of range.)",
-      "New “Default date range” in Settings → Dashboard, alongside Default view — pick the range the dashboard opens on.",
-      "Exit Lab: the per-strategy stats now follow the same strategy filter as the trades above them, so the “left on table” numbers can’t disagree (e.g. 13.6% above vs 63% below).",
-      "Per-trade P&L charts fixed: today’s trades were drawing a flat, week-wide line because of leftover samples from the ID clash — cleaned, so each chart now spans just its own trade.",
-      "The trade log now shows the REAL trigger of every exit: rule-driven take-halves/targets show a ⚙️ with the reason (e.g. “+32% rule”), and alert-driven exits show a 🔔 with the actual alert (e.g. “Closed · LOCKED IN MAJORITY”) — so a rule no longer looks like an alert, and “Closed” no longer hides which alert caused it.",
       "Exit behaviour: a “LOCKED IN MAJORITY”-style scale alert no longer force-closes your runner once you’ve already taken half — the runner now rides its stop (trailing / breakeven), so a trailing strategy can catch a bigger move. An explicit “closed” alert still closes fully.",
     ],
   },
