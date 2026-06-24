@@ -153,6 +153,8 @@
       max_hold_minutes: sp.max_hold_minutes == null ? null : Number(sp.max_hold_minutes),
       max_price_slippage_usd: sp.max_price_slippage_usd == null ? null : Number(sp.max_price_slippage_usd),
       max_trades_per_day: Number(sp.max_trades_per_day),
+      ignore_exit_alerts: !!sp.ignore_exit_alerts,
+      budget_day_pct: sp.budget_day_pct || {},
       kill_switch: !!sp.kill_switch, paused: !!sp.paused, dry_run: !!sp.dry_run,
     };
   }
