@@ -185,8 +185,11 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       say("replaying " + (i + 1) + "/" + pool.length + " (" + (t.ticker || "?") + ")…");
       const qty = sizeFor(t);
       if (qty < 1) { unaffordable++; continue; }   // budget can't afford one contract -> not taken
+      // clip the tape to THIS trade's own session — guards against old ID-clobbered
+      // ticks from other days being stapled onto a reused position_id
+      const sessEnd = new Date(new Date(t.entry_ts).getTime() + 8 * 3600 * 1000).toISOString();
       const tres = await db.from("fronttest_tape").select("ts,price,bid,ask")
-        .eq("position_id", t.position_id).order("ts").limit(6000);
+        .eq("position_id", t.position_id).gte("ts", t.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
       if (tres.error) throw tres.error;
       const tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
       if (!tape.length) { skipped++; continue; }

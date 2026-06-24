@@ -152,7 +152,9 @@ function StrategyCard({ strat, sources }) {
     setViewTrade({ loading: true });
     let samples = [];
     try {
-      const t = await window.NT_CLIENT.from("fronttest_tape").select("ts,price").eq("position_id", st.position_id).order("ts").limit(6000);
+      const sessEnd = new Date(new Date(st.entry_ts).getTime() + 8 * 3600 * 1000).toISOString();
+      const t = await window.NT_CLIENT.from("fronttest_tape").select("ts,price")
+        .eq("position_id", st.position_id).gte("ts", st.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
       samples = (t.data || []).map((r) => ({ ts: r.ts, price: Number(r.price) }));
     } catch (e) {}
     const events = (st.events || []).filter((e) => e.type !== "_closed");
