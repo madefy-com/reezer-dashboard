@@ -17,6 +17,11 @@ window.NT_CHANGELOG = [
       "Closed trades show their stop level again (the final stop the trade rode) on both the dashboard and the Trades page.",
       "Removed the “on $2,000” line under Account return — it wasn’t useful.",
       "Full-tape chart: the entry/exit markers are kept in view so they always show, even on the longer recorded path.",
+      "Account return is now a static, all-time figure (lifetime P&L ÷ starting balance) — it no longer moves when you change the date filter, since it’s a property of the account, not the window.",
+      "Trades & trade log: dropped the day divider in favour of a regular date (DAY/MONTH) shown on each row, just above the time.",
+      "Avg win and avg loss are shown in plain white now (no green/red).",
+      "The Trades page uses the exact same six cards as the dashboard.",
+      "Alerts page: added a Date column. The dashboard Alerts feed keeps its day divider, now with clearer spacing above each date.",
     ],
   },
   {

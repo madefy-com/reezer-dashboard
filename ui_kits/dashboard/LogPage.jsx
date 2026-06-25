@@ -42,12 +42,13 @@ function LogPage() {
         <div style={{ overflowX: "auto", padding: "0 20px 16px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 940 }}>
             <thead><tr>
-              <th style={th}>alert</th><th style={th}>received</th><th style={th}>delay</th><th style={th}>type</th><th style={th}>source</th><th style={th}>channel</th><th style={th}>symbol</th>
+              <th style={th}>date</th><th style={th}>alert</th><th style={th}>received</th><th style={th}>delay</th><th style={th}>type</th><th style={th}>source</th><th style={th}>channel</th><th style={th}>symbol</th>
               <th style={{ ...th, width: "40%" }}>message</th><th style={th}>action</th><th style={{ ...th, paddingRight: 0 }}>result</th>
             </tr></thead>
             <tbody>
               {rows.map((m, i) => (
                 <tr key={i} style={{ opacity: m.fired ? 1 : 0.62 }}>
+                  <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.dkey ? (m.dkey.slice(8, 10) + "/" + m.dkey.slice(5, 7)) : "—"}</td>
                   <td style={{ ...td, ...mono, color: m.alertT === "—" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{m.alertT === "—" ? "—" : m.alertT.slice(0, 8)}</td>
                   <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.t.slice(0, 8)}</td>
                   <td style={{ ...td, ...mono, color: m.latency ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: m.latency ? "var(--w-medium)" : "var(--w-regular)" }}>{m.latency || "—"}</td>

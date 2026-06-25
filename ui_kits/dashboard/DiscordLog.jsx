@@ -49,7 +49,7 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
           return (
             <React.Fragment key={i}>
             {showDiv && (
-              <div style={{ padding: "11px 18px 4px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", borderTop: i ? "1px solid var(--border)" : "none" }}>{m.dkey.slice(8, 10) + "/" + m.dkey.slice(5, 7)}</div>
+              <div style={{ padding: (i ? 24 : 8) + "px 18px 5px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{m.dkey.slice(8, 10) + "/" + m.dkey.slice(5, 7)}</div>
             )}
             <div style={{
               display: "flex", alignItems: "center", gap: 11, padding: "0 18px", height: 41, boxSizing: "border-box",

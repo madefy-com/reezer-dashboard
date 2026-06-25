@@ -41,17 +41,13 @@ function TradesLog({ onSelect, fill = false }) {
             <th style={{ ...th, paddingRight: 2 }}>result</th>
           </tr></thead>
           <tbody>
-            {rows.map((r, i) => {
-              const day = dkey(r.entryTs);
-              const showDiv = day && (i === 0 || dkey(rows[i - 1].entryTs) !== day);
-              return (
-              <React.Fragment key={i}>
-              {showDiv && (
-                <tr className="nt-daydiv"><td colSpan={10} style={{ padding: "12px 0 4px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{dlabel(day)}</td></tr>
-              )}
-              <tr onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
+            {rows.map((r, i) => (
+              <tr key={i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
                 <td style={{ ...tdL }}><NT.StatusDot status={r.status} /></td>
-                <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t.slice(0, 5)}</td>
+                <td style={{ ...tdL, color: "var(--text-secondary)", lineHeight: 1.3 }}>
+                  <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)" }}>{dlabel(dkey(r.entryTs))}</div>
+                  {r.t.slice(0, 5)}
+                </td>
                 <td style={{ ...tdL, overflow: "hidden", textOverflow: "ellipsis" }}>
                   <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
                   <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
@@ -69,9 +65,7 @@ function TradesLog({ onSelect, fill = false }) {
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
                 <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>
               </tr>
-              </React.Fragment>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       </div>

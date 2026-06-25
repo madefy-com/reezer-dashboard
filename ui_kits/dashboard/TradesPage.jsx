@@ -13,19 +13,6 @@ function TradesPage() {
   const dkey = (iso) => { if (!iso) return ""; try { const tz = (window.NT_DATA.marketHours || {}).display_tz || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso)); } catch (e) { return ""; } };
   const dlabel = (key) => (key ? key.slice(8, 10) + "/" + key.slice(5, 7) : "");
 
-  // ---- summary roll-up ----
-  const open = rows.filter((r) => r.status === "live").length;
-  const closed = rows.length - open;
-  const k = window.NT_DATA.kpis;
-  // top frames mirror the dashboard headline metrics (same KpiCard look)
-  const kpis = [
-    { label: "total trades", value: String(rows.length), sub: closed + " closed \u00b7 " + open + " open" },
-    { label: "net p&l", value: k.netPnl.value, delta: k.netPnl.delta, tone: "profit", sub: "realized" },
-    { label: "win rate", value: k.winRate.value, sub: k.winRate.sub },
-    { label: "avg win", value: (k.avgWin || {}).value || "—", sub: (k.avgWin || {}).sub, tone: "profit" },
-    { label: "avg loss", value: (k.avgLoss || {}).value || "—", sub: (k.avgLoss || {}).sub, tone: "loss" },
-    { label: "avg return", value: k.avgReturn.value, sub: k.avgReturn.sub },
-  ];
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap", position: "sticky", top: 0, background: "var(--surface-card)", zIndex: 1 };
   const thL = { ...th, textAlign: "left" };
@@ -37,12 +24,8 @@ function TradesPage() {
       <PageHead title="Trades" subtitle="Every order the bot has placed — click a row for the full breakdown"
         right={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}><StrategyViewSelect /><DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /></span>} />
 
-      {/* top frames — same KpiCard look as the dashboard */}
-      <div className="nt-tkpi">
-        {kpis.map((c, i) => (
-          <NT.KpiCard key={i} label={c.label} value={c.value} delta={c.delta} sub={c.sub} tone={c.tone} />
-        ))}
-      </div>
+      {/* headline metrics — the exact same six cards as the dashboard */}
+      <KpiRow />
 
       {/* detailed table */}
       <NT.Card title="All trades" padding={20}
@@ -70,16 +53,13 @@ function TradesPage() {
             <tbody>
               {rows.map((r, i) => {
                 const capital = (r.entry * r.qty * 100).toFixed(0);
-                const day = dkey(r.entryTs);
-                const showDiv = day && (i === 0 || dkey(rows[i - 1].entryTs) !== day);
                 return (
-                  <React.Fragment key={i}>
-                  {showDiv && (
-                    <tr className="nt-daydiv"><td colSpan={15} style={{ padding: "14px 14px 5px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{dlabel(day)}</td></tr>
-                  )}
-                  <tr onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
+                  <tr key={i} onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
                     <td style={{ ...tdL, width: 26, paddingRight: 0 }}><NT.StatusDot status={r.status} /></td>
-                    <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t}</td>
+                    <td style={{ ...tdL, color: "var(--text-secondary)", lineHeight: 1.35 }}>
+                      <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", marginBottom: 2 }}>{dlabel(dkey(r.entryTs))}</div>
+                      {r.t}
+                    </td>
                     <td style={{ ...tdL, color: r.close === "\u2014" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{r.close}</td>
                     <td style={tdL}>
                       <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
@@ -107,7 +87,6 @@ function TradesPage() {
                       </span>
                     </td>
                   </tr>
-                  </React.Fragment>
                 );
               })}
             </tbody>
@@ -129,9 +108,6 @@ function TradesPage() {
         .nt-trow td{ transition: background var(--dur); }
         .nt-trow td:first-child{ border-top-left-radius: var(--radius-xs); border-bottom-left-radius: var(--radius-xs); }
         .nt-trow td:last-child{ border-top-right-radius: var(--radius-xs); border-bottom-right-radius: var(--radius-xs); }
-        .nt-tkpi{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
-        @media (max-width: 1240px){ .nt-tkpi{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-        @media (max-width: 720px){ .nt-tkpi{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
       `}</style>
     </div>
   );

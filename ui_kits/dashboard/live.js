@@ -84,7 +84,8 @@
       return { date: k, pnl: Math.round(d.pnl), pct: d.cost ? Math.round((d.pnl / d.cost * 100) * 10) / 10 : 0 };
     });
   }
-  function buildKpis(trades, strategies) {
+  function buildKpis(trades, strategies, allTrades) {
+    allTrades = allTrades || trades;
     var closed = trades.filter(function (t) { return t.result !== "OPEN"; });
     var net = trades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
     var wins = closed.filter(function (t) { return t.result === "WIN"; });
@@ -92,17 +93,19 @@
     var be = closed.filter(function (t) { return t.result === "BE"; }).length;
     var avgOf = function (arr) { return arr.length ? Math.round((arr.reduce(function (a, t) { return a + t.pct; }, 0) / arr.length) * 10) / 10 : 0; };
     var avg = avgOf(closed), avgWin = avgOf(wins), avgLoss = avgOf(lossesT);
-    // account return %: net P&L / sum of the starting balances of the strategies in view
-    var scope = {}; trades.forEach(function (t) { if (t.strategyId != null) scope[t.strategyId] = true; });
+    // account return %: LIFETIME P&L / starting balance — a property of the account,
+    // so it ignores the date filter (uses all of the strategy's trades, not just the window).
+    var netAll = allTrades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
+    var scope = {}; allTrades.forEach(function (t) { if (t.strategyId != null) scope[t.strategyId] = true; });
     var startBal = (strategies || []).filter(function (s) { return scope[s.id]; }).reduce(function (a, s) { return a + (Number(s.start_balance_usd) || 0); }, 0);
-    var ret = startBal > 0 ? Math.round((net / startBal * 100) * 10) / 10 : null;
+    var ret = startBal > 0 ? Math.round((netAll / startBal * 100) * 10) / 10 : null;
     return {
       accountReturn: ret == null
         ? { value: "—", sub: "set a start balance" }
-        : { value: pctS(ret), sub: "realized", tone: ret >= 0 ? "profit" : "loss" },
+        : { value: pctS(ret), sub: "all-time", tone: ret >= 0 ? "profit" : "loss" },
       netPnl: { value: money(net), delta: "", tone: net >= 0 ? "profit" : "loss" },
-      avgWin: wins.length ? { value: pctS(avgWin), sub: wins.length + (wins.length === 1 ? " win" : " wins"), tone: "profit" } : { value: "—", sub: "no wins" },
-      avgLoss: lossesT.length ? { value: pctS(avgLoss), sub: lossesT.length + (lossesT.length === 1 ? " loss" : " losses"), tone: "loss" } : { value: "—", sub: "no losses" },
+      avgWin: wins.length ? { value: pctS(avgWin), sub: wins.length + (wins.length === 1 ? " win" : " wins") } : { value: "—", sub: "no wins" },
+      avgLoss: lossesT.length ? { value: pctS(avgLoss), sub: lossesT.length + (lossesT.length === 1 ? " loss" : " losses") } : { value: "—", sub: "no losses" },
       avgReturn: { value: pctS(avg), sub: "per closed trade" },
       winRate: { value: (closed.length ? Math.round(wins.length / closed.length * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : "") },
     };
@@ -242,14 +245,15 @@
     if (dr === "custom") { try { var cc = JSON.parse(localStorage.getItem("nt_date_custom")); if (cc) custom = { from: new Date(cc.from), to: new Date(cc.to) }; } catch (e) {} }
     var dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
     var inDate = function (ts) { if (!dateBounds || !ts) return true; var d = new Date(ts); return d >= dateBounds.from && d <= dateBounds.to; };
-    var vTrades = (trades || []).filter(function (t) { return inView(t.strategyId) && inDate(t.entryTs); });
+    var sTrades = (trades || []).filter(function (t) { return inView(t.strategyId); });       // strategy filter only (all dates) — for the static account return
+    var vTrades = sTrades.filter(function (t) { return inDate(t.entryTs); });                  // + date filter — for the windowed metrics
     var vPositions = positions.filter(function (p) { return inView(p.strategy_id) && inDate(p.entry_ts); });
 
     var sc = RAW.sessionConfig || base.sessionConfig || null;
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     var out = Object.assign({}, base, {
       trades: trades ? vTrades : base.trades,
-      kpis: trades ? buildKpis(vTrades, RAW.strategies) : base.kpis,
+      kpis: trades ? buildKpis(vTrades, RAW.strategies, sTrades) : base.kpis,
       daily: positions.length ? buildDaily(vPositions) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
