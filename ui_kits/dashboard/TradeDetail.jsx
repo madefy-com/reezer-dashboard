@@ -84,7 +84,7 @@ function TradeDetail({ trade, onClose, detailOverride }) {
     pts = samples.map((s) => ({ x: X(s.ts), y: Y(s.price), price: +s.price, ts: s.ts, gain: (+s.price / tr.entry - 1) * 100 }));
     const colorOf = (t) => t === "trim" ? "var(--profit)" : t === "stop" ? "var(--loss)" : t === "entry" ? "var(--text-secondary)" : "var(--breakeven)";
     marks = events.filter((e) => e.type !== "stop_set" && e.price != null).map((e) => ({
-      x: X(e.ts), y: Y(e.price), c: colorOf(e.type),
+      x: Math.max(padX, Math.min(pw - padX, X(e.ts))), y: Y(e.price), c: colorOf(e.type),
       label: e.type + (e.qty ? " " + e.qty : "") + " @ $" + (+e.price).toFixed(2),
     }));
   }

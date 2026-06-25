@@ -12,6 +12,11 @@ window.NT_CHANGELOG = [
       "Dashboard cards: “best trade” and “worst trade” are replaced by AVERAGE WIN % and AVERAGE LOSS % per trade — a clearer read on how the wins and losses actually size up.",
       "New first card: ACCOUNT RETURN % — your total P&L as a percentage of the account. For paper strategies it’s measured against a starting balance (set to $2,000); live strategies use the real Schwab balance. (Replaces the “open positions” card.)",
       "Trade chart shows just the trade again (entry → exit) by default, with a “full tape” toggle in the chart header to see the full recorded path (to ~30 min past close) when you want it.",
+      "Fixed: the Trades page had gone blank — it was still wired to the old best/worst-trade cards. It now uses the new avg-win/avg-loss figures and loads again.",
+      "Trades, the dashboard trade log and the Alerts feed now show a subtle DAY/MONTH divider line between days, so you can see which day each trade and alert belongs to.",
+      "Closed trades show their stop level again (the final stop the trade rode) on both the dashboard and the Trades page.",
+      "Removed the “on $2,000” line under Account return — it wasn’t useful.",
+      "Full-tape chart: the entry/exit markers are kept in view so they always show, even on the longer recorded path.",
     ],
   },
   {

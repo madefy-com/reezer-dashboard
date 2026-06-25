@@ -45,10 +45,15 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
         </div>
         {feed.map((m, i) => {
           const muted = !m.fired;
+          const showDiv = m.dkey && (i === 0 || feed[i - 1].dkey !== m.dkey);
           return (
-            <div key={i} style={{
+            <React.Fragment key={i}>
+            {showDiv && (
+              <div style={{ padding: "11px 18px 4px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", borderTop: i ? "1px solid var(--border)" : "none" }}>{m.dkey.slice(8, 10) + "/" + m.dkey.slice(5, 7)}</div>
+            )}
+            <div style={{
               display: "flex", alignItems: "center", gap: 11, padding: "0 18px", height: 41, boxSizing: "border-box",
-              borderTop: i ? "1px solid var(--border)" : "none", opacity: muted ? 0.6 : 1,
+              borderTop: (i && !showDiv) ? "1px solid var(--border)" : "none", opacity: muted ? 0.6 : 1,
             }}>
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", width: 42, flex: "none" }}>{m.t.slice(0, 5)}</span>
               <span style={{ width: 78, flex: "none", display: "inline-flex" }}>
@@ -60,6 +65,7 @@ function DiscordLog({ maxHeight = 320, fill = false }) {
               </span>
               <div style={{ flex: "none" }} title={m.reason || undefined}><NT.FiredBadge fired={m.fired} /></div>
             </div>
+            </React.Fragment>
           );
         })}
       </div>

@@ -10,6 +10,8 @@ function TradesPage() {
   const money = (n) => (n > 0 ? "+$" + n.toFixed(2) : n < 0 ? "\u2212$" + Math.abs(n).toFixed(2) : "$0.00");
   const pct = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toFixed(1) + "%";
   const tone = (n) => (n > 0 ? "var(--profit)" : n < 0 ? "var(--loss)" : "var(--breakeven)");
+  const dkey = (iso) => { if (!iso) return ""; try { const tz = (window.NT_DATA.marketHours || {}).display_tz || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso)); } catch (e) { return ""; } };
+  const dlabel = (key) => (key ? key.slice(8, 10) + "/" + key.slice(5, 7) : "");
 
   // ---- summary roll-up ----
   const open = rows.filter((r) => r.status === "live").length;
@@ -20,8 +22,8 @@ function TradesPage() {
     { label: "total trades", value: String(rows.length), sub: closed + " closed \u00b7 " + open + " open" },
     { label: "net p&l", value: k.netPnl.value, delta: k.netPnl.delta, tone: "profit", sub: "realized" },
     { label: "win rate", value: k.winRate.value, sub: k.winRate.sub },
-    { label: "best ticker", value: k.bestTrade.value, sub: k.bestTrade.sub, tone: "profit" },
-    { label: "worst ticker", value: k.worstTrade.value, sub: k.worstTrade.sub, tone: "loss" },
+    { label: "avg win", value: (k.avgWin || {}).value || "—", sub: (k.avgWin || {}).sub, tone: "profit" },
+    { label: "avg loss", value: (k.avgLoss || {}).value || "—", sub: (k.avgLoss || {}).sub, tone: "loss" },
     { label: "avg return", value: k.avgReturn.value, sub: k.avgReturn.sub },
   ];
 
@@ -68,8 +70,14 @@ function TradesPage() {
             <tbody>
               {rows.map((r, i) => {
                 const capital = (r.entry * r.qty * 100).toFixed(0);
+                const day = dkey(r.entryTs);
+                const showDiv = day && (i === 0 || dkey(rows[i - 1].entryTs) !== day);
                 return (
-                  <tr key={i} onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
+                  <React.Fragment key={i}>
+                  {showDiv && (
+                    <tr className="nt-daydiv"><td colSpan={15} style={{ padding: "14px 14px 5px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{dlabel(day)}</td></tr>
+                  )}
+                  <tr onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
                     <td style={{ ...tdL, width: 26, paddingRight: 0 }}><NT.StatusDot status={r.status} /></td>
                     <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t}</td>
                     <td style={{ ...tdL, color: r.close === "\u2014" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{r.close}</td>
@@ -99,6 +107,7 @@ function TradesPage() {
                       </span>
                     </td>
                   </tr>
+                  </React.Fragment>
                 );
               })}
             </tbody>

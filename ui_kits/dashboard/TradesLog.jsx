@@ -5,6 +5,8 @@ function TradesLog({ onSelect, fill = false }) {
   const money = (n) => (n > 0 ? "+$" + n.toFixed(2) : n < 0 ? "\u2212$" + Math.abs(n).toFixed(2) : "$0.00");
   const pct = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toFixed(1) + "%";
   const tone = (n) => (n > 0 ? "var(--profit)" : n < 0 ? "var(--loss)" : "var(--breakeven)");
+  const dkey = (iso) => { if (!iso) return ""; try { const tz = (window.NT_DATA.marketHours || {}).display_tz || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso)); } catch (e) { return ""; } };
+  const dlabel = (key) => (key ? key.slice(8, 10) + "/" + key.slice(5, 7) : "");
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "10px 0", textAlign: "right", whiteSpace: "nowrap", position: "sticky", top: 0, background: "var(--surface-card)", zIndex: 1 };
   const thL = { ...th, textAlign: "left" };
@@ -39,8 +41,15 @@ function TradesLog({ onSelect, fill = false }) {
             <th style={{ ...th, paddingRight: 2 }}>result</th>
           </tr></thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
+            {rows.map((r, i) => {
+              const day = dkey(r.entryTs);
+              const showDiv = day && (i === 0 || dkey(rows[i - 1].entryTs) !== day);
+              return (
+              <React.Fragment key={i}>
+              {showDiv && (
+                <tr className="nt-daydiv"><td colSpan={10} style={{ padding: "12px 0 4px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{dlabel(day)}</td></tr>
+              )}
+              <tr onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
                 <td style={{ ...tdL }}><NT.StatusDot status={r.status} /></td>
                 <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t.slice(0, 5)}</td>
                 <td style={{ ...tdL, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -60,7 +69,9 @@ function TradesLog({ onSelect, fill = false }) {
                 <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
                 <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>
               </tr>
-            ))}
+              </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

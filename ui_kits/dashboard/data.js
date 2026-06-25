@@ -5,12 +5,12 @@
   window.NT_DATA = {
     trades: [],
     kpis: {
+      accountReturn: { value: "—", sub: "" },
       netPnl:     { value: "$0",  delta: "", tone: "" },
-      bestTrade:  { value: "—", sub: "no trades yet" },
-      worstTrade: { value: "—", sub: "no trades yet" },
+      avgWin:     { value: "—", sub: "no wins" },
+      avgLoss:    { value: "—", sub: "no losses" },
       avgReturn:  { value: "0%",  sub: "per closed trade" },
       winRate:    { value: "0%",  sub: "0W / 0L" },
-      openPos:    { value: "0",   sub: "none" },
     },
     discord: [],
     summary14d: { fired: 0, filtered: 0 },

@@ -99,7 +99,7 @@
     return {
       accountReturn: ret == null
         ? { value: "—", sub: "set a start balance" }
-        : { value: pctS(ret), sub: "on $" + Math.round(startBal).toLocaleString(), tone: ret >= 0 ? "profit" : "loss" },
+        : { value: pctS(ret), sub: "realized", tone: ret >= 0 ? "profit" : "loss" },
       netPnl: { value: money(net), delta: "", tone: net >= 0 ? "profit" : "loss" },
       avgWin: wins.length ? { value: pctS(avgWin), sub: wins.length + (wins.length === 1 ? " win" : " wins"), tone: "profit" } : { value: "—", sub: "no wins" },
       avgLoss: lossesT.length ? { value: pctS(avgLoss), sub: lossesT.length + (lossesT.length === 1 ? " loss" : " losses"), tone: "loss" } : { value: "—", sub: "no losses" },
@@ -134,7 +134,7 @@
       var lat = (dts && rts && !isNaN(dts.getTime()) && !isNaN(rts.getTime()))
         ? Math.max(0, Math.round((rts - dts) / 1000)) : null;
       var ACT = { ENTRY: "entered", PARTIAL: "trimmed", CLOSE: "closed", WATCH: "staged" };
-      return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—",
+      return { t: tOf(a.ts), alertT: dts ? tOf(a.discord_ts) : "—", dkey: a.ts ? dayKey(a.ts) : "",
         type: typeLabel(a.type), user: "alerts",
         src: (a.source_id != null && cap(srcType[a.source_id])) || "Discord",
         ch: (a.source_id != null && srcName[a.source_id]) || "alerts", srcId: a.source_id,
