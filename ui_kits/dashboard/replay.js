@@ -150,13 +150,30 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       return okTicker && okSource;
     });
 
+    // For each alert this strategy actually TRADED, use its OWN position (its own tape,
+    // entry price and recorded P&L) so "recorded" is its own result — never another
+    // strategy's. Fall back to the pool representative only for alerts it never traded.
+    const ownRes = await db.from("positions")
+      .select("id,ticker,strike,side,entry_ts,entry_price,realized_pnl").eq("strategy_id", strat.id);
+    if (ownRes.error) throw ownRes.error;
+    const keyOf = (x) => x.ticker + "|" + Number(x.strike) + "|" + x.side + "|" + String(x.entry_ts).slice(0, 16);
+    const ownByKey = {};
+    (ownRes.data || []).forEach((p) => { ownByKey[keyOf(p)] = p; });
+    // the recorded P&L to compare against = this strategy's OWN result for the alert (if it
+    // traded it), else the representative's. The TAPE always comes from the clean pool rep
+    // (the strategy's own position may have no tape recorded).
+    const recordedFor = (t) => {
+      const own = ownByKey[keyOf(t)];
+      return own ? Number(own.realized_pnl || 0) : Number(t.recorded_pnl || 0);
+    };
+
     // size each matched trade to THIS strategy's budget (+ weekday %, capped), like the live entry rule
     const dayKey = (iso) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(iso)).toLowerCase().slice(0, 3); } catch (e) { return ""; } };
-    const sizeFor = (t) => {
+    const sizeFor = (entryPx, entryTs) => {
       const dp = row.budget_day_pct || {};
-      const pct = dp[dayKey(t.entry_ts)] != null ? Number(dp[dayKey(t.entry_ts)]) : 100;
+      const pct = dp[dayKey(entryTs)] != null ? Number(dp[dayKey(entryTs)]) : 100;
       const eff = Number(row.trade_budget_usd || 0) * (pct / 100);
-      const costPer = Number(t.entry_price) * 100;
+      const costPer = entryPx * 100;
       let q = costPer > 0 ? Math.floor(eff / costPer) : 0;
       const cap = Number(row.max_contracts_per_trade || 0);
       if (cap > 0) q = Math.min(q, cap);
@@ -183,7 +200,7 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
     for (let i = 0; i < pool.length; i++) {
       const t = pool[i];
       say("replaying " + (i + 1) + "/" + pool.length + " (" + (t.ticker || "?") + ")…");
-      const qty = sizeFor(t);
+      const qty = sizeFor(t.entry_price, t.entry_ts);
       if (qty < 1) { unaffordable++; continue; }   // budget can't afford one contract -> not taken
       // clip the tape to THIS trade's own session — guards against old ID-clobbered
       // ticks from other days being stapled onto a reused position_id
@@ -199,7 +216,7 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
                     entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
                     realized: r.realized, exit_price: r.exit_price, peak_gain_pct: r.peak_gain_pct,
-                    orig_realized: Number(t.recorded_pnl || 0), events: r.events });
+                    orig_realized: recordedFor(t), events: r.events });
     }
 
     const sum = (f) => Math.round(trades.reduce((a, t) => a + f(t), 0) * 100) / 100;
