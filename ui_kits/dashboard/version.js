@@ -3,9 +3,17 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.007";
+window.NT_VERSION = "1.008";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.008", date: "2026-06-25",
+    notes: [
+      "Dashboard cards: “best trade” and “worst trade” are replaced by AVERAGE WIN % and AVERAGE LOSS % per trade — a clearer read on how the wins and losses actually size up.",
+      "New first card: ACCOUNT RETURN % — your total P&L as a percentage of the account. For paper strategies it’s measured against a starting balance (set to $2,000); live strategies use the real Schwab balance. (Replaces the “open positions” card.)",
+      "Trade chart shows just the trade again (entry → exit) by default, with a “full tape” toggle in the chart header to see the full recorded path (to ~30 min past close) when you want it.",
+    ],
+  },
   {
     v: "1.007", date: "2026-06-24",
     notes: [

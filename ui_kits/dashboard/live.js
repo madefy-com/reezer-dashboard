@@ -84,23 +84,27 @@
       return { date: k, pnl: Math.round(d.pnl), pct: d.cost ? Math.round((d.pnl / d.cost * 100) * 10) / 10 : 0 };
     });
   }
-  function buildKpis(trades) {
+  function buildKpis(trades, strategies) {
     var closed = trades.filter(function (t) { return t.result !== "OPEN"; });
     var net = trades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
-    var wins = closed.filter(function (t) { return t.result === "WIN"; }).length;
-    var losses = closed.filter(function (t) { return t.result === "LOSS"; }).length;
+    var wins = closed.filter(function (t) { return t.result === "WIN"; });
+    var lossesT = closed.filter(function (t) { return t.result === "LOSS"; });
     var be = closed.filter(function (t) { return t.result === "BE"; }).length;
-    var open = trades.filter(function (t) { return t.result === "OPEN"; });
-    var best = closed.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
-    var worst = closed.slice().sort(function (a, b) { return a.pct - b.pct; })[0];
-    var avg = closed.length ? Math.round((closed.reduce(function (a, t) { return a + t.pct; }, 0) / closed.length) * 10) / 10 : 0;
+    var avgOf = function (arr) { return arr.length ? Math.round((arr.reduce(function (a, t) { return a + t.pct; }, 0) / arr.length) * 10) / 10 : 0; };
+    var avg = avgOf(closed), avgWin = avgOf(wins), avgLoss = avgOf(lossesT);
+    // account return %: net P&L / sum of the starting balances of the strategies in view
+    var scope = {}; trades.forEach(function (t) { if (t.strategyId != null) scope[t.strategyId] = true; });
+    var startBal = (strategies || []).filter(function (s) { return scope[s.id]; }).reduce(function (a, s) { return a + (Number(s.start_balance_usd) || 0); }, 0);
+    var ret = startBal > 0 ? Math.round((net / startBal * 100) * 10) / 10 : null;
     return {
+      accountReturn: ret == null
+        ? { value: "—", sub: "set a start balance" }
+        : { value: pctS(ret), sub: "on $" + Math.round(startBal).toLocaleString(), tone: ret >= 0 ? "profit" : "loss" },
       netPnl: { value: money(net), delta: "", tone: net >= 0 ? "profit" : "loss" },
-      bestTrade: best ? { value: pctS(best.pct), sub: best.tk + " " + best.strike + " ×" + best.qty, tone: "profit" } : { value: "—", sub: "no trades" },
-      worstTrade: worst ? { value: pctS(worst.pct), sub: worst.tk + " " + worst.strike + " ×" + worst.qty, tone: "loss" } : { value: "—", sub: "no trades" },
+      avgWin: wins.length ? { value: pctS(avgWin), sub: wins.length + (wins.length === 1 ? " win" : " wins"), tone: "profit" } : { value: "—", sub: "no wins" },
+      avgLoss: lossesT.length ? { value: pctS(avgLoss), sub: lossesT.length + (lossesT.length === 1 ? " loss" : " losses"), tone: "loss" } : { value: "—", sub: "no losses" },
       avgReturn: { value: pctS(avg), sub: "per closed trade" },
-      winRate: { value: (closed.length ? Math.round(wins / closed.length * 100) : 0) + "%", sub: wins + "W / " + losses + "L" + (be ? " · " + be + " BE" : "") },
-      openPos: { value: String(open.length), sub: open.length ? "live" : "none", tone: "profit" },
+      winRate: { value: (closed.length ? Math.round(wins.length / closed.length * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : "") },
     };
   }
   // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")
@@ -245,7 +249,7 @@
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     var out = Object.assign({}, base, {
       trades: trades ? vTrades : base.trades,
-      kpis: trades ? buildKpis(vTrades) : base.kpis,
+      kpis: trades ? buildKpis(vTrades, RAW.strategies) : base.kpis,
       daily: positions.length ? buildDaily(vPositions) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
@@ -345,6 +349,16 @@
     ]).then(function (res) {
       return { samples: (res[0] && res[0].data) || [], events: (res[1] && res[1].data) || [] };
     }).catch(function (e) { console.warn("NT_TRADE_DETAIL failed:", e); return null; });
+  };
+
+  // The FULL recorded tape for a trade (entry -> ~30 min past close) — loaded only when
+  // the user clicks "full tape" in the drawer. The default chart shows during-trade only.
+  window.NT_TRADE_FULL = function (positionId) {
+    var c = window.NT_CLIENT;
+    if (!c || positionId == null) return Promise.resolve([]);
+    return c.from("fronttest_tape").select("ts,price,bid,ask").eq("position_id", positionId).order("ts", { ascending: true }).limit(6000)
+      .then(function (r) { return (r && r.data) || []; })
+      .catch(function (e) { console.warn("NT_TRADE_FULL failed:", e); return []; });
   };
 
   // Apply ONE realtime change in place (using the row the websocket delivered)

@@ -3,6 +3,8 @@ function TradeDetail({ trade, onClose, detailOverride }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [shown, setShown] = React.useState(false);
   const [detail, setDetail] = React.useState(null);   // { samples, events } — lazy-loaded
+  const [full, setFull] = React.useState(false);       // chart: during-trade (default) vs full tape (past close)
+  const [fullSamples, setFullSamples] = React.useState(null);  // lazy-loaded only when "full tape" is clicked
   const [hover, setHover] = React.useState(null);      // { idx, w } for the chart crosshair/tooltip
   const panelRef = React.useRef(null);
   React.useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
@@ -20,6 +22,13 @@ function TradeDetail({ trade, onClose, detailOverride }) {
     }
     return () => { alive = false; };
   }, [tradeId, detailOverride]);
+  // lazy-load the full tape only when the user asks for it
+  React.useEffect(() => {
+    if (!full || fullSamples !== null || detailOverride || !window.NT_TRADE_FULL || tradeId == null) return;
+    let alive = true;
+    window.NT_TRADE_FULL(tradeId).then((s) => { if (alive) setFullSamples(s || []); });
+    return () => { alive = false; };
+  }, [full, tradeId]);
   if (!trade) return null;
 
   const tr = trade;
@@ -54,8 +63,8 @@ function TradeDetail({ trade, onClose, detailOverride }) {
   // ----- chart: ONLY the REAL recorded price path. While the fetch is in flight we
   // show a loading skeleton (never a fake curve); if it finishes with no path, a note.
   const pw = 392, ph = 64, padX = 10, padTop = 8, padBot = 8;
-  const loading = detail === null;
-  const samples = (detail && detail.samples) || [];
+  const loading = full ? (fullSamples === null) : (detail === null);
+  const samples = full ? (fullSamples || []) : ((detail && detail.samples) || []);
   const events = (detail && detail.events) || [];
   const hasReal = samples.length > 1;
   const Tms = (iso) => new Date(iso).getTime();
@@ -138,9 +147,14 @@ function TradeDetail({ trade, onClose, detailOverride }) {
         </div>
 
         <div style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)" }}>CONTRACT PRICE</span>
-            <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {!detailOverride && tradeId != null && (
+                <button onClick={() => setFull((f) => !f)} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: full ? "var(--accent)" : "var(--text-tertiary)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", padding: "2px 7px", cursor: "pointer" }}>{full ? "during trade" : "full tape"}</button>
+              )}
+              <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
+            </span>
           </div>
           {loading ? (
             <div style={{ height: 64, borderRadius: "var(--radius-sm)", background: "var(--surface-hover)", animation: "nt-pulse var(--blink) var(--ease-in-out) infinite" }} />
