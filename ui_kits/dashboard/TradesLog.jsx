@@ -17,19 +17,23 @@ function TradesLog({ onSelect, fill = false }) {
     <NT.Card title="Trades" padding={20}
       style={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" } : undefined}
       bodyStyle={{ padding: 0, ...(fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
-      <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "auto", padding: "0 20px 10px" }}>
+      <div style={{ flex: fill ? 1 : undefined, minHeight: 0, overflowY: "auto", overflowX: "auto", padding: "0 20px 10px", containerType: "inline-size" }}>
         {/* table-layout:fixed + percentage columns (sum 100%) -> the table fills the
             full card width with even, tight column spacing (no trailing whitespace,
-            no mid gap) AND a changing P&L value never reflows the columns. */}
+            no mid gap) AND a changing P&L value never reflows the columns.
+            The DATE column collapses (col width 0) via container-query when the panel
+            is too narrow — kept as a 0-width cell (not display:none) so the fixed
+            columns stay aligned; the freed % is reclaimed by the others. */}
         <table style={{ width: "100%", minWidth: 548, borderCollapse: "collapse", tableLayout: "fixed" }}>
           <colgroup>
-            <col style={{ width: "4%" }} /><col style={{ width: "9%" }} /><col style={{ width: "14%" }} />
-            <col style={{ width: "7%" }} /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} /><col style={{ width: "13%" }} /><col style={{ width: "11%" }} />
+            <col style={{ width: "4%" }} /><col className="nt-datecol-col" style={{ width: "8%" }} /><col style={{ width: "7%" }} /><col style={{ width: "13%" }} />
+            <col style={{ width: "6%" }} /><col style={{ width: "9%" }} /><col style={{ width: "9%" }} />
+            <col style={{ width: "9%" }} /><col style={{ width: "12%" }} /><col style={{ width: "11%" }} />
             <col style={{ width: "12%" }} />
           </colgroup>
           <thead><tr>
             <th style={{ ...thL }}></th>
+            <th className="nt-datecol" style={{ ...thL, overflow: "hidden" }}>date</th>
             <th style={thL}>time</th>
             <th style={thL}>contract</th>
             <th style={thL}>qty</th>
@@ -44,10 +48,8 @@ function TradesLog({ onSelect, fill = false }) {
             {rows.map((r, i) => (
               <tr key={i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
                 <td style={{ ...tdL }}><NT.StatusDot status={r.status} /></td>
-                <td style={{ ...tdL, color: "var(--text-secondary)", lineHeight: 1.3 }}>
-                  <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)" }}>{dlabel(dkey(r.entryTs))}</div>
-                  {r.t.slice(0, 5)}
-                </td>
+                <td className="nt-datecol" style={{ ...tdL, color: "var(--text-tertiary)", overflow: "hidden" }}>{dlabel(dkey(r.entryTs))}</td>
+                <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t.slice(0, 5)}</td>
                 <td style={{ ...tdL, overflow: "hidden", textOverflow: "ellipsis" }}>
                   <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
                   <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
@@ -69,7 +71,7 @@ function TradesLog({ onSelect, fill = false }) {
           </tbody>
         </table>
       </div>
-      <style>{`.nt-trow:hover td{ background: var(--surface-inset); } .nt-trow td{ transition: background var(--dur); } .nt-trow td:first-child{ border-top-left-radius: var(--radius-xs); border-bottom-left-radius: var(--radius-xs); } .nt-trow td:last-child{ border-top-right-radius: var(--radius-xs); border-bottom-right-radius: var(--radius-xs); }`}</style>
+      <style>{`@container (max-width: 760px){ .nt-datecol-col{ width:0 !important; } .nt-datecol{ padding-left:0 !important; padding-right:0 !important; overflow:hidden !important; } } .nt-trow:hover td{ background: var(--surface-inset); } .nt-trow td{ transition: background var(--dur); } .nt-trow td:first-child{ border-top-left-radius: var(--radius-xs); border-bottom-left-radius: var(--radius-xs); } .nt-trow td:last-child{ border-top-right-radius: var(--radius-xs); border-bottom-right-radius: var(--radius-xs); }`}</style>
     </NT.Card>
   );
 }

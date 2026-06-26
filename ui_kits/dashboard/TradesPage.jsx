@@ -31,10 +31,12 @@ function TradesPage() {
       <NT.Card title="All trades" padding={20}
         action={<span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{rows.length} orders · {window.NT_DATA.session.date}</span>}
         bodyStyle={{ padding: 0 }}>
-        <div style={{ overflowX: "auto", padding: "0 6px 12px" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080 }}>
+        <div style={{ overflowX: "auto", padding: "0 6px 12px", containerType: "inline-size" }}>
+          <style>{`@container (max-width: 760px){ .nt-datecol{ display:none !important; } }`}</style>
+          <table style={{ width: "auto", borderCollapse: "collapse", minWidth: 1080 }}>
             <thead><tr>
               <th style={{ ...thL, width: 26, paddingRight: 0 }}></th>
+              <th className="nt-datecol" style={thL}>date</th>
               <th style={thL}>opened</th>
               <th style={thL}>closed</th>
               <th style={thL}>contract</th>
@@ -56,10 +58,8 @@ function TradesPage() {
                 return (
                   <tr key={i} onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
                     <td style={{ ...tdL, width: 26, paddingRight: 0 }}><NT.StatusDot status={r.status} /></td>
-                    <td style={{ ...tdL, color: "var(--text-secondary)", lineHeight: 1.35 }}>
-                      <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", marginBottom: 2 }}>{dlabel(dkey(r.entryTs))}</div>
-                      {r.t}
-                    </td>
+                    <td className="nt-datecol" style={{ ...tdL, color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-mono)" }}>{dlabel(dkey(r.entryTs))}</td>
+                    <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t}</td>
                     <td style={{ ...tdL, color: r.close === "\u2014" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{r.close}</td>
                     <td style={tdL}>
                       <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
