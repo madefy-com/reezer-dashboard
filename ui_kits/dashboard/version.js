@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.008";
+window.NT_VERSION = "1.009";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.009", date: "2026-06-26",
+    notes: [
+      "The dashboard and every page now use the full width of larger monitors instead of staying pinned to a fixed column with empty side margins. (It still caps on very wide ultrawide screens so tables don’t over-stretch.)",
+    ],
+  },
   {
     v: "1.008", date: "2026-06-25",
     notes: [

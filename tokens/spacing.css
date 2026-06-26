@@ -40,7 +40,7 @@
   /* ---- Layout ---- */
   --topbar-h: 60px;      /* @kind spacing */
   --sidebar-w: 64px;     /* @kind spacing */
-  --content-max: 1440px; /* @kind spacing */
+  --content-max: 2560px; /* @kind spacing — fills large monitors; gutters only past ~2560px */
   --gap-grid: 16px;      /* @kind spacing */
 
   /* ---- Motion ---- */
