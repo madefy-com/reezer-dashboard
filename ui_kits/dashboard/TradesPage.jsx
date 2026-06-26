@@ -16,7 +16,7 @@ function TradesPage() {
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap", position: "sticky", top: 0, background: "var(--surface-card)", zIndex: 1 };
   const thL = { ...th, textAlign: "left" };
-  const td = { font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", padding: "13px 14px", borderTop: "1px solid var(--border)", textAlign: "right", color: "var(--text-primary)", whiteSpace: "nowrap" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", padding: "13px 14px", borderTop: "1px solid var(--border)", textAlign: "right", color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
   const tdL = { ...td, textAlign: "left" };
 
   return (
@@ -32,10 +32,16 @@ function TradesPage() {
         action={<span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{rows.length} orders · {window.NT_DATA.session.date}</span>}
         bodyStyle={{ padding: 0 }}>
         <div style={{ overflowX: "auto", padding: "0 6px 12px", containerType: "inline-size" }}>
-          <style>{`@container (max-width: 760px){ .nt-datecol{ display:none !important; } }`}</style>
-          <table style={{ width: "auto", borderCollapse: "collapse", minWidth: 1080 }}>
+          <style>{`@container (max-width: 760px){ .nt-datecol-col{ width:0 !important; } .nt-datecol{ padding-left:0 !important; padding-right:0 !important; overflow:hidden !important; } }`}</style>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080, tableLayout: "fixed" }}>
+            <colgroup>
+              <col style={{ width: "2%" }} /><col className="nt-datecol-col" style={{ width: "5%" }} /><col style={{ width: "7%" }} /><col style={{ width: "7%" }} />
+              <col style={{ width: "11%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
+              <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
+              <col style={{ width: "7%" }} /><col style={{ width: "4%" }} /><col style={{ width: "8%" }} /><col style={{ width: "5%" }} />
+            </colgroup>
             <thead><tr>
-              <th style={{ ...thL, width: 26, paddingRight: 0 }}></th>
+              <th style={{ ...thL, paddingRight: 0 }}></th>
               <th className="nt-datecol" style={thL}>date</th>
               <th style={thL}>opened</th>
               <th style={thL}>closed</th>
@@ -79,7 +85,7 @@ function TradesPage() {
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                     <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{r.hold === "open" ? "\u2014" : r.hold}</td>
-                    <td style={{ ...tdL, color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{r.strat}</td>
+                    <td title={r.strat} style={{ ...tdL, color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{r.strat}</td>
                     <td style={{ ...td }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {r.stopped && <i data-lucide="octagon-x" style={{ width: 13, height: 13, color: "var(--loss)" }}></i>}

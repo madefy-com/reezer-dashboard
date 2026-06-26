@@ -11,8 +11,8 @@ window.NT_CHANGELOG = [
     notes: [
       "The dashboard and every page now use the full width of larger monitors instead of staying pinned to a fixed column with empty side margins. (It still caps on very wide ultrawide screens so tables don’t over-stretch.)",
       "The trade date is now its own DAY/MONTH column (Trades page + dashboard trades list) instead of being stacked above the time. It appears whenever there’s room — always on the wide Trades page, and on the dashboard list only when that panel is wide enough.",
-      "Trades page: on large screens the columns now sit close together instead of being stretched far apart with big gaps.",
-      "Secondary text — table headers, labels and captions — is a little brighter on dark so it’s easier to read.",
+      "Trades page table now fills the screen width with even, controlled column spacing — no more half-empty black area on wide monitors, and no big gaps between columns either. Long strategy names shorten with “…” (hover to read the full name).",
+      "Secondary text — table headers, labels and captions — is brighter again on dark for easier reading.",
     ],
   },
   {
