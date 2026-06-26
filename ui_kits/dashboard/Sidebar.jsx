@@ -11,6 +11,7 @@ function Sidebar({ page, onNav }) {
     { id: "log", label: "Alerts", icon: "message-square-dot" },
     { id: "strategies", label: "Strategies", icon: "target" },
     { id: "fronttest", label: "Exit Lab", icon: "flask-conical" },
+    { id: "activity", label: "Activity", icon: "scroll-text" },
   ];
   return (
     <aside style={{

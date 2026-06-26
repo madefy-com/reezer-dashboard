@@ -103,6 +103,7 @@ function App() {
     if (page === "log") return <LogPage />;
     if (page === "backtesting") return <BacktestingPage />;
     if (page === "fronttest") return <FronttestPage />;
+    if (page === "activity") return <ActivityPage />;
     if (page === "updates") return <ChangelogPage />;
     if (page === "strategies") return <StrategiesPage />;
     if (page === "sources" || page === "settings") return <SourcesPage />;

@@ -13,6 +13,8 @@ window.NT_CHANGELOG = [
       "The trade date is now its own DAY/MONTH column (Trades page + dashboard trades list) instead of being stacked above the time. It appears whenever there’s room — always on the wide Trades page, and on the dashboard list only when that panel is wide enough.",
       "Trades page table now fills the screen width with even, controlled column spacing — no more half-empty black area on wide monitors, and no big gaps between columns either. Long strategy names shorten with “…” (hover to read the full name).",
       "Secondary text — table headers, labels and captions — is brighter again on dark for easier reading.",
+      "New “Activity” page: a live operational log streamed from every box — each session start/stop, and every entry/exit with its exact sizing basis (e.g. “×2 @ $1.78 — 60% day-budget”). You can finally see what each Mac did without opening it; filter by box. (Previously this only existed in a local file on whichever box was the leader.)",
+      "Fix: when a second Mac ran the session, its trades could reuse low id numbers and overwrite older cloud data (it briefly stapled 4-day-old prices onto one of today’s trade charts). Each box now writes into its own id range, so two machines can never collide again.",
     ],
   },
   {
