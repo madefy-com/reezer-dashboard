@@ -13,6 +13,7 @@ window.NT_CHANGELOG = [
       "Settings layout: Dashboard + Streaming window sit side by side, and Alert sources + Broker accounts side by side, instead of stacked full-width — much less wide and empty on big screens (stacks back to one column on narrow ones). Paired cards line up to equal height.",
       "Trades page: fixed a stray “…” showing after the LOSS badge in the Result column — that column was too narrow and was clipping the badge.",
       "Strategies page: the cards now fill the full page width (and add columns on wide monitors) instead of staying a fixed width with empty space on the right.",
+      "Settings page decluttered: Alert sources drops the long channel URL (it’s on hover now) and uses compact icon buttons; Machines shows one health dot (hover for Schwab/Discord/Supabase detail) with icon controls; helper text trimmed.",
     ],
   },
   {

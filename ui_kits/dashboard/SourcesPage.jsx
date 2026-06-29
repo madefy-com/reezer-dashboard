@@ -83,12 +83,20 @@ function SourcesPage() {
   // ---- machines helpers ----
   const ago = (ts) => { if (!ts) return "never"; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
   const online = (m) => m.last_seen && (Date.now() - new Date(m.last_seen).getTime()) < 120000;
-  const hchip = (label, ok) => (
-    <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)",
-      background: ok === true ? "var(--profit-bg)" : ok === false ? "var(--loss-bg)" : "var(--surface-inset)",
-      color: ok === true ? "var(--profit)" : ok === false ? "var(--loss)" : "var(--text-tertiary)",
-      font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>{ok === true ? "✓" : ok === false ? "✗" : "–"} {label}</span>
-  );
+  // One health dot summarising Schwab/Discord/Supabase (details on hover) instead of 3 chips.
+  const healthDot = (m) => {
+    const items = [["Schwab", m.schwab_ok], ["Discord", m.discord_ok], ["Supabase", m.supabase_ok]];
+    const anyBad = items.some(([, v]) => v === false);
+    const allOk = items.every(([, v]) => v === true);
+    const col = anyBad ? "var(--loss)" : allOk ? "var(--profit)" : "var(--text-tertiary)";
+    const label = anyBad ? "Issue" : allOk ? "Healthy" : "Not checked";
+    const title = items.map(([l, v]) => l + ": " + (v === true ? "ok" : v === false ? "FAIL" : "—")).join("  ·  ");
+    return (
+      <span title={title} style={{ display: "inline-flex", alignItems: "center", gap: 7, font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: col }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />{label}
+      </span>
+    );
+  };
   // Show the latest command while it's in-flight; a finished one (done/error) lingers
   // only ~60s, then disappears — it's just a transient "last action" note.
   const lastCmd = (mid) => {
@@ -107,9 +115,13 @@ function SourcesPage() {
     try { const r = await window.NT_CLIENT.from("machines").delete().eq("machine_id", mid); if (r.error) throw r.error; await window.NT_REFRESH(); }
     catch (e) { await window.NT_ALERT("Couldn’t remove: " + (e.message || e), { title: "Remove box" }); }
   };
-  const cmdBtn = (mid, command, label, danger) => (
-    <button key={label} onClick={() => issueCmd(mid, command)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: danger ? "var(--loss)" : "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
+  const iconBtn = (label, icon, onClick, danger) => (
+    <button key={label} title={label} aria-label={label} onClick={onClick}
+      style={{ width: 30, height: 30, display: "inline-grid", placeItems: "center", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: danger ? "var(--loss)" : "var(--text-secondary)" }}>
+      <Ico name={icon} size={14} />
+    </button>
   );
+  const cmdBtn = (mid, command, label, icon, danger) => iconBtn(label, icon, () => issueCmd(mid, command), danger);
   // Is the bot SUPPOSED to be running right now? (only then is "not seen" a real problem)
   const sess = (function () { try { return window.ntSession(new Date()); } catch (e) { return null; } })();
   const inWindow = !!(sess && sess.scanning);   // bot should be up from 30 min before streaming
@@ -166,7 +178,7 @@ function SourcesPage() {
       <NT.Card title="Streaming window" padding={20}
         action={<NT.Button variant="primary" size="sm" onClick={saveWin} disabled={savingWin}>{savingWin ? "Saving…" : "Save"}</NT.Button>}>
         <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)", marginBottom: 16 }}>
-          When the trader streams alerts. The bot wakes <b style={{ color: "var(--text-primary)" }}>{win.lead} min before</b> the start, scans through the end, then stops — it doesn't run the whole market day. Times are US&nbsp;Eastern; the {dispZone} equivalent is shown under each.
+          The bot wakes <b style={{ color: "var(--text-primary)" }}>{win.lead} min before</b> the start and stops at the end — not the whole market day. Times in US&nbsp;Eastern ({dispZone} shown below each).
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-end" }}>
           {[["Start (ET)", "start"], ["End (ET)", "end"]].map(([lbl, key]) => (
@@ -194,8 +206,8 @@ function SourcesPage() {
       <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
         action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={openNew}>New source</NT.Button>}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
-            <thead><tr><th style={th}>Source</th><th style={th}>Channel</th><th style={th}>Status</th><th style={thR}>Actions</th></tr></thead>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 380 }}>
+            <thead><tr><th style={th}>Source</th><th style={th}>Status</th><th style={thR}>Actions</th></tr></thead>
             <tbody>
               {sources.map((s) => (
                 <tr key={s.id} style={{ opacity: s.enabled ? 1 : 0.72 }}>
@@ -203,28 +215,27 @@ function SourcesPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
                       <span style={ICON}><Ico name={s.type === "discord" ? "message-square-dot" : s.type === "webhook" ? "webhook" : "inbox"} size={16} /></span>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{s.name}</div>
+                        <div title={s.channel_url || "uses the bot's default channel"} style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{s.name}</div>
                         <div style={{ marginTop: 3 }}>{typeChip(s.type)}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ ...td, font: "var(--w-regular) var(--t-xs)/1.4 var(--font-mono)", color: s.channel_url ? "var(--text-secondary)" : "var(--text-tertiary)", maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.channel_url || "uses the bot's default channel"}</td>
                   <td style={td}>{statusPill(s.enabled)}</td>
                   <td style={tdR}>
-                    <span style={{ display: "inline-flex", gap: 8, justifyContent: "flex-end" }}>
-                      <NT.Button variant="ghost" size="sm" onClick={() => toggle(s)}>{s.enabled ? "Disable" : "Enable"}</NT.Button>
-                      <NT.Button variant="ghost" size="sm" onClick={() => del(s)}>Delete</NT.Button>
+                    <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+                      {iconBtn(s.enabled ? "Disable" : "Enable", s.enabled ? "eye-off" : "eye", () => toggle(s), false)}
+                      {iconBtn("Delete", "trash-2", () => del(s), false)}
                       <NT.Button variant="secondary" size="sm" icon={<Ico name="settings-2" size={13} />} onClick={() => openEdit(s)}>Edit</NT.Button>
                     </span>
                   </td>
                 </tr>
               ))}
-              {!sources.length && emptyRow(4, "No sources yet — click “New source”.")}
+              {!sources.length && emptyRow(3, "No sources yet — click “New source”.")}
             </tbody>
           </table>
         </div>
         <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-          Enabling, disabling or adding a source takes effect when the bot next starts a session. A Discord source needs its own browser login.
+          Changes take effect at the next session. A Discord source needs its own browser login.
         </div>
       </NT.Card>
 
@@ -282,15 +293,15 @@ function SourcesPage() {
                         </div>
                       </td>
                       <td style={td}>{machineBadge(m)}</td>
-                      <td style={td}><span style={{ display: "inline-flex", flexWrap: "wrap", gap: 6 }}>{hchip("Schwab", m.schwab_ok)}{hchip("Discord", m.discord_ok)}{hchip("Supabase", m.supabase_ok)}</span></td>
+                      <td style={td}>{healthDot(m)}</td>
                       <td style={{ ...td, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{ago(m.last_seen)}</td>
                       <td style={tdR}>
-                        <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end" }}>
-                          {cmdBtn(m.machine_id, "preflight", "Verify")}
-                          {cmdBtn(m.machine_id, "restart", "Restart")}
-                          {cmdBtn(m.machine_id, "relogin-discord", "Re-login")}
-                          {cmdBtn(m.machine_id, m.paused ? "resume" : "pause", m.paused ? "Resume" : "Pause", !m.paused)}
-                          {!online(m) && <button onClick={() => removeMachine(m.machine_id)} style={{ height: 28, padding: "0 11px", borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>Remove</button>}
+                        <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
+                          {cmdBtn(m.machine_id, "preflight", "Verify", "shield-check")}
+                          {cmdBtn(m.machine_id, "restart", "Restart", "rotate-cw")}
+                          {cmdBtn(m.machine_id, "relogin-discord", "Re-login Discord", "log-in")}
+                          {cmdBtn(m.machine_id, m.paused ? "resume" : "pause", m.paused ? "Resume" : "Pause", m.paused ? "play" : "pause", !m.paused)}
+                          {!online(m) && iconBtn("Remove", "trash-2", () => removeMachine(m.machine_id), false)}
                         </span>
                       </td>
                     </tr>
@@ -300,7 +311,7 @@ function SourcesPage() {
             </table>
           </div>
           <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-            <b style={{ color: "var(--text-secondary)" }}>OFF-HOURS</b> just means the bot isn't in its trading window right now — it starts itself at the next session ({nextLabel}) and flips to ACTIVE on its own. You set up each Mac once; nothing is ever run daily. (A box only reads <b style={{ color: "var(--loss)" }}>OFFLINE</b> if it's missing <i>during</i> a session.)
+            <b style={{ color: "var(--text-secondary)" }}>OFF-HOURS</b> = outside the trading window; the box starts itself at the next session ({nextLabel}). <b style={{ color: "var(--loss)" }}>OFFLINE</b> only shows if a box goes missing <i>during</i> a session.
           </div>
           </React.Fragment>
         ) : (
