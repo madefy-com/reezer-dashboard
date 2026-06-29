@@ -137,7 +137,12 @@ function SourcesPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
+      <style>{`
+        .nt-set2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--gap-grid); align-items: start; }
+        @media (max-width: 900px){ .nt-set2{ grid-template-columns: 1fr; } }
+      `}</style>
 
+      <div className="nt-set2">
       {/* ---- Dashboard defaults ---- */}
       <NT.Card title="Dashboard" padding={20}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
@@ -181,6 +186,9 @@ function SourcesPage() {
         </div>
       </NT.Card>
 
+      </div>
+
+      <div className="nt-set2">
       {/* ---- Alert sources ---- */}
       <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
         action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={openNew}>New source</NT.Button>}>
@@ -247,6 +255,8 @@ function SourcesPage() {
           </table>
         </div>
       </NT.Card>
+
+      </div>
 
       {/* ---- Machines (failover boxes) ---- */}
       <NT.Card title="Machines" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}

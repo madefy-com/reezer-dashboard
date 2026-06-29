@@ -10,6 +10,7 @@ window.NT_CHANGELOG = [
     v: "1.010", date: "2026-06-29",
     notes: [
       "Settings → Machines: after a box command (Verify / Restart / etc.) finishes, the “done” note now clears itself after about a minute instead of lingering — it’s just a transient “last action” status.",
+      "Settings layout: Dashboard + Streaming window sit side by side, and Alert sources + Broker accounts side by side, instead of stacked full-width — much less wide and empty on big screens (stacks back to one column on narrow ones).",
     ],
   },
   {
