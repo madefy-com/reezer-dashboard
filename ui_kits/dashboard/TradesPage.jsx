@@ -36,9 +36,9 @@ function TradesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080, tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "2%" }} /><col className="nt-datecol-col" style={{ width: "5%" }} /><col style={{ width: "7%" }} /><col style={{ width: "7%" }} />
-              <col style={{ width: "11%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
+              <col style={{ width: "10%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
               <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
-              <col style={{ width: "7%" }} /><col style={{ width: "4%" }} /><col style={{ width: "8%" }} /><col style={{ width: "5%" }} />
+              <col style={{ width: "7%" }} /><col style={{ width: "4%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
             </colgroup>
             <thead><tr>
               <th style={{ ...thL, paddingRight: 0 }}></th>
@@ -86,7 +86,7 @@ function TradesPage() {
                     <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{r.hold === "open" ? "\u2014" : r.hold}</td>
                     <td title={r.strat} style={{ ...tdL, color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{r.strat}</td>
-                    <td style={{ ...td }}>
+                    <td style={{ ...td, overflow: "visible", textOverflow: "clip" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                         {r.stopped && <i data-lucide="octagon-x" style={{ width: 13, height: 13, color: "var(--loss)" }}></i>}
                         <NT.ResultBadge result={r.result} size="sm" />
