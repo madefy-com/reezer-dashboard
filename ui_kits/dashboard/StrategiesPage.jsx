@@ -458,7 +458,7 @@ function StrategiesPage() {
       <PageHead title="Strategies" subtitle="One card per strategy · linked to a live, paper or draft account"
         right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />} onClick={createStrategy}>New strategy</NT.Button>} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(440px, 560px))", gap: "var(--gap-grid)", alignItems: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         {strategies.map((s) => <StrategyCard key={s.id || s.name} strat={s} sources={sources} />)}
         {!strategies.length && <div style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>No strategies yet — click “New strategy”.</div>}
       </div>
