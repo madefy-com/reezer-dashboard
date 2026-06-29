@@ -138,8 +138,9 @@ function SourcesPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
       <style>{`
-        .nt-set2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--gap-grid); align-items: start; }
-        @media (max-width: 900px){ .nt-set2{ grid-template-columns: 1fr; } }
+        .nt-set2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--gap-grid); align-items: stretch; }
+        .nt-set2 > *{ height: 100%; }   /* paired cards share the row height -> bottoms aligned */
+        @media (max-width: 900px){ .nt-set2{ grid-template-columns: 1fr; } .nt-set2 > *{ height: auto; } }
       `}</style>
 
       <div className="nt-set2">
