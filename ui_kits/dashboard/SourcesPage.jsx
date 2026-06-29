@@ -5,6 +5,7 @@ function SourcesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
+  React.useEffect(() => { const id = setInterval(() => force((x) => x + 1), 15000); return () => clearInterval(id); }, []);  // re-tick so a finished-command badge ages out on its own
   const sources = window.NT_DATA.sources || [];
   const brokers = window.NT_DATA.brokerAccounts || [];
   const strategies = window.NT_DATA.strategies || [];
@@ -88,7 +89,15 @@ function SourcesPage() {
       color: ok === true ? "var(--profit)" : ok === false ? "var(--loss)" : "var(--text-tertiary)",
       font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)" }}>{ok === true ? "✓" : ok === false ? "✗" : "–"} {label}</span>
   );
-  const lastCmd = (mid) => cmds.find((c) => c.machine_id === mid);
+  // Show the latest command while it's in-flight; a finished one (done/error) lingers
+  // only ~60s, then disappears — it's just a transient "last action" note.
+  const lastCmd = (mid) => {
+    const c = cmds.find((x) => x.machine_id === mid);
+    if (!c) return null;
+    if (c.status === "pending" || c.status === "running") return c;
+    const t = Date.parse(c.updated_at || c.created_at || "");
+    return (t && Date.now() - t < 60000) ? c : null;
+  };
   const issueCmd = async (mid, command) => {
     try { const r = await window.NT_CLIENT.from("machine_commands").insert({ machine_id: mid, command }); if (r.error) throw r.error; await window.NT_REFRESH(); }
     catch (e) { await window.NT_ALERT("Couldn’t send command: " + (e.message || e), { title: "Box command" }); }

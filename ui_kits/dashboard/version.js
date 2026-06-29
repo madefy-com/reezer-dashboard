@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.009";
+window.NT_VERSION = "1.010";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.010", date: "2026-06-29",
+    notes: [
+      "Settings → Machines: after a box command (Verify / Restart / etc.) finishes, the “done” note now clears itself after about a minute instead of lingering — it’s just a transient “last action” status.",
+    ],
+  },
   {
     v: "1.009", date: "2026-06-26",
     notes: [
