@@ -29,7 +29,7 @@ function TradesPage() {
 
       {/* detailed table */}
       <NT.Card title="All trades" padding={20}
-        action={<span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{rows.length} orders{window.NT_DATA.session.date ? " · " + window.NT_DATA.session.date : ""}</span>}
+        action={<span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{rows.length} order{rows.length === 1 ? "" : "s"}{window.NT_DATA.session.date ? " · " + window.NT_DATA.session.date : ""}</span>}
         bodyStyle={{ padding: 0 }}>
         <div style={{ overflowX: "auto", padding: "0 6px 12px", containerType: "inline-size" }}>
           <style>{`@container (max-width: 760px){ .nt-datecol-col{ width:0 !important; } .nt-datecol{ padding-left:0 !important; padding-right:0 !important; overflow:hidden !important; } }`}</style>
