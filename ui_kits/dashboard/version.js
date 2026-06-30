@@ -3,31 +3,14 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.014";
+window.NT_VERSION = "1.011";
 
 window.NT_CHANGELOG = [
   {
-    v: "1.014", date: "2026-06-30",
-    notes: [
-      "Trade expectancy meter is now bolder — a minimum fill keeps the green (positive edge) / red (negative edge) direction clearly visible even when the per-trade edge is small.",
-    ],
-  },
-  {
-    v: "1.013", date: "2026-06-30",
-    notes: [
-      "KPI card visual polish: the win-% donut now has a visible grey track; the green/red bars render as equal-thickness segments; the Trade expectancy visual is now a centered meter (fills right in green for a positive edge, left in red for a negative one) so it matches the other cards instead of a stray line.",
-    ],
-  },
-  {
-    v: "1.012", date: "2026-06-30",
-    notes: [
-      "Headline metric cards refined: each trade metric now has its own visual and a colored number (no more white). Trade win % → win/loss donut; Avg win/loss → the win-to-loss ratio with a green/red bar showing your average winner vs average loser in dollars; Profit factor → green/red split bar; Trade expectancy → a mini cumulative-P&L sparkline.",
-    ],
-  },
-  {
     v: "1.011", date: "2026-06-30",
     notes: [
-      "New headline metric cards (dashboard + Trades): Account return and Net P&L stay; the rest are now Trade win % (with a win/loss donut), Avg profit/trade (avg % per closed trade), Profit factor (gross profit ÷ gross loss, with a green/red split bar — above 1.0 = profitable), and Trade expectancy (average $ you win/lose per closed trade).",
+      "Reworked the headline metric cards (dashboard + Trades page). Account return and Net P&L stay; the four trade metrics are now Trade win %, Avg win/loss, Profit factor and Trade expectancy — every number colour-coded green/red.",
+      "Each trade metric has its own visual: Trade win % a win/loss donut; Avg win/loss the win-to-loss ratio with a green/red bar showing your average winner vs average loser in dollars; Profit factor (gross profit ÷ gross loss, above 1.0 = profitable) a green/red split bar; Trade expectancy (avg $ won/lost per closed trade) a centred green/red edge meter.",
     ],
   },
   {
