@@ -105,8 +105,8 @@
     var avgLoss = nLoss ? gl / nLoss : 0;              // avg $ of losing trades (positive magnitude)
     var wlRatio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
     var winShare = (avgWin + avgLoss) > 0 ? avgWin / (avgWin + avgLoss) : 0.5;
-    var sortedC = closed.slice().sort(function (a, b) { return (a.entryTs || "") < (b.entryTs || "") ? -1 : 1; });
-    var cum = 0, eqSeries = sortedC.map(function (t) { cum += (t.pnl || 0); return Math.round(cum); });   // cumulative P&L for the expectancy sparkline
+    var expRef = Math.max(avgWin, avgLoss, Math.abs(expc)) || 1;
+    var expFrac = Math.max(-1, Math.min(1, expc / expRef));   // signed fill for the expectancy meter (vs a typical trade)
     // account return %: LIFETIME P&L / starting balance — a property of the account,
     // so it ignores the date filter (uses all of the strategy's trades, not just the window).
     var netAll = allTrades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
@@ -121,7 +121,7 @@
       winRate: { value: (closed.length ? Math.round(winFrac * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : ""), frac: winFrac },
       avgWinLoss: { ratio: closed.length ? wlRatio : null, avgWin: avgWin, avgLoss: avgLoss, winShare: winShare },
       profitFactor: { value: !closed.length ? "—" : (gl > 0 ? (gp / gl).toFixed(2) : (gp > 0 ? "∞" : "0.00")), sub: "profit ÷ loss", tone: closed.length ? (pf >= 1 ? "profit" : "loss") : null, share: (gp + gl) > 0 ? gp / (gp + gl) : 0 },
-      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null, series: eqSeries },
+      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null, frac: closed.length ? expFrac : 0 },
     };
   }
   // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")

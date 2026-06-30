@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.012";
+window.NT_VERSION = "1.013";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.013", date: "2026-06-30",
+    notes: [
+      "KPI card visual polish: the win-% donut now has a visible grey track; the green/red bars render as equal-thickness segments; the Trade expectancy visual is now a centered meter (fills right in green for a positive edge, left in red for a negative one) so it matches the other cards instead of a stray line.",
+    ],
+  },
   {
     v: "1.012", date: "2026-06-30",
     notes: [

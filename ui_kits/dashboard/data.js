@@ -10,7 +10,7 @@
       winRate:      { value: "0%", sub: "0W / 0L", frac: 0 },
       avgWinLoss:   { ratio: null, avgWin: 0, avgLoss: 0, winShare: 0.5 },
       profitFactor: { value: "—", sub: "profit ÷ loss", share: 0 },
-      expectancy:   { value: "—", sub: "per closed trade" },
+      expectancy:   { value: "—", sub: "per closed trade", frac: 0 },
     },
     discord: [],
     summary14d: { fired: 0, filtered: 0 },
