@@ -92,7 +92,13 @@
     var lossesT = closed.filter(function (t) { return t.result === "LOSS"; });
     var be = closed.filter(function (t) { return t.result === "BE"; }).length;
     var avgOf = function (arr) { return arr.length ? Math.round((arr.reduce(function (a, t) { return a + t.pct; }, 0) / arr.length) * 10) / 10 : 0; };
-    var avg = avgOf(closed), avgWin = avgOf(wins), avgLoss = avgOf(lossesT);
+    var avgPer = avgOf(closed);                       // avg % return per closed trade
+    var gp = closed.reduce(function (a, t) { return a + (t.pnl > 0 ? t.pnl : 0); }, 0);   // gross profit ($)
+    var gl = closed.reduce(function (a, t) { return a + (t.pnl < 0 ? -t.pnl : 0); }, 0);  // gross loss ($)
+    var pf = gl > 0 ? gp / gl : (gp > 0 ? Infinity : 0);                                  // profit factor
+    var closedNet = closed.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
+    var expc = closed.length ? closedNet / closed.length : 0;                             // expectancy ($/trade)
+    var winFrac = closed.length ? wins.length / closed.length : 0;
     // account return %: LIFETIME P&L / starting balance — a property of the account,
     // so it ignores the date filter (uses all of the strategy's trades, not just the window).
     var netAll = allTrades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
@@ -103,11 +109,11 @@
       accountReturn: ret == null
         ? { value: "—", sub: "set a start balance" }
         : { value: pctS(ret), sub: "all-time", tone: ret >= 0 ? "profit" : "loss" },
-      netPnl: { value: money(net), delta: "", tone: net >= 0 ? "profit" : "loss" },
-      avgWin: wins.length ? { value: pctS(avgWin), sub: wins.length + (wins.length === 1 ? " win" : " wins") } : { value: "—", sub: "no wins" },
-      avgLoss: lossesT.length ? { value: pctS(avgLoss), sub: lossesT.length + (lossesT.length === 1 ? " loss" : " losses") } : { value: "—", sub: "no losses" },
-      avgReturn: { value: pctS(avg), sub: "per closed trade" },
-      winRate: { value: (closed.length ? Math.round(wins.length / closed.length * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : "") },
+      netPnl: { value: money(net), tone: net >= 0 ? "profit" : "loss" },
+      winRate: { value: (closed.length ? Math.round(winFrac * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : ""), frac: winFrac },
+      avgPerTrade: { value: closed.length ? pctS(avgPer) : "—", sub: "per closed trade", tone: avgPer > 0 ? "profit" : avgPer < 0 ? "loss" : null },
+      profitFactor: { value: !closed.length ? "—" : (gl > 0 ? (gp / gl).toFixed(2) : (gp > 0 ? "∞" : "0.00")), sub: "profit ÷ loss", tone: closed.length ? (pf >= 1 ? "profit" : "loss") : null, share: (gp + gl) > 0 ? gp / (gp + gl) : 0 },
+      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null },
     };
   }
   // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")

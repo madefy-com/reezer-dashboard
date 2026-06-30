@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.010";
+window.NT_VERSION = "1.011";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.011", date: "2026-06-30",
+    notes: [
+      "New headline metric cards (dashboard + Trades): Account return and Net P&L stay; the rest are now Trade win % (with a win/loss donut), Avg profit/trade (avg % per closed trade), Profit factor (gross profit ÷ gross loss, with a green/red split bar — above 1.0 = profitable), and Trade expectancy (average $ you win/lose per closed trade).",
+    ],
+  },
   {
     v: "1.010", date: "2026-06-29",
     notes: [
