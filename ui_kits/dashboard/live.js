@@ -99,6 +99,14 @@
     var closedNet = closed.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
     var expc = closed.length ? closedNet / closed.length : 0;                             // expectancy ($/trade)
     var winFrac = closed.length ? wins.length / closed.length : 0;
+    var nWin = closed.filter(function (t) { return t.pnl > 0; }).length;
+    var nLoss = closed.filter(function (t) { return t.pnl < 0; }).length;
+    var avgWin = nWin ? gp / nWin : 0;                 // avg $ of winning trades
+    var avgLoss = nLoss ? gl / nLoss : 0;              // avg $ of losing trades (positive magnitude)
+    var wlRatio = avgLoss > 0 ? avgWin / avgLoss : (avgWin > 0 ? Infinity : 0);
+    var winShare = (avgWin + avgLoss) > 0 ? avgWin / (avgWin + avgLoss) : 0.5;
+    var sortedC = closed.slice().sort(function (a, b) { return (a.entryTs || "") < (b.entryTs || "") ? -1 : 1; });
+    var cum = 0, eqSeries = sortedC.map(function (t) { cum += (t.pnl || 0); return Math.round(cum); });   // cumulative P&L for the expectancy sparkline
     // account return %: LIFETIME P&L / starting balance — a property of the account,
     // so it ignores the date filter (uses all of the strategy's trades, not just the window).
     var netAll = allTrades.reduce(function (a, t) { return a + (t.pnl || 0); }, 0);
@@ -111,9 +119,9 @@
         : { value: pctS(ret), sub: "all-time", tone: ret >= 0 ? "profit" : "loss" },
       netPnl: { value: money(net), tone: net >= 0 ? "profit" : "loss" },
       winRate: { value: (closed.length ? Math.round(winFrac * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : ""), frac: winFrac },
-      avgPerTrade: { value: closed.length ? pctS(avgPer) : "—", sub: "per closed trade", tone: avgPer > 0 ? "profit" : avgPer < 0 ? "loss" : null },
+      avgWinLoss: { ratio: closed.length ? wlRatio : null, avgWin: avgWin, avgLoss: avgLoss, winShare: winShare },
       profitFactor: { value: !closed.length ? "—" : (gl > 0 ? (gp / gl).toFixed(2) : (gp > 0 ? "∞" : "0.00")), sub: "profit ÷ loss", tone: closed.length ? (pf >= 1 ? "profit" : "loss") : null, share: (gp + gl) > 0 ? gp / (gp + gl) : 0 },
-      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null },
+      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null, series: eqSeries },
     };
   }
   // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")

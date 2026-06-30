@@ -8,7 +8,7 @@
       accountReturn: { value: "—", sub: "" },
       netPnl:       { value: "$0", tone: "" },
       winRate:      { value: "0%", sub: "0W / 0L", frac: 0 },
-      avgPerTrade:  { value: "—", sub: "per closed trade" },
+      avgWinLoss:   { ratio: null, avgWin: 0, avgLoss: 0, winShare: 0.5 },
       profitFactor: { value: "—", sub: "profit ÷ loss", share: 0 },
       expectancy:   { value: "—", sub: "per closed trade" },
     },

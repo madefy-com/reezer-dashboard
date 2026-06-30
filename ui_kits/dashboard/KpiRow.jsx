@@ -1,11 +1,22 @@
-/* KpiRow — six headline metrics with small visuals. Shared by the dashboard AND the
-   Trades page. Cards mirror the design-system KpiCard look + add a per-card visual:
-   a win-rate donut and a profit-factor split bar. */
+/* KpiRow — six headline metrics, each new one with its own visual. Shared by the
+   dashboard AND the Trades page. Account return + Net P&L are plain colored numbers;
+   the four trade metrics each carry a dynamic visual:
+     trade win %   -> donut ring (green arc = win rate)
+     avg win/loss  -> ratio headline + green/red magnitude bar + the two $ figures
+     profit factor -> green/red split bar (profit vs loss share)
+     expectancy    -> cumulative-P&L sparkline */
 function KpiRow() {
   const k = window.NT_DATA.kpis || {};
   const toneCol = (t) => (t === "profit" ? "var(--profit)" : t === "loss" ? "var(--loss)" : "var(--text-primary)");
+  const dol = (n) => "$" + Math.round(Math.abs(n || 0)).toLocaleString();
 
-  // win-rate donut — green arc = win fraction, grey track = the rest
+  // shared card styling (mirrors the design-system KpiCard)
+  const cardStyle = { display: "flex", flexDirection: "column", gap: 10, padding: "18px 18px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)", minWidth: 0 };
+  const labelStyle = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "lowercase", color: "var(--text-tertiary)" };
+  const valStyle = (tone) => ({ font: "var(--w-light) var(--t-kpi)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "var(--ls-tight)", color: toneCol(tone) });
+  const subStyle = { font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)" };
+
+  // --- visuals ---
   const ring = (frac) => {
     const f = Math.max(0, Math.min(1, frac || 0)), r = 11, c = 2 * Math.PI * r;
     return (
@@ -16,7 +27,6 @@ function KpiRow() {
       </svg>
     );
   };
-  // profit-factor split bar — green = share of profit, red = share of loss
   const splitbar = (share) => {
     const pct = Math.round(Math.max(0, Math.min(1, share || 0)) * 100);
     return (
@@ -25,27 +35,66 @@ function KpiRow() {
       </span>
     );
   };
+  const sparkline = (series) => {
+    series = (series || []).slice();
+    if (series.length < 2) return null;
+    const w = 60, h = 22, lo = Math.min(0, ...series), hi = Math.max(0, ...series), span = (hi - lo) || 1;
+    const pts = series.map((v, i) => ((i / (series.length - 1)) * w).toFixed(1) + "," + (h - ((v - lo) / span) * h).toFixed(1)).join(" ");
+    const up = series[series.length - 1] >= 0;
+    return (
+      <svg width={w} height={h} viewBox={"0 0 " + w + " " + h} aria-hidden="true" style={{ flex: "none" }}>
+        <polyline points={pts} fill="none" stroke={up ? "var(--profit)" : "var(--loss)"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+    );
+  };
 
   const Kard = ({ label, value, sub, tone, visual }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "18px 18px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)", minWidth: 0 }}>
+    <div style={cardStyle}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 30 }}>
-        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "lowercase", color: "var(--text-tertiary)" }}>{label}</span>
+        <span style={labelStyle}>{label}</span>
         {visual || null}
       </div>
-      <span style={{ font: "var(--w-light) var(--t-kpi)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "var(--ls-tight)", color: toneCol(tone) }}>{value != null ? value : "—"}</span>
-      {sub ? <span style={{ font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)" }}>{sub}</span> : null}
+      <span style={valStyle(tone)}>{value != null ? value : "—"}</span>
+      {sub ? <span style={subStyle}>{sub}</span> : null}
     </div>
   );
 
-  const ar = k.accountReturn || {}, np = k.netPnl || {}, wr = k.winRate || {}, ap = k.avgPerTrade || {}, pf = k.profitFactor || {}, ex = k.expectancy || {};
+  // avg win / loss — ratio headline + green/red magnitude bar + the two $ figures
+  const AvgWL = () => {
+    const a = k.avgWinLoss || {};
+    const r = a.ratio;
+    const ratioStr = r == null ? "—" : (r === Infinity || r > 999 ? "∞" : r.toFixed(2));
+    const tone = r == null ? null : (r >= 1 ? "profit" : "loss");
+    const winPct = Math.round(Math.max(0, Math.min(1, a.winShare != null ? a.winShare : 0.5)) * 100);
+    return (
+      <div style={cardStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 30 }}><span style={labelStyle}>avg win / loss</span></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <span style={valStyle(tone)}>{ratioStr}</span>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            <span aria-hidden="true" style={{ display: "flex", width: "100%", height: 8, borderRadius: 999, overflow: "hidden", background: "var(--loss)" }}>
+              <span style={{ width: winPct + "%", background: "var(--profit)" }} />
+            </span>
+            <div style={{ display: "flex", justifyContent: "space-between", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ color: "var(--profit)" }}>{dol(a.avgWin)}</span>
+              <span style={{ color: "var(--loss)" }}>−{dol(a.avgLoss)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ar = k.accountReturn || {}, np = k.netPnl || {}, wr = k.winRate || {}, pf = k.profitFactor || {}, ex = k.expectancy || {};
+  const winTone = wr.frac == null ? null : (wr.frac >= 0.5 ? "profit" : "loss");
   return (
     <div className="nt-kpi-row">
       <Kard label="account return" value={ar.value} sub={ar.sub} tone={ar.tone} />
       <Kard label="net p&l" value={np.value} sub="realized" tone={np.tone} />
-      <Kard label="trade win %" value={wr.value} sub={wr.sub} visual={ring(wr.frac)} />
-      <Kard label="avg profit / trade" value={ap.value} sub={ap.sub} tone={ap.tone} />
+      <Kard label="trade win %" value={wr.value} sub={wr.sub} tone={winTone} visual={ring(wr.frac)} />
+      <AvgWL />
       <Kard label="profit factor" value={pf.value} sub={pf.sub} tone={pf.tone} visual={splitbar(pf.share)} />
-      <Kard label="trade expectancy" value={ex.value} sub={ex.sub} tone={ex.tone} />
+      <Kard label="trade expectancy" value={ex.value} sub={ex.sub} tone={ex.tone} visual={sparkline(ex.series)} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
         @media (max-width: 1240px){ .nt-kpi-row{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
