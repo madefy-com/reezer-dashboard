@@ -14,6 +14,7 @@ window.NT_CHANGELOG = [
       "Wording: the win-rate card now reads “5 wins · 4 losses” and Trade expectancy says “per trade”.",
       "Trade detail chart: the entry and exit dots now sit exactly on the price line — the line is anchored to the real fill prices, so the markers no longer float above or below the curve.",
       "P&L chart (% mode): the return now uses your account balance as the basis, so the chart’s total return matches the account-return card. Previously it summed each session’s return-on-capital, which inflated the figure (e.g. 17.9% vs the real 4.5%).",
+      "Exit Lab: the per-strategy “avg return” column (which averaged each trade’s % and washed out to near zero) is replaced by “profit factor” — gross profit ÷ gross loss — a cleaner way to rank how each strategy’s exits actually perform.",
     ],
   },
   {

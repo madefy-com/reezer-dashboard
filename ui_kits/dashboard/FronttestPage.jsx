@@ -76,9 +76,9 @@ function FronttestPage() {
   // strategy is always listed and the numbers are comparable across all of them.
   const stats = {};
   dateRows.forEach((r) => {
-    const s = stats[r.sid] || (stats[r.sid] = { sid: r.sid, n: 0, wins: 0, pnl: 0, retSum: 0, retN: 0, leftSum: 0, leftN: 0 });
+    const s = stats[r.sid] || (stats[r.sid] = { sid: r.sid, n: 0, wins: 0, pnl: 0, gp: 0, gl: 0, leftSum: 0, leftN: 0 });
     s.n++; if (r.pnl > 0) s.wins++; s.pnl += r.pnl;
-    if (r.retPct != null) { s.retSum += r.retPct; s.retN++; }
+    if (r.pnl > 0) s.gp += r.pnl; else if (r.pnl < 0) s.gl += -r.pnl;   // gross profit / loss -> profit factor
     if (r.left != null) { s.leftSum += r.left; s.leftN++; }
   });
   const statList = Object.values(stats).sort((a, b) => b.pnl - a.pnl);
@@ -134,7 +134,7 @@ function FronttestPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
               <thead><tr>
                 <th style={thL}>strategy</th><th style={th}>trades</th><th style={th}>win rate</th>
-                <th style={th}>avg return</th><th style={th}>total p&l</th><th style={th}>avg left on table</th>
+                <th style={th}>profit factor</th><th style={th}>total p&l</th><th style={th}>avg left on table</th>
               </tr></thead>
               <tbody>
                 {statList.map((s) => (
@@ -142,7 +142,7 @@ function FronttestPage() {
                     <td style={tdL}><span style={{ fontWeight: "var(--w-medium)", color: "var(--text-primary)" }}>{sName(s.sid)}</span> <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", color: sAcct(s.sid).c }}>{sAcct(s.sid).label}</span></td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{s.n}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{s.n ? Math.round(s.wins / s.n * 100) : 0}%</td>
-                    <td style={{ ...td, color: tone(s.retN ? s.retSum / s.retN : null) }}>{s.retN ? pct(s.retSum / s.retN) : "—"}</td>
+                    <td style={{ ...td, color: !s.n ? "var(--text-tertiary)" : (s.gp >= s.gl ? "var(--profit)" : "var(--loss)") }}>{!s.n ? "—" : (s.gl > 0 ? (s.gp / s.gl).toFixed(2) : (s.gp > 0 ? "∞" : "0.00"))}</td>
                     <td style={{ ...td, color: tone(s.pnl), fontWeight: "var(--w-medium)" }}>{money(s.pnl)}</td>
                     <td style={{ ...td, color: s.leftN ? "var(--profit)" : "var(--text-tertiary)" }}>{s.leftN ? pct(s.leftSum / s.leftN) : "—"}</td>
                   </tr>
