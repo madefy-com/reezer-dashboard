@@ -118,10 +118,10 @@
         ? { value: "—", sub: "set a start balance" }
         : { value: pctS(ret), sub: "all-time", tone: ret >= 0 ? "profit" : "loss" },
       netPnl: { value: money(net), tone: net >= 0 ? "profit" : "loss" },
-      winRate: { value: (closed.length ? Math.round(winFrac * 100) : 0) + "%", sub: wins.length + "W / " + lossesT.length + "L" + (be ? " · " + be + " BE" : ""), frac: winFrac },
+      winRate: { value: (closed.length ? Math.round(winFrac * 100) : 0) + "%", sub: wins.length + (wins.length === 1 ? " win" : " wins") + " · " + lossesT.length + (lossesT.length === 1 ? " loss" : " losses") + (be ? " · " + be + " BE" : ""), frac: winFrac },
       avgWinLoss: { ratio: closed.length ? wlRatio : null, avgWin: avgWin, avgLoss: avgLoss, winShare: winShare },
       profitFactor: { value: !closed.length ? "—" : (gl > 0 ? (gp / gl).toFixed(2) : (gp > 0 ? "∞" : "0.00")), sub: "profit ÷ loss", tone: closed.length ? (pf >= 1 ? "profit" : "loss") : null, share: (gp + gl) > 0 ? gp / (gp + gl) : 0 },
-      expectancy: { value: closed.length ? money(expc) : "—", sub: "per closed trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null, frac: closed.length ? expFrac : 0 },
+      expectancy: { value: closed.length ? money(expc) : "—", sub: "per trade", tone: expc > 0 ? "profit" : expc < 0 ? "loss" : null, frac: closed.length ? expFrac : 0 },
     };
   }
   // Drop the Discord embed boilerplate ("Comment" labels, "Comments:none")

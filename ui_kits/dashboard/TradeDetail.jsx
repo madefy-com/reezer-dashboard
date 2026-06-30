@@ -71,22 +71,41 @@ function TradeDetail({ trade, onClose, detailOverride }) {
   let linePath = "", marks = [], entryY = null, pts = [];
 
   if (hasReal) {
-    const tMin = Tms(samples[0].ts), tMax = Tms(samples[samples.length - 1].ts);
+    // Anchor the during-trade line to the real entry/exit fills so it spans exactly
+    // entry -> exit: the raw tick tape starts a couple seconds after the entry fill and
+    // ends just before the exit fill, which left the entry/exit dots floating off the ends.
+    let plot = samples;
+    if (!full && events.length) {
+      const entryEv = events.find((e) => e.type === "entry" && e.price != null);
+      const exitEv = events.slice().reverse().find((e) => e.type !== "entry" && e.type !== "stop_set" && e.price != null);
+      plot = samples.slice();
+      if (entryEv && Tms(entryEv.ts) <= Tms(plot[0].ts)) plot.unshift({ ts: entryEv.ts, price: +entryEv.price });
+      if (exitEv && Tms(exitEv.ts) >= Tms(plot[plot.length - 1].ts)) plot.push({ ts: exitEv.ts, price: +exitEv.price });
+    }
+    const tMin = Tms(plot[0].ts), tMax = Tms(plot[plot.length - 1].ts);
     const tSpan = (tMax - tMin) || 1;
     let pLo = Infinity, pHi = -Infinity;
-    samples.forEach((s) => { const v = +s.price; if (v < pLo) pLo = v; if (v > pHi) pHi = v; });
+    plot.forEach((s) => { const v = +s.price; if (v < pLo) pLo = v; if (v > pHi) pHi = v; });
     pLo = Math.min(pLo, tr.entry); pHi = Math.max(pHi, tr.entry);
     const pSpan = (pHi - pLo) || 1;
     const X = (iso) => padX + ((Tms(iso) - tMin) / tSpan) * (pw - 2 * padX);
     const Y = (v) => padTop + (1 - (+v - pLo) / pSpan) * (ph - padTop - padBot);
-    linePath = samples.map((s, i) => (i ? "L" : "M") + X(s.ts).toFixed(1) + " " + Y(s.price).toFixed(1)).join(" ");
+    linePath = plot.map((s, i) => (i ? "L" : "M") + X(s.ts).toFixed(1) + " " + Y(s.price).toFixed(1)).join(" ");
     entryY = Y(tr.entry);
-    pts = samples.map((s) => ({ x: X(s.ts), y: Y(s.price), price: +s.price, ts: s.ts, gain: (+s.price / tr.entry - 1) * 100 }));
+    pts = plot.map((s) => ({ x: X(s.ts), y: Y(s.price), price: +s.price, ts: s.ts, gain: (+s.price / tr.entry - 1) * 100 }));
+    // place each event dot ON the price line (interpolate the line's y at the dot's x)
+    // so entry / exit / trim markers always sit on the curve instead of floating.
+    const yAt = (xm) => {
+      if (xm <= pts[0].x) return pts[0].y;
+      if (xm >= pts[pts.length - 1].x) return pts[pts.length - 1].y;
+      for (let i = 1; i < pts.length; i++) { if (pts[i].x >= xm) { const a = pts[i - 1], b = pts[i]; return a.y + (xm - a.x) / ((b.x - a.x) || 1) * (b.y - a.y); } }
+      return pts[pts.length - 1].y;
+    };
     const colorOf = (t) => t === "trim" ? "var(--profit)" : t === "stop" ? "var(--loss)" : t === "entry" ? "var(--text-secondary)" : "var(--breakeven)";
-    marks = events.filter((e) => e.type !== "stop_set" && e.price != null).map((e) => ({
-      x: Math.max(padX, Math.min(pw - padX, X(e.ts))), y: Y(e.price), c: colorOf(e.type),
-      label: e.type + (e.qty ? " " + e.qty : "") + " @ $" + (+e.price).toFixed(2),
-    }));
+    marks = events.filter((e) => e.type !== "stop_set" && e.price != null).map((e) => {
+      const xm = Math.max(padX, Math.min(pw - padX, X(e.ts)));
+      return { x: xm, y: yAt(xm), c: colorOf(e.type), label: e.type + (e.qty ? " " + e.qty : "") + " @ $" + (+e.price).toFixed(2) };
+    });
   }
 
   // ----- "what happened": the action log, newest update on top -----

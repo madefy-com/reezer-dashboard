@@ -11,6 +11,8 @@ window.NT_CHANGELOG = [
     notes: [
       "Reworked the headline metric cards (dashboard + Trades page). Account return and Net P&L stay; the four trade metrics are now Trade win %, Avg win/loss, Profit factor and Trade expectancy — every number colour-coded green/red.",
       "Each trade metric has its own visual: Trade win % a win/loss donut; Avg win/loss the win-to-loss ratio with a green/red bar showing your average winner vs average loser in dollars; Profit factor (gross profit ÷ gross loss, above 1.0 = profitable) a green/red split bar; Trade expectancy (avg $ won/lost per closed trade) a centred green/red edge meter.",
+      "Wording: the win-rate card now reads “5 wins · 4 losses” and Trade expectancy says “per trade”.",
+      "Trade detail chart: the entry and exit dots now sit exactly on the price line — the line is anchored to the real fill prices, so the markers no longer float above or below the curve.",
     ],
   },
   {
