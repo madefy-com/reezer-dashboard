@@ -85,7 +85,9 @@
       // cumulative % is a real account-return equity curve and its total matches the
       // account-return card. (Falls back to return-on-capital-deployed if no start balance.)
       var basis = startBal > 0 ? startBal : d.cost;
-      return { date: k, pnl: Math.round(d.pnl), pct: basis ? Math.round((d.pnl / basis * 100) * 10) / 10 : 0 };
+      // keep full precision (display rounds to 0.1%): summing rounded daily %s drifted
+      // the cumulative total off the account-return card by a fraction of a %.
+      return { date: k, pnl: Math.round(d.pnl), pct: basis ? (d.pnl / basis * 100) : 0 };
     });
   }
   function buildKpis(trades, strategies, allTrades) {
