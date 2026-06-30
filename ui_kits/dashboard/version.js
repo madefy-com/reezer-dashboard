@@ -13,6 +13,7 @@ window.NT_CHANGELOG = [
       "Each trade metric has its own visual: Trade win % a win/loss donut; Avg win/loss the win-to-loss ratio with a green/red bar showing your average winner vs average loser in dollars; Profit factor (gross profit ÷ gross loss, above 1.0 = profitable) a green/red split bar; Trade expectancy (avg $ won/lost per trade) a green/red pulse line.",
       "Wording: the win-rate card now reads “5 wins · 4 losses” and Trade expectancy says “per trade”.",
       "Trade detail chart: the entry and exit dots now sit exactly on the price line — the line is anchored to the real fill prices, so the markers no longer float above or below the curve.",
+      "P&L chart (% mode): the return now uses your account balance as the basis, so the chart’s total return matches the account-return card. Previously it summed each session’s return-on-capital, which inflated the figure (e.g. 17.9% vs the real 4.5%).",
     ],
   },
   {

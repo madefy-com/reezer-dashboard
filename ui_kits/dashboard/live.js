@@ -69,7 +69,7 @@
     });
   }
   // Per-day roll-up for the 1W / 1M chart ranges (was empty -> chart went blank).
-  function buildDaily(positions) {
+  function buildDaily(positions, startBal) {
     var byDay = {};
     positions.forEach(function (p) {
       if (p.status !== "closed" || !p.exit_ts) return;
@@ -81,7 +81,11 @@
     });
     return Object.keys(byDay).sort().map(function (k) {
       var d = byDay[k];
-      return { date: k, pnl: Math.round(d.pnl), pct: d.cost ? Math.round((d.pnl / d.cost * 100) * 10) / 10 : 0 };
+      // % = the day's P&L as a share of the ACCOUNT starting balance, so the chart's
+      // cumulative % is a real account-return equity curve and its total matches the
+      // account-return card. (Falls back to return-on-capital-deployed if no start balance.)
+      var basis = startBal > 0 ? startBal : d.cost;
+      return { date: k, pnl: Math.round(d.pnl), pct: basis ? Math.round((d.pnl / basis * 100) * 10) / 10 : 0 };
     });
   }
   function buildKpis(trades, strategies, allTrades) {
@@ -265,10 +269,14 @@
 
     var sc = RAW.sessionConfig || base.sessionConfig || null;
     var fired = alerts.filter(function (a) { return a.fired; }).length;
+    // account starting balance for the strategies in view — used as the % basis for the
+    // P&L chart so its return matches the account-return card (same denominator).
+    var scopeIds = {}; sTrades.forEach(function (t) { if (t.strategyId != null) scopeIds[t.strategyId] = true; });
+    var acctStartBal = (RAW.strategies || []).filter(function (s) { return scopeIds[s.id]; }).reduce(function (a, s) { return a + (Number(s.start_balance_usd) || 0); }, 0);
     var out = Object.assign({}, base, {
       trades: trades ? vTrades : base.trades,
       kpis: trades ? buildKpis(vTrades, RAW.strategies, sTrades) : base.kpis,
-      daily: positions.length ? buildDaily(vPositions) : base.daily,
+      daily: positions.length ? buildDaily(vPositions, acctStartBal) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       // streaming window is the single source of truth (session_config); ntSession + the
