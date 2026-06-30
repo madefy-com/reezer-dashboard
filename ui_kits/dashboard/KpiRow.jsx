@@ -37,19 +37,12 @@ function KpiRow() {
       </span>
     );
   };
-  // expectancy meter — fills out from a centered 0 line: green right if positive, red left if negative
-  const meter = (frac) => {
-    const f = Math.max(-1, Math.min(1, frac || 0)), pos = f >= 0;
-    const w = Math.max(0.6, Math.abs(f)) * 50;   // min fill so the +/- direction is always clearly visible
-    const fill = { position: "absolute", top: 0, bottom: 0, width: w + "%", background: pos ? "var(--profit)" : "var(--loss)" };
-    if (pos) fill.left = "50%"; else fill.right = "50%";
-    return (
-      <span aria-hidden="true" style={{ position: "relative", display: "inline-block", width: 56, height: 10, borderRadius: 999, background: "var(--line-1)", flex: "none", overflow: "hidden" }}>
-        <span style={fill} />
-        <span style={{ position: "absolute", left: "calc(50% - 0.5px)", top: 0, bottom: 0, width: 1, background: "var(--line-3)" }} />
-      </span>
-    );
-  };
+  // expectancy — a bold pulse/heartbeat line, colored green/red by the result (sign of the edge)
+  const pulse = (tone) => (
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={toneCol(tone)} strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}>
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
 
   const Kard = ({ label, value, sub, tone, visual }) => (
     <div style={cardStyle}>
@@ -94,7 +87,7 @@ function KpiRow() {
       <Kard label="trade win %" value={wr.value} sub={wr.sub} tone={winTone} visual={ring(wr.frac)} />
       <AvgWL />
       <Kard label="profit factor" value={pf.value} sub={pf.sub} tone={pf.tone} visual={bar(pf.share)} />
-      <Kard label="trade expectancy" value={ex.value} sub={ex.sub} tone={ex.tone} visual={meter(ex.frac)} />
+      <Kard label="trade expectancy" value={ex.value} sub={ex.sub} tone={ex.tone} visual={pulse(ex.tone)} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
         @media (max-width: 1240px){ .nt-kpi-row{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
