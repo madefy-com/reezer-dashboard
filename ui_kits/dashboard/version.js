@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.013";
+window.NT_VERSION = "1.014";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.014", date: "2026-06-30",
+    notes: [
+      "Trade expectancy meter is now bolder — a minimum fill keeps the green (positive edge) / red (negative edge) direction clearly visible even when the per-trade edge is small.",
+    ],
+  },
   {
     v: "1.013", date: "2026-06-30",
     notes: [
