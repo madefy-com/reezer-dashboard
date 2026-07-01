@@ -6,28 +6,34 @@ function greeting(name) {
 }
 
 const NT_FMT = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const NT_RANGES = [
+  ["today", "Today"], ["week", "This week"], ["last_week", "Last week"],
+  ["month", "This month"], ["last_month", "Last month"], ["ytd", "Year to date"], ["all", "All time"],
+];
 function ntRangeLabel(value, custom) {
-  const now = new Date();
   if (value === "custom" && custom) return NT_FMT(custom.from) + " – " + NT_FMT(custom.to);
-  if (value === "week") { const d = now.getDay(); const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (d === 0 ? -6 : 1 - d)); const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6); return NT_FMT(mon) + " – " + NT_FMT(sun); }
-  if (value === "month") { const s = new Date(now.getFullYear(), now.getMonth(), 1); return NT_FMT(s) + " – " + NT_FMT(now); }
-  return now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const m = NT_RANGES.find((r) => r[0] === value);
+  return m ? m[1] : "Today";
 }
 const NT_ISO = (d) => d.toISOString().slice(0, 10);
 
 // Resolve a date-filter value -> {from, to} Date bounds (to is end-of-day, inclusive).
 function ntRangeBounds(value, custom) {
   const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const Y = now.getFullYear(), M = now.getMonth(), D = now.getDate();
+  const end = new Date(Y, M, D, 23, 59, 59, 999);
   if (value === "custom" && custom) { const t = custom.to; return { from: custom.from, to: new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59, 999) }; }
-  if (value === "week") {  // calendar week, Monday -> Sunday
+  if (value === "week" || value === "last_week") {  // calendar week, Monday -> Sunday (last = previous)
     const d = now.getDay();
-    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (d === 0 ? -6 : 1 - d), 0, 0, 0, 0);
+    const mon = new Date(Y, M, D + (d === 0 ? -6 : 1 - d) - (value === "last_week" ? 7 : 0), 0, 0, 0, 0);
     const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6, 23, 59, 59, 999);
     return { from: mon, to: sun };
   }
-  if (value === "month") { return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: end }; }
-  return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0), to: end };  // today
+  if (value === "month") { return { from: new Date(Y, M, 1), to: end }; }
+  if (value === "last_month") { return { from: new Date(Y, M - 1, 1), to: new Date(Y, M, 0, 23, 59, 59, 999) }; }
+  if (value === "ytd") { return { from: new Date(Y, 0, 1), to: end }; }
+  if (value === "all") { return { from: new Date(2000, 0, 1), to: end }; }
+  return { from: new Date(Y, M, D, 0, 0, 0, 0), to: end };  // today
 }
 
 function DateFilter({ value, onChange }) {
@@ -36,15 +42,16 @@ function DateFilter({ value, onChange }) {
   const now = new Date();
   const [from, setFrom] = React.useState(NT_ISO(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [to, setTo] = React.useState(NT_ISO(now));
-  const opts = [["today", "Today"], ["week", "This week"], ["month", "This month"]];
+  const [customOpen, setCustomOpen] = React.useState(false);
   const label = ntRangeLabel(value, custom);
+  const active = value === "custom" || open;
 
-  const pick = (id) => { setCustom(null); setOpen(false); onChange(id, ntRangeBounds(id, null)); };
+  const close = () => { setOpen(false); setCustomOpen(false); };
+  const pick = (id) => { setCustom(null); close(); onChange(id, ntRangeBounds(id, null)); };
   const apply = () => {
     const f = new Date(from + "T00:00:00"), t = new Date(to + "T00:00:00");
     const c = { from: f <= t ? f : t, to: f <= t ? t : f };
-    setCustom(c);
-    setOpen(false); onChange("custom", ntRangeBounds("custom", c));
+    setCustom(c); close(); onChange("custom", ntRangeBounds("custom", c));
   };
 
   const inputStyle = {
@@ -52,57 +59,63 @@ function DateFilter({ value, onChange }) {
     background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark",
     font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)",
   };
+  const itemStyle = (on) => ({
+    height: 30, padding: "0 10px", borderRadius: "var(--radius-sm)", cursor: "pointer", textAlign: "left",
+    border: "1px solid " + (on ? "var(--accent)" : "transparent"),
+    background: on ? "var(--accent)" : "var(--surface-inset)",
+    color: on ? "#fff" : "var(--text-secondary)",
+    font: (on ? "var(--w-semibold)" : "var(--w-medium)") + " var(--t-2xs)/1 var(--font-sans)", whiteSpace: "nowrap",
+  });
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
+    <div style={{ position: "relative", display: "inline-flex" }}>
       <button onClick={() => setOpen((o) => !o)} style={{
         display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 12px",
         borderRadius: "var(--radius-sm)", cursor: "pointer",
-        border: "1px solid " + (value === "custom" || open ? "var(--violet-line)" : "var(--border-strong)"),
-        background: value === "custom" || open ? "var(--violet-soft)" : "var(--surface-card)",
+        border: "1px solid " + (active ? "var(--violet-line)" : "var(--border-strong)"),
+        background: active ? "var(--violet-soft)" : "var(--surface-card)",
         color: value === "custom" ? "var(--accent)" : "var(--text-secondary)", font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)",
       }}>
         <Ico name="calendar" size={14} />
-        <span style={{ color: value === "custom" ? "var(--accent)" : "var(--text-primary)" }}>{label}</span>
+        <span style={{ color: value === "custom" ? "var(--accent)" : "var(--text-primary)", whiteSpace: "nowrap" }}>{label}</span>
         <Ico name="chevron-down" size={13} />
       </button>
 
-      <div style={{ display: "inline-flex", padding: 3, gap: 2, borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-card)" }}>
-        {opts.map(([id, lbl]) => {
-          const on = value === id;
-          return (
-            <button key={id} onClick={() => pick(id)} style={{
-              height: 24, padding: "0 11px", borderRadius: "var(--radius-xs)", cursor: "pointer",
-              border: "1px solid " + (on ? "var(--border-strong)" : "transparent"),
-              background: on ? "var(--surface-hover)" : "transparent",
-              color: on ? "var(--text-primary)" : "var(--text-tertiary)",
-              font: `${on ? "var(--w-semibold)" : "var(--w-medium)"} var(--t-2xs)/1 var(--font-sans)`, letterSpacing: "var(--ls-wide)", whiteSpace: "nowrap",
-            }}>{lbl}</button>
-          );
-        })}
-      </div>
-
       {open && (
         <React.Fragment>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }}></div>
+          <div onClick={close} style={{ position: "fixed", inset: 0, zIndex: 40 }}></div>
           <div style={{
-            position: "absolute", top: 40, left: 0, zIndex: 41, width: 280, padding: 16,
+            position: "absolute", top: 40, right: 0, zIndex: 41, width: 236, padding: 8,
             background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-pop)",
-            display: "flex", flexDirection: "column", gap: 12,
+            display: "flex", flexDirection: "column", gap: 6,
           }}>
-            <span style={{ font: "var(--w-semibold) var(--t-xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Custom range</span>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-secondary)" }}>From</span>
-              <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={inputStyle} />
-            </label>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-secondary)" }}>To</span>
-              <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} style={inputStyle} />
-            </label>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
-              <NT_Btn onClick={() => setOpen(false)} ghost>Cancel</NT_Btn>
-              <NT_Btn onClick={apply}>Apply</NT_Btn>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+              {NT_RANGES.map(([id, lbl]) => (
+                <button key={id} onClick={() => pick(id)} style={itemStyle(value === id)}>{lbl}</button>
+              ))}
             </div>
+            <div style={{ height: 1, background: "var(--border)", margin: "2px 0" }}></div>
+            {!customOpen ? (
+              <button onClick={() => setCustomOpen(true)} style={{ ...itemStyle(value === "custom"), display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <Ico name="calendar" size={13} />
+                {value === "custom" && custom ? ntRangeLabel("custom", custom) : "Custom range…"}
+              </button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 4 }}>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-secondary)" }}>From</span>
+                  <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={inputStyle} />
+                </label>
+                <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-secondary)" }}>To</span>
+                  <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} style={inputStyle} />
+                </label>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 2 }}>
+                  <NT_Btn onClick={() => setCustomOpen(false)} ghost>Back</NT_Btn>
+                  <NT_Btn onClick={apply}>Apply</NT_Btn>
+                </div>
+              </div>
+            )}
           </div>
         </React.Fragment>
       )}

@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.011";
+window.NT_VERSION = "1.012";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.012", date: "2026-07-01",
+    notes: [
+      "Date filter now has more presets — Today, This week, Last week, This month, Last month, Year to date, All time — plus Custom range, all in one compact dropdown (replacing the old 3-button toggle, so it takes no extra space on the page).",
+    ],
+  },
   {
     v: "1.011", date: "2026-06-30",
     notes: [
