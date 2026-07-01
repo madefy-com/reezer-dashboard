@@ -189,10 +189,10 @@ function StrategyCard({ strat, sources }) {
   const srcNames = (strat.sourceIds || []).map((id) => { const s = (sources || []).find((x) => x.id === id); return s ? s.name : id; });
 
   const groups = [
-    { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist],
+    { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)],
       ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
     { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
-      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join(" · ") : "off"],
+      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? "Yes" : "No"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
   ];
@@ -267,7 +267,7 @@ function StrategyCard({ strat, sources }) {
                 <div style={{ font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
                   Replayed <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> of {s.matched} available alert-trade{s.matched === 1 ? "" : "s"} this strategy matches (allowlist + sources), at its <b style={{ color: "var(--text-primary)" }}>current</b> settings.{s.unaffordable ? " " + s.unaffordable + " didn’t fit the budget." : ""}{s.skipped ? " " + s.skipped + " had no tape." : ""}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   {[["Replay P&L", s.realized], ["Recorded P&L", s.orig_realized]].map((x, i) => (
                     <div key={i} style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
                       <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)", textTransform: "uppercase" }}>{x[0]}</div>
@@ -314,7 +314,7 @@ function StrategyCard({ strat, sources }) {
 
       {form && (
         <div onMouseDown={(e) => { if (e.target === e.currentTarget) closeEdit(); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
-          <div style={{ width: 540, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14, maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ width: 540, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: "24px 24px 22px", display: "flex", flexDirection: "column", gap: 20, maxHeight: "90vh", overflowY: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)" }}>Edit strategy</span>
               <button onClick={closeEdit} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -341,7 +341,7 @@ function StrategyCard({ strat, sources }) {
             <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>Live = real orders · Paper = records on live prices, sends nothing · Draft = not running.</span>
 
             <NT_SSection>Sizing</NT_SSection>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <NT_SField label="Trade budget ($)"><input type="number" value={form.budget} onChange={(e) => setF("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
@@ -361,7 +361,7 @@ function StrategyCard({ strat, sources }) {
 
             <NT_SSection>Exits / risk</NT_SSection>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Exit handling</div>
+              <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Exit handling</div>
               <div style={{ display: "flex", gap: 6 }}>
                 {NT_EXIT_MODES.map((m) => {
                   const on = (form.exitMode || "rules_close") === m.id;
@@ -377,7 +377,7 @@ function StrategyCard({ strat, sources }) {
               </div>
             </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -4 }}>Leave any field empty to skip that rule and follow the alerts.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <NT_SField label="Stop loss (%)" hint="Empty = no auto stop"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Breakeven (%)" hint="Empty = off"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Take profit (%)" hint="Empty = off"><input type="number" value={form.tp} onChange={(e) => setF("tp", e.target.value)} style={NT_SINPUT} /></NT_SField>
@@ -407,7 +407,7 @@ function StrategyCard({ strat, sources }) {
             {form.trailOn && (
               <React.Fragment>
                 {Array.from({ length: form.tierCount }).map((_, i) => { const n = i + 1; return (
-                  <div key={n} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div key={n} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                     <NT_SField label={"Tier " + n + " — when profit ≥ (%)"}><input type="number" value={form["t" + n + "at"]} onChange={(e) => setF("t" + n + "at", e.target.value)} style={NT_SINPUT} /></NT_SField>
                     <NT_SField label="give back (%)"><input type="number" value={form["t" + n + "pct"]} onChange={(e) => setF("t" + n + "pct", e.target.value)} style={NT_SINPUT} /></NT_SField>
                   </div>
@@ -420,7 +420,7 @@ function StrategyCard({ strat, sources }) {
             )}
 
             <NT_SSection>Safety</NT_SSection>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <NT_SField label="Max price slippage ($)" hint="Reject if ask > alert price + this $. Empty = off."><input type="number" step="0.05" value={form.maxSlip} onChange={(e) => setF("maxSlip", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max trades / day" hint="Empty = no cap"><input type="number" value={form.maxTrades} onChange={(e) => setF("maxTrades", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>

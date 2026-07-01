@@ -11,6 +11,7 @@ window.NT_CHANGELOG = [
     notes: [
       "Date filter now has more presets — Today, This week, Last week, This month, Last month, Year to date, All time — plus Custom range, all in one compact dropdown (replacing the old 3-button toggle, so it takes no extra space on the page).",
       "Fixed the dashboard P&L chart not updating when you change the date range (it was caching the old data).",
+      "Strategy cards are tidier — the allowlist is gone from the card and the trailing stop just shows Yes/No (full allowlist + trailing tiers are in the strategy's edit view). The edit form got more breathing room between fields, and the “Exit handling” label now matches the other muted uppercase labels.",
     ],
   },
   {
