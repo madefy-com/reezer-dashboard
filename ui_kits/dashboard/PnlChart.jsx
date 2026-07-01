@@ -36,7 +36,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
         $: d.pnl, pct: d.pct,
       };
     });
-  }, [range]);
+  }, [range, D]);   // D (window.NT_DATA) is a fresh object each rebuild — recompute when the date filter changes the data
 
   const val = (it) => (unit === "$" ? it.$ : it.pct);
   const cum = []; series.reduce((a, it, i) => (cum[i] = a + val(it)), 0);

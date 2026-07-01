@@ -10,6 +10,7 @@ window.NT_CHANGELOG = [
     v: "1.012", date: "2026-07-01",
     notes: [
       "Date filter now has more presets — Today, This week, Last week, This month, Last month, Year to date, All time — plus Custom range, all in one compact dropdown (replacing the old 3-button toggle, so it takes no extra space on the page).",
+      "Fixed the dashboard P&L chart not updating when you change the date range (it was caching the old data).",
     ],
   },
   {
