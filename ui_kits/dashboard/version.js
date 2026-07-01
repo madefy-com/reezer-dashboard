@@ -15,6 +15,7 @@ window.NT_CHANGELOG = [
       "Trade detail chart: the entry and exit dots now sit exactly on the price line — the line is anchored to the real fill prices, so the markers no longer float above or below the curve.",
       "P&L chart (% mode): the return now uses your account balance as the basis, so the chart’s total return matches the account-return card. Previously it summed each session’s return-on-capital, which inflated the figure (e.g. 17.9% vs the real 4.5%).",
       "Exit Lab: the per-strategy “avg return” column (which averaged each trade’s % and washed out to near zero) is replaced by “profit factor” — gross profit ÷ gross loss — a cleaner way to rank how each strategy’s exits actually perform.",
+      "Exit handling is now a 3-way choice per strategy: Rules only · Rules + closes (new — your rules PLUS the trader’s full close, ignoring their partials/scales) · Follow trader. All strategies set to Rules + closes. The selector highlights the active mode in violet (the old on/off toggle was nearly invisible when on).",
     ],
   },
   {

@@ -225,7 +225,7 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
     const snap = { strategy_id: strat.id, replayed_at: new Date().toISOString(),
                    settings_hash: JSON.stringify([row.stop_loss_pct, row.breakeven_at_pct, row.take_profit_pct,
                      row.take_half_at_pct, row.trailing_tiers, row.max_hold_minutes, row.breakeven_after_partial,
-                     row.ignore_exit_alerts, row.budget_day_pct]),
+                     row.ignore_exit_alerts, row.exit_mode, row.budget_day_pct]),
                    summary: summary, trades: trades };
 
     say("saving…");

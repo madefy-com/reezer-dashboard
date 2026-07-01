@@ -20,6 +20,13 @@ const NT_pct = (v) => Math.round((Number(v) || 0) * 100);
 const NT_tier = (p, i) => (Array.isArray(p.trailing_tiers) ? p.trailing_tiers[i] : null) || null;
 const NT_tierAt = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.at != null ? t.at : t[0]); };
 const NT_tierTr = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.trail != null ? t.trail : t[1]); };
+const NT_EXIT_MODES = [
+  { id: "rules", label: "Rules only", desc: "Ignore the trader's partial AND close alerts — exits come only from the rules below." },
+  { id: "rules_close", label: "Rules + closes", desc: "Use the rules below, and also close fully when the trader posts a close — but ignore their partials/scales." },
+  { id: "alerts", label: "Follow trader", desc: "Take the trader's exits (partials + closes); the rules below act as a backstop." },
+];
+const NT_exitMode = (p) => p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts");
+const NT_exitModeLabel = (p) => (NT_EXIT_MODES.find((m) => m.id === NT_exitMode(p)) || NT_EXIT_MODES[0]).label;
 
 // account -> badge {label, color var, bg var}
 const NT_ACCT = {
@@ -52,7 +59,7 @@ function StrategyCard({ strat, sources }) {
       t1at: NT_tierAt(p, 0), t1pct: NT_tierTr(p, 0), t2at: NT_tierAt(p, 1), t2pct: NT_tierTr(p, 1), t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxSlip: p.max_price_slippage_usd == null ? "" : p.max_price_slippage_usd,
       maxTrades: p.max_trades_per_day == null ? "" : p.max_trades_per_day,
-      ignoreExits: !!p.ignore_exit_alerts,
+      exitMode: (p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts")),
       dayPct: Object.assign({ mon: 100, tue: 100, wed: 100, thu: 100, fri: 100 }, p.budget_day_pct || {}),
       sourceIds: (strat.sourceIds || []).slice(),
     });
@@ -83,7 +90,9 @@ function StrategyCard({ strat, sources }) {
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_slippage_usd: opt(form.maxSlip) == null ? null : (Number(form.maxSlip) || 0),
       max_trades_per_day: opt(form.maxTrades) == null ? null : (Number(form.maxTrades) || 0),
-      ignore_exit_alerts: !!form.ignoreExits,
+      exit_mode: form.exitMode || "rules_close",
+      // legacy mirror for any code still reading the boolean: only "alerts" follows partials
+      ignore_exit_alerts: (form.exitMode || "rules_close") !== "alerts",
       // keep only days that differ from 100% (so the stored object stays minimal)
       budget_day_pct: Object.fromEntries(Object.entries(form.dayPct || {}).map(function (e) { return [e[0], Number(e[1])]; }).filter(function (e) { return e[1] !== 100; })),
       updated_at: new Date().toISOString(),
@@ -111,7 +120,7 @@ function StrategyCard({ strat, sources }) {
         allowlist: p.allowlist, stop_loss_pct: p.stop_loss_pct, breakeven_at_pct: p.breakeven_at_pct,
         take_profit_pct: p.take_profit_pct, take_half_at_pct: p.take_half_at_pct, trailing_tiers: p.trailing_tiers || [],
         max_hold_minutes: p.max_hold_minutes, max_price_slippage_usd: p.max_price_slippage_usd, max_trades_per_day: p.max_trades_per_day,
-        ignore_exit_alerts: !!p.ignore_exit_alerts, budget_day_pct: p.budget_day_pct || {},
+        ignore_exit_alerts: !!p.ignore_exit_alerts, exit_mode: p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts"), budget_day_pct: p.budget_day_pct || {},
       });
       if (r.error) throw r.error;
       await window.NT_REFRESH();
@@ -182,7 +191,7 @@ function StrategyCard({ strat, sources }) {
   const groups = [
     { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)], ["Allowlist", p.allowlist],
       ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
-    { g: "Exits & risk", icon: "shield", items: [["Exits", p.ignore_exit_alerts ? "rules only" : "follow alerts"], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+    { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? p.trailing_tiers.map((t) => "≥+" + NT_pct(t.at != null ? t.at : t[0]) + "% give back " + NT_pct(t.trail != null ? t.trail : t[1]) + "%").join(" · ") : "off"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
@@ -351,16 +360,20 @@ function StrategyCard({ strat, sources }) {
             </NT_SField>
 
             <NT_SSection>Exits / risk</NT_SSection>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Manage exits by rules only</div>
-                <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>Follow ENTRY alerts, but ignore the trader's partial/close alerts — exits come only from the rules below.</div>
-              </div>
-              <div style={{ display: "inline-flex", flex: "none", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
-                {[["Off", false], ["On", true]].map((o) => {
-                  const on = !!form.ignoreExits === o[1];
-                  return <button key={o[0]} type="button" onClick={() => setF("ignoreExits", o[1])} style={{ height: 28, padding: "0 16px", borderRadius: "var(--radius-xs)", cursor: "pointer", border: "1px solid " + (on ? "var(--border-strong)" : "transparent"), background: on ? "var(--surface-hover)" : "transparent", color: on ? "var(--text-primary)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{o[0]}</button>;
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Exit handling</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {NT_EXIT_MODES.map((m) => {
+                  const on = (form.exitMode || "rules_close") === m.id;
+                  return <button key={m.id} type="button" onClick={() => setF("exitMode", m.id)} style={{ flex: 1, height: 34, padding: "0 8px", borderRadius: "var(--radius-sm)", cursor: "pointer",
+                    border: "1px solid " + (on ? "var(--accent)" : "var(--border-strong)"),
+                    background: on ? "var(--accent)" : "var(--surface-inset)",
+                    color: on ? "#fff" : "var(--text-tertiary)",
+                    font: (on ? "var(--w-semibold)" : "var(--w-medium)") + " var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", whiteSpace: "nowrap" }}>{m.label}</button>;
                 })}
+              </div>
+              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                {(NT_EXIT_MODES.find((m) => m.id === (form.exitMode || "rules_close")) || NT_EXIT_MODES[1]).desc}
               </div>
             </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -4 }}>Leave any field empty to skip that rule and follow the alerts.</div>
