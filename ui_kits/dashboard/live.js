@@ -36,7 +36,7 @@
   var money = function (v) { return (v >= 0 ? "+" : "−") + "$" + Math.abs(Math.round(v)).toLocaleString(); };
   var pctS = function (v) { return (v >= 0 ? "+" : "−") + Math.abs(v) + "%"; };
 
-  function buildTrades(positions, stratName) {
+  function buildTrades(positions, stratName, nameById) {
     return positions.map(function (p) {
       var entry = Number(p.entry_price);
       var closed = p.status === "closed";
@@ -63,7 +63,7 @@
         stop: stop, atBreakeven: stop != null && Math.abs(stop - entry) < 0.005,
         result: resultOf(p), status: closed ? "done" : "live",
         partial: !closed && !!p.half_sold,  // ½ sold, still open
-        strat: stratName, hold: holdOf(p), stopped: false,
+        strat: (nameById && nameById[p.strategy_id]) || stratName, hold: holdOf(p), stopped: false,
         trigger: { type: "ENTRY", user: "alerts", msg: p.ticker + " " + label },
       };
     });
@@ -225,7 +225,9 @@
     var base = window.NT_DATA || {};
     var positions = RAW.positions, alerts = RAW.alerts, sp = RAW.sp;
     var sName = (sp && sp.name) || "Nitro 0DTE";
-    var trades = positions.length ? buildTrades(positions, sName) : null;
+    var stratNameById = {};
+    (RAW.strategies || []).forEach(function (s) { if (s && s.id != null) stratNameById[s.id] = s.name; });
+    var trades = positions.length ? buildTrades(positions, sName, stratNameById) : null;
 
     // source id -> name/type (for the alerts feed); strategy id -> [source_id]
     var srcName = {}, srcType = {};

@@ -14,6 +14,7 @@ window.NT_CHANGELOG = [
       "Strategy cards are tidier — the allowlist is gone from the card and the trailing stop just shows Yes/No (full allowlist + trailing tiers are in the strategy's edit view). The edit form got more breathing room between fields, and the “Exit handling” label now matches the other muted uppercase labels.",
       "Removed the Activity page from the sidebar — it was redundant with Trades + Alerts (the underlying bot-event log still runs for debugging).",
       "Fixed: changing a date picker on a page no longer overwrites your Default date range in Settings. The default is now a separate saved preference — the pages open on it, and a picker only changes your current view for the session.",
+      "Trades page: the strategy column now shows each trade’s real strategy name (it was showing “Option” for every row). Widened the hold-time column and fixed the CALL/PUT badge clipping to “…”.",
     ],
   },
   {
