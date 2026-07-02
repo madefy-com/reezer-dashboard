@@ -261,8 +261,9 @@
     };
     // date filter (shared, persisted) — applied ALONGSIDE the strategy view so trades,
     // KPIs and the P&L chart all reflect the selected range (not just the trades table).
-    var dr = "week", custom = null;
-    try { dr = (window.localStorage && localStorage.getItem("nt_date_range")) || "week"; } catch (e) {}
+    var dr = "week", drDefault = "week", custom = null;
+    try { drDefault = (window.localStorage && localStorage.getItem("nt_date_range_default")) || "week"; } catch (e) {}
+    try { dr = (window.localStorage && localStorage.getItem("nt_date_range")) || drDefault; } catch (e) {}
     if (dr === "custom") { try { var cc = JSON.parse(localStorage.getItem("nt_date_custom")); if (cc) custom = { from: new Date(cc.from), to: new Date(cc.to) }; } catch (e) {} }
     var dateBounds = window.ntRangeBounds ? window.ntRangeBounds(dr, custom) : null;
     var inDate = function (ts) { if (!dateBounds || !ts) return true; var d = new Date(ts); return d >= dateBounds.from && d <= dateBounds.to; };
@@ -297,6 +298,7 @@
     out.strategy = stratList[0] || null;
     out.viewStrategy = view;
     out.dateRange = dr;
+    out.dateRangeDefault = drDefault;
     out.dateBounds = dateBounds;
     out.events = RAW.events || [];
     out.sources = (RAW.sources || []);
@@ -314,13 +316,39 @@
     window.dispatchEvent(new Event("nt-data"));
   };
 
-  // Set the shared date filter (persisted across pages) and re-render. `bounds` is
-  // only stored for custom ranges; presets are recomputed each render (so "this week"
-  // stays current). Mirrors NT_SET_VIEW.
+  // On each fresh page load, start the live filter from the saved DEFAULT (Settings).
+  // The live pickers below only change the CURRENT view for this session — they never
+  // touch the default, so changing the picker no longer edits the Settings default.
+  try {
+    var _def = window.localStorage && localStorage.getItem("nt_date_range_default");
+    if (_def) {
+      localStorage.setItem("nt_date_range", _def);
+      var _dc = _def === "custom" ? localStorage.getItem("nt_date_custom_default") : null;
+      if (_dc) localStorage.setItem("nt_date_custom", _dc);
+    }
+  } catch (e) {}
+
+  // Set the CURRENT (session) date filter and re-render — does NOT change the default.
   window.NT_SET_RANGE = function (value, bounds) {
     try {
       window.localStorage.setItem("nt_date_range", value);
       if (value === "custom" && bounds) window.localStorage.setItem("nt_date_custom", JSON.stringify({ from: bounds.from, to: bounds.to }));
+    } catch (e) {}
+    window.NT_DATA = rebuild();
+    window.dispatchEvent(new Event("nt-data"));
+  };
+
+  // Set the persistent DEFAULT range (Settings) — the range the dashboard opens on.
+  // Also applies it to the current view immediately so the change takes effect now.
+  window.NT_SET_DEFAULT_RANGE = function (value, bounds) {
+    try {
+      window.localStorage.setItem("nt_date_range_default", value);
+      window.localStorage.setItem("nt_date_range", value);
+      if (value === "custom" && bounds) {
+        var payload = JSON.stringify({ from: bounds.from, to: bounds.to });
+        window.localStorage.setItem("nt_date_custom_default", payload);
+        window.localStorage.setItem("nt_date_custom", payload);
+      }
     } catch (e) {}
     window.NT_DATA = rebuild();
     window.dispatchEvent(new Event("nt-data"));

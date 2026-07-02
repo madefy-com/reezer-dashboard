@@ -17,6 +17,7 @@ function SourcesPage() {
     .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
   const view = String(window.NT_DATA.viewStrategy || "all");
   const range = String(window.NT_DATA.dateRange || "week");
+  const defaultRange = String(window.NT_DATA.dateRangeDefault || "week");
   const [form, setForm] = React.useState(null);
   const [saving, setSaving] = React.useState(false);
 
@@ -168,9 +169,9 @@ function SourcesPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default date range</div>
-            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>The time range Dashboard, Trades and the stat cards open on. Setting it here makes it the default everywhere (and the live date pickers stay in sync).</div>
+            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>The range the dashboard opens on each time. The date pickers on the pages change your current view for the session — they don’t change this default.</div>
           </div>
-          <DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} />
+          <DateFilter value={defaultRange} onChange={(v, b) => window.NT_SET_DEFAULT_RANGE(v, b)} />
         </div>
       </NT.Card>
 
