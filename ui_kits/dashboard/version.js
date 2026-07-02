@@ -15,6 +15,7 @@ window.NT_CHANGELOG = [
       "Removed the Activity page from the sidebar — it was redundant with Trades + Alerts (the underlying bot-event log still runs for debugging).",
       "Fixed: changing a date picker on a page no longer overwrites your Default date range in Settings. The default is now a separate saved preference — the pages open on it, and a picker only changes your current view for the session.",
       "Trades page: the strategy column now shows each trade’s real strategy name (it was showing “Option” for every row). Widened the hold-time column and fixed the CALL/PUT badge clipping to “…”.",
+      "You can now pin a hand-corrected trade so it survives settings rebuilds AND the in-browser Replay — the pinned result is kept as-is instead of being re-simulated. Fixed the Settings date-range picker getting clipped, and a stop above your entry (locked-in profit) no longer shows in the red loss colour.",
     ],
   },
   {

@@ -80,7 +80,7 @@ function TradesPage() {
                     <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
                     <td style={td}>{r.entry.toFixed(2)}</td>
                     <td style={{ ...td, color: r.exit == null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit == null ? "\u2014" : Number(r.exit).toFixed(2)}</td>
-                    <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : "var(--loss)") }}>{r.stop == null ? "\u2014" : Number(r.stop).toFixed(2)}</td>
+                    <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : (r.stop > r.entry ? "var(--text-secondary)" : "var(--loss)")) }}>{r.stop == null ? "\u2014" : Number(r.stop).toFixed(2)}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>${capital}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                     <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>

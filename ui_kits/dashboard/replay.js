@@ -154,7 +154,7 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
     // entry price and recorded P&L) so "recorded" is its own result — never another
     // strategy's. Fall back to the pool representative only for alerts it never traded.
     const ownRes = await db.from("positions")
-      .select("id,ticker,strike,side,entry_ts,entry_price,realized_pnl").eq("strategy_id", strat.id);
+      .select("id,ticker,strike,side,entry_ts,entry_price,realized_pnl,exit_price,pinned").eq("strategy_id", strat.id);
     if (ownRes.error) throw ownRes.error;
     const keyOf = (x) => x.ticker + "|" + Number(x.strike) + "|" + x.side + "|" + String(x.entry_ts).slice(0, 16);
     const ownByKey = {};
@@ -213,9 +213,14 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       const entry = { ticker: t.ticker, osi_symbol: String(t.ticker || ""), side: t.side, strike: t.strike,
                       qty: qty, fill_price: t.entry_price, opened_at: t.entry_ts };
       const r = runStrategy(row, entry, tape, alertsFor(t));
+      // A pinned trade is a manual override — keep its recorded result, don't apply the rules replay.
+      const ownRec = ownByKey[keyOf(t)];
+      const pinned = !!(ownRec && ownRec.pinned);
       trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
                     entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
-                    realized: r.realized, exit_price: r.exit_price, peak_gain_pct: r.peak_gain_pct,
+                    realized: pinned ? Number(ownRec.realized_pnl || 0) : r.realized,
+                    exit_price: pinned && ownRec.exit_price != null ? Number(ownRec.exit_price) : r.exit_price,
+                    peak_gain_pct: r.peak_gain_pct,
                     orig_realized: recordedFor(t), events: r.events });
     }
 
