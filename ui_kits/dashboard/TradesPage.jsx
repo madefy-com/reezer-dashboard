@@ -36,9 +36,9 @@ function TradesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080, tableLayout: "fixed" }}>
             <colgroup>
               <col style={{ width: "2%" }} /><col className="nt-datecol-col" style={{ width: "5%" }} /><col style={{ width: "7%" }} /><col style={{ width: "7%" }} />
-              <col style={{ width: "10%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
+              <col style={{ width: "10%" }} /><col style={{ width: "5%" }} /><col style={{ width: "4%" }} /><col style={{ width: "6%" }} />
               <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
-              <col style={{ width: "7%" }} /><col style={{ width: "4%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
+              <col style={{ width: "7%" }} /><col style={{ width: "7%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
             </colgroup>
             <thead><tr>
               <th style={{ ...thL, paddingRight: 0 }}></th>
