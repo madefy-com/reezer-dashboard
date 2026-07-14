@@ -3,9 +3,16 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.012";
+window.NT_VERSION = "1.013";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.013", date: "2026-07-14",
+    notes: [
+      "Settings → Broker accounts now shows your Schwab connection status at a glance — “expires in X days”, turning amber then red as the ~7-day Schwab login nears expiry, always visible so you can’t miss it.",
+      "New “Re-auth Schwab” button right there — no more Terminal: it opens the Schwab login in a new tab, you paste back the URL Schwab redirects you to, and it reconnects. One re-auth covers all your boxes.",
+    ],
+  },
   {
     v: "1.012", date: "2026-07-01",
     notes: [

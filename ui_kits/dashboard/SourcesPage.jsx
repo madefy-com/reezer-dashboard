@@ -1,6 +1,72 @@
 /* SourcesPage (Settings) — rebuilt to match the other pages: each section is an
    NT.Card with its title INSIDE the card header, and the contents are real tables
    (not a cramped right-aligned card grid). */
+/* Schwab connection — always-visible expiry + a one-flow re-auth that never touches a
+   terminal. Talks to the `schwab-reauth` edge function: status (days left), authorize
+   (opens Schwab login), exchange (pastes the redirect URL -> saves the shared token). */
+function SchwabReauth() {
+  const SB = window.NT_SUPABASE || {};
+  const FN = (SB.url || "") + "/functions/v1/schwab-reauth";
+  const [st, setSt] = React.useState(null);
+  const [open, setOpen] = React.useState(false);
+  const [url, setUrl] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+
+  const call = React.useCallback((action, body) => {
+    const opts = { method: body ? "POST" : "GET",
+      headers: { Authorization: "Bearer " + SB.key, apikey: SB.key, "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(FN + (body ? "" : "?action=" + action), opts).then((r) => r.json());
+  }, [FN, SB.key]);
+
+  const loadStatus = React.useCallback(() => { call("status").then(setSt).catch(() => {}); }, [call]);
+  React.useEffect(() => { loadStatus(); const id = setInterval(loadStatus, 60000); return () => clearInterval(id); }, [loadStatus]);
+
+  const days = st && st.days_left != null ? st.days_left : null;
+  const tone = days == null ? "var(--text-tertiary)" : (!st.valid || days <= 2) ? "var(--loss)" : days <= 3 ? "var(--breakeven)" : "var(--profit)";
+  const label = days == null ? "checking…" : (!st.valid ? "EXPIRED — re-auth now" : `expires in ${days} day${days === 1 ? "" : "s"}`);
+
+  const startLogin = () => { setMsg(null); call("authorize").then((r) => {
+    if (r.authorize_url) { window.open(r.authorize_url, "_blank", "noopener"); setOpen(true); }
+    else setMsg({ ok: false, text: r.error || "Couldn't build the login URL — are the Schwab secrets set on the edge function?" });
+  }); };
+  const connect = () => {
+    if (!url.trim()) return; setBusy(true); setMsg(null);
+    call("exchange", { redirect_url: url.trim() }).then((r) => {
+      if (r.ok) { setMsg({ ok: true, text: `Connected — expires in ${r.days_left} days.` }); setOpen(false); setUrl(""); loadStatus(); }
+      else setMsg({ ok: false, text: r.error || "Exchange failed." });
+    }).catch((e) => setMsg({ ok: false, text: String(e) })).finally(() => setBusy(false));
+  };
+
+  const btn = { height: 30, padding: "0 13px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line-3)", background: "var(--surface-inset)", color: "var(--text-primary)", font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", cursor: "pointer", whiteSpace: "nowrap" };
+  return (
+    <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <Ico name="key-round" size={15} />
+          <span style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>Schwab connection</span>
+          <span style={{ font: "var(--w-semibold) var(--t-xs)/1 var(--font-sans)", color: tone }}>· {label}</span>
+        </span>
+        <button onClick={startLogin} style={btn}>Re-auth Schwab</button>
+      </div>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
+            A Schwab login opened in a new tab — log in and approve. Schwab then bounces you to a page that won't load (that's fine); copy its full URL (starts with <code>https://127.0.0.1/?code=…</code>) and paste it here:
+          </span>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://127.0.0.1/?code=…"
+              style={{ flex: 1, minWidth: 220, height: 30, padding: "0 10px", borderRadius: "var(--radius-xs)", border: "1px solid var(--line-3)", background: "var(--surface-card)", color: "var(--text-primary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-mono)" }} />
+            <button onClick={connect} disabled={busy} style={{ ...btn, opacity: busy ? 0.6 : 1 }}>{busy ? "Connecting…" : "Connect"}</button>
+          </div>
+        </div>
+      )}
+      {msg && <span style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: msg.ok ? "var(--profit)" : "var(--loss)" }}>{msg.text}</span>}
+    </div>
+  );
+}
+
 function SourcesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
@@ -267,6 +333,7 @@ function SourcesPage() {
             </tbody>
           </table>
         </div>
+        <SchwabReauth />
       </NT.Card>
 
       </div>
