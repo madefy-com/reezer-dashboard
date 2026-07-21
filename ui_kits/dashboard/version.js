@@ -16,6 +16,8 @@ window.NT_CHANGELOG = [
       "AI Advisor refresh: the button is now \"Analyse my trades\" and first asks which trades to use — all of them, the last 7/30 days, this month, or a custom date range — so you can design a strategy from a chosen window. New organic, animated orb, the background now fades to black under the header and side menu, and the chat input text is vertically centred.",
       "The AI Advisor now has its own standout \"Ask Reezer\" button in the side menu — a gradient pill set apart below the other menu items — instead of a plain nav row.",
       "Ask Reezer upgrades: a proper animated orb; it now asks your date range right in the chat (tap a preset or type a range like 2026-07-01 to 2026-07-15) instead of a pop-up; and it can answer questions about your actual trading — how a day went, a specific trade, or how a strategy did — from your live strategies and trades. Toned down the side-menu button to sit better with the rest.",
+      "Ask Reezer now speaks as “Reezer” everywhere (no more “Claude is…”); the strategy write-up comes back as a chat message you can read easily instead of a wall of text in the card; and when it designs a strategy it now also weighs following your Discord alerts and their tone — not just the mechanical rules — so its ideas match how the trades actually played out.",
+      "Ask Reezer voice: tap the mic to talk to it, and toggle “Read aloud” to have its replies spoken back.",
     ],
   },
   {

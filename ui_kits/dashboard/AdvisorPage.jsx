@@ -106,6 +106,15 @@
   .adv-send{flex:none;width:38px;height:38px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);
     color:#fff;display:flex;align-items:center;justify-content:center;transition:background var(--dur)}
   .adv-send:hover{background:#7d6cff}.adv-send[disabled]{opacity:.4;cursor:default}
+  .adv-mic{flex:none;width:38px;height:38px;border-radius:12px;border:1px solid var(--border-strong);cursor:pointer;
+    background:transparent;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;transition:all var(--dur)}
+  .adv-mic:hover{color:var(--text-primary);border-color:var(--violet-line)}
+  .adv-mic[data-on]{background:var(--loss);border-color:var(--loss);color:#fff;box-shadow:0 0 0 4px rgba(240,69,75,.22);animation:adv-breathe 1.1s ease-in-out infinite}
+  .adv-mic[disabled]{opacity:.4;cursor:default}
+  .adv-voice{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);
+    color:var(--text-tertiary);border-radius:999px;padding:5px 11px;font:var(--w-medium) var(--t-xs)/1 var(--font-sans);cursor:pointer;transition:all var(--dur)}
+  .adv-voice:hover{color:var(--text-secondary);border-color:var(--border-strong)}
+  .adv-voice.on{background:var(--violet-soft);border-color:var(--violet-line);color:var(--accent)}
   .adv-note{text-align:center;color:var(--dryrun);font:var(--w-regular) var(--t-xs)/1.4 var(--font-sans);margin:0 0 9px}
   .adv-err{color:var(--loss);font:var(--w-regular) var(--t-sm)/1.5 var(--font-sans)}
   .adv-bubble ul{margin:7px 0;padding-left:20px}
@@ -190,18 +199,23 @@
   };
 
   const SYSTEM =
-    "You are an options-trading strategy designer inside the Reezer dashboard. You are given the REAL " +
-    "recorded price path of every trade (entry to +30 min, 15s resolution), the trader's own feed messages " +
-    "per day, per-parameter sensitivity sweeps run through the actual backtest engine, and a per-weekday " +
-    "performance breakdown. Fractions are decimals (0.20 = 20%; null = off). trailing_tiers is a list of " +
-    "[peak_gain, give_back] pairs. budget_day_pct is a % multiplier per weekday (100=full, 0=skip). " +
-    "IMPORTANT: max contracts is FIXED at 1, so trade_budget_usd is NOT leverage — it is a max-premium-per-" +
-    "contract filter (a trade whose price*100 exceeds budget*day% is SKIPPED). Use it plus budget_day_pct to " +
-    "avoid expensive premium and skip weak days. When designing, return one complete strategy justified by the " +
-    "data. You are also Reezer's trading assistant: alongside any analysis you may be given the user's strategies " +
-    "(with their settings and P&L), their recent trades, and P&L by day and by strategy — use that data to answer " +
-    "questions like how a day went, how a specific trade or strategy did, or what to change. Be concise and " +
-    "specific, cite the real numbers, and never invent data you were not given.";
+    "You are Reezer, the user's personal options-trading assistant inside the Reezer dashboard. Always speak as " +
+    "Reezer — never call yourself Claude, an AI model, or anything else. " +
+    "When designing a strategy you are given the REAL recorded price path of every trade (entry to +30 min, 15s " +
+    "resolution), the trader's own feed messages per day, per-parameter sensitivity sweeps run through the actual " +
+    "backtest engine, and a per-weekday performance breakdown. Fractions are decimals (0.20 = 20%; null = off). " +
+    "trailing_tiers is a list of [peak_gain, give_back] pairs. budget_day_pct is a % multiplier per weekday " +
+    "(100=full, 0=skip). max contracts is fixed at 1, so trade_budget_usd is a max-premium-per-contract filter (a " +
+    "trade whose price*100 exceeds budget*day% is SKIPPED), not leverage. " +
+    "EXIT MODE IS A KEY LEVER — do NOT default to rules-only. exit_mode='rules' ignores the trader's exit alerts; " +
+    "'rules_close' applies your rules but ALSO honors the trader's CLOSE alerts; 'alerts' follows the trader's " +
+    "partial/close calls. The exit_mode sweep gives the real P&L of each, and every trade carries the trader's " +
+    "entry note and exit alerts. Read the alert sentiment (e.g. 'locked in majority', 'choppy today') and " +
+    "genuinely weigh rules_close and alerts against pure rules — many traders time their exits well. Return one " +
+    "complete strategy justified by the data, and say WHY you chose that exit_mode. " +
+    "You are also the user's assistant for questions: alongside any analysis you may be given the user's strategies " +
+    "(with settings and P&L), recent trades, and P&L by day and strategy — use that to answer how a day went, how " +
+    "a specific trade or strategy did, or what to change. Be concise, cite the real numbers, and never invent data.";
 
   // ------------------------------------------------------------- analysis
   async function loadPoolTrades(db, onStatus, range) {
@@ -211,15 +225,20 @@
     const poolRes = await q;
     if (poolRes.error) throw poolRes.error;
     const pool = poolRes.data || [];
-    const alRes = await db.from("alerts").select("ts,type,ticker").in("type", ["PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
-    const exitAlerts = alRes.error ? [] : (alRes.data || []);
+    const alRes = await db.from("alerts").select("ts,type,ticker,raw").in("type", ["ENTRY", "PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
+    const allAl = alRes.error ? [] : (alRes.data || []);
+    const exitAlerts = allAl.filter((a) => a.type === "PARTIAL" || a.type === "CLOSE");
     const entriesByTicker = {};
     pool.forEach((t) => { (entriesByTicker[t.ticker] = entriesByTicker[t.ticker] || []).push(t.entry_ts); });
     Object.keys(entriesByTicker).forEach((k) => entriesByTicker[k].sort());
-    const alertsFor = (t) => {
-      const arr = entriesByTicker[t.ticker] || []; let end = null;
-      for (let j = 0; j < arr.length; j++) { if (arr[j] > t.entry_ts) { end = arr[j]; break; } }
-      return exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end)).map((a) => ({ ts: a.ts, type: a.type }));
+    const windowEnd = (t) => { const arr = entriesByTicker[t.ticker] || []; for (let j = 0; j < arr.length; j++) { if (arr[j] > t.entry_ts) return arr[j]; } return null; };
+    const clean = (s) => (s || "").trim().replace(/\s+/g, " ");
+    const alertsFor = (t) => { const end = windowEnd(t); return exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end)).map((a) => ({ ts: a.ts, type: a.type })); };
+    const notesFor = (t) => {
+      const e0 = dt(t.entry_ts).getTime(), end = windowEnd(t);
+      const ent = allAl.filter((a) => a.type === "ENTRY" && a.ticker === t.ticker).map((a) => ({ d: Math.abs(dt(a.ts).getTime() - e0), raw: clean(a.raw) })).sort((x, y) => x.d - y.d)[0];
+      const exits = exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end)).map((a) => ({ type: a.type, note: clean(a.raw).slice(0, 140) }));
+      return { entry: ent && ent.d < 900000 ? ent.raw.slice(0, 140) : null, exits: exits };
     };
     const out = [];
     for (let i = 0; i < pool.length; i++) {
@@ -232,7 +251,7 @@
       if (tres.error) throw tres.error;
       const tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
       if (!tape.length) continue;
-      out.push({ t: t, tape: tape, alerts: alertsFor(t) });
+      out.push({ t: t, tape: tape, alerts: alertsFor(t), notes: notesFor(t) });
     }
     return out;
   }
@@ -254,6 +273,8 @@
       max_gain_pct: path[gi], max_gain_min: Math.round(gi * STEP_S / 6) / 10,
       max_drawdown_pct: path[di], max_drawdown_min: Math.round(di * STEP_S / 6) / 10,
       pct_at_30min: path[path.length - 1], path_pct_15s: path,
+      trader_entry_note: pt.notes ? pt.notes.entry : null,
+      trader_exit_alerts: pt.notes ? pt.notes.exits : [],
     };
   }
 
@@ -509,7 +530,6 @@
           {row("Max hold", p.max_hold_minutes == null ? "ride to 30m" : p.max_hold_minutes + "m")}
         </div>
       </div>
-      <div className="adv-rat"><b style={{ color: "var(--text-primary)" }}>Why:</b> {p.rationale}</div>
     </div>);
   }
 
@@ -523,6 +543,9 @@
     const [prog, setProg] = useState(null);      // {label, pct} during analysis
     const [ready, setReady] = useState(null);
     const [scopeMode, setScopeMode] = useState(false);   // asking which trades to analyse, in-chat
+    const [listening, setListening] = useState(false);   // voice input active
+    const [speak, setSpeak] = useState(false);           // read replies aloud
+    const recRef = useRef(null);
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
@@ -540,6 +563,23 @@
       setScopeMode(true);
     };
     const chooseScope = (range) => { setScopeMode(false); design(range); };
+    const speakText = (t) => {
+      if (!speak || !window.speechSynthesis) return;
+      const plain = String(t || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>|[\]-]/g, " ").replace(/\s+/g, " ").trim();
+      if (!plain) return;
+      try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(plain); u.rate = 1.05; window.speechSynthesis.speak(u); } catch (e) {}
+    };
+    const toggleMic = () => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { push({ role: "ai", kind: "text", text: "Voice input isn't supported in this browser — try Chrome or Safari." }); return; }
+      if (listening) { try { recRef.current && recRef.current.stop(); } catch (e) {} setListening(false); return; }
+      try {
+        const r = new SR(); r.lang = "en-US"; r.interimResults = false; r.maxAlternatives = 1;
+        r.onresult = (e) => { const txt = e.results[0][0].transcript; setListening(false); if (txt && txt.trim()) ask(txt.trim()); };
+        r.onerror = () => setListening(false); r.onend = () => setListening(false);
+        recRef.current = r; setListening(true); r.start();
+      } catch (e) { setListening(false); }
+    };
     const parseScope = (text) => {
       const t = String(text).trim().toLowerCase();
       if (!t) return null;
@@ -560,12 +600,12 @@
     }
 
     async function design(range) {
-      if (busy) return; setBusy(true); setPicking(false); setProg({ label: "Starting…", pct: 0.02 });
+      if (busy) return; setBusy(true); setProg({ label: "Starting…", pct: 0.02 });
       const scopeTxt = range && range.label && range.label !== "all trades" ? " · " + range.label : "";
       push({ role: "me", kind: "text", text: "Analyse my trades" + scopeTxt });
       try {
         const a = await ensureAnalysis(range, true);
-        setProg({ label: "Claude is designing your strategy…", pct: 0.95 });
+        setProg({ label: "Reezer is designing your strategy…", pct: 0.95 });
         const messages = [{ role: "user", content: [
           { type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
           { type: "text", text: "Design one complete strategy now." },
@@ -582,6 +622,8 @@
           { role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" },
         ];
         push({ role: "ai", kind: "proposal", p: prop, m: m, n: a.pts.length });
+        push({ role: "ai", kind: "text", text: "**Why this strategy** — " + prop.rationale });
+        speakText("Here's the strategy I designed. " + prop.rationale);
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
       setBusy(false); setStatus(""); setProg(null);
     }
@@ -612,6 +654,7 @@
         const res = await callClaude({ system: SYSTEM, messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } });
         convo.current.push({ role: "assistant", content: res.text });
         push({ role: "ai", kind: "text", text: res.text });
+        speakText(res.text);
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
       setBusy(false); setStatus(""); setProg(null);
     }
@@ -659,9 +702,18 @@
                 <button key={e[0]} className={"adv-chip" + (e[0] === "All trades" ? " primary" : "")} disabled={busy} onClick={() => chooseScope(e[1])}>{e[0]}</button>))
             : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => setSpeak((s) => { if (s && window.speechSynthesis) window.speechSynthesis.cancel(); return !s; })} title="Read replies aloud">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
+            {speak ? "Voice on" : "Read aloud"}
+          </button>
+        </div>
         <div className="adv-box">
-          <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : "Ask about your trades…"}
+          <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : (listening ? "Listening…" : "Ask about your trades…")}
             onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} disabled={busy} />
+          <button className="adv-mic" data-on={listening ? "" : undefined} disabled={busy} onClick={toggleMic} title="Speak">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
+          </button>
           <button className="adv-send" disabled={busy || !input.trim()} onClick={() => ask(input)} title="Send">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
           </button>
