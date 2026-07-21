@@ -20,7 +20,7 @@
       radial-gradient(55% 45% at 12% 25%, rgba(74,141,247,.18), transparent 70%),
       var(--bg-app);}
   .adv-scroll{position:relative;z-index:1;flex:1;min-height:0;overflow-y:auto;
-    display:flex;flex-direction:column;align-items:center}
+    display:flex;flex-direction:column;align-items:center;scroll-padding-bottom:215px}
   .adv-inner{width:100%;max-width:840px;padding:26px 20px 250px;
     display:flex;flex-direction:column;align-items:center}
   /* orb */
@@ -125,6 +125,25 @@
   .adv-send:hover{background:#7d6cff}.adv-send[disabled]{opacity:.4;cursor:default}
   .adv-note{text-align:center;color:var(--dryrun);font:var(--w-regular) var(--t-xs)/1.4 var(--font-sans);margin:0 0 9px}
   .adv-err{color:var(--loss);font:var(--w-regular) var(--t-sm)/1.5 var(--font-sans)}
+  .adv-bubble ul{margin:7px 0;padding-left:20px}
+  .adv-bubble li{margin:4px 0}
+  .adv-bubble b{color:var(--text-primary);font-weight:var(--w-semibold)}
+  .adv-bubble i{color:var(--text-primary);font-style:italic}
+  .adv-bubble code{font-family:var(--font-mono);background:rgba(255,255,255,.07);padding:1px 6px;border-radius:6px;font-size:.9em;color:#d9d3ff}
+  .adv-bubble .adv-sp{height:8px}
+  .adv-progress{width:min(440px,100%);background:rgba(255,255,255,.04);border:1px solid var(--border);
+    border-radius:14px;padding:13px 16px;backdrop-filter:blur(6px)}
+  .adv-prog-label{display:flex;align-items:center;gap:9px;color:var(--text-secondary);
+    font:var(--w-medium) var(--t-sm)/1.3 var(--font-sans);margin-bottom:11px}
+  .adv-prog-pct{margin-left:auto;font-family:var(--font-mono);color:var(--accent)}
+  .adv-prog-track{height:7px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden}
+  .adv-prog-fill{height:100%;border-radius:999px;position:relative;overflow:hidden;
+    background:linear-gradient(90deg,#6E5BF2,#C04AF2,#F24A8D);box-shadow:0 0 12px rgba(139,92,246,.55);
+    transition:width .35s var(--ease-out)}
+  .adv-prog-fill::after{content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
+    transform:translateX(-100%);animation:adv-shimmer 1.25s ease-in-out infinite}
+  @keyframes adv-shimmer{to{transform:translateX(100%)}}
   `;
   function injectCSS() {
     if (document.getElementById("advisor-css")) return;
@@ -208,7 +227,7 @@
     const out = [];
     for (let i = 0; i < pool.length; i++) {
       const t = pool[i];
-      onStatus && onStatus("loading trade " + (i + 1) + "/" + pool.length + " (" + (t.ticker || "?") + ")");
+      onStatus && onStatus(i + 1, pool.length);
       const e0 = dt(t.entry_ts).getTime();
       const end = new Date(e0 + HORIZON_MIN * 60000).toISOString();
       const tres = await db.from("fronttest_tape").select("ts,price,bid,ask")
@@ -310,28 +329,31 @@
     });
   }
 
-  async function analyze(db, onStatus) {
-    onStatus("waking the engine (first run ~5s)…");
-    await window.Replay.ensure(onStatus);
-    onStatus("loading your trades…");
-    const pts = await loadPoolTrades(db, onStatus);
+  async function analyze(db, onP) {
+    const P = 0.58, W = 0.30, TOTAL = 9; let done = 0;
+    const at = () => P + W * (done / TOTAL);
+    onP("Waking the analysis engine…", 0.04);
+    await window.Replay.ensure(() => onP("Waking the analysis engine (first run ~5s)…", 0.09));
+    onP("Loading your trades…", 0.15);
+    const pts = await loadPoolTrades(db, (i, n) => onP("Loading trades (" + i + "/" + n + ")…", 0.15 + 0.40 * (i / n)));
     if (!pts.length) throw new Error("No trades with recorded price tape were found.");
+    onP("Reading your feed…", 0.56);
     const profiles = pts.map(profile);
     const feed = await dailyFeed(db);
 
-    const sw = {}; let step = 0;
+    const sw = {};
     const grid = [
-      ["stop_loss_pct", [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, null]],
-      ["take_profit_pct", [null, 0.15, 0.25, 0.40, 0.60, 0.80, 1.00, 1.50]],
-      ["take_half_at_pct", [null, 0.25, 0.40, 0.50, 0.75, 1.00]],
-      ["breakeven_at_pct", [null, 0.10, 0.20, 0.30, 0.50]],
-      ["max_hold_minutes", [5, 10, 15, 20, 25, 30]],
+      ["stop_loss_pct", [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, null], "stop loss"],
+      ["take_profit_pct", [null, 0.15, 0.25, 0.40, 0.60, 0.80, 1.00, 1.50], "take profit"],
+      ["take_half_at_pct", [null, 0.25, 0.40, 0.50, 0.75, 1.00], "take half"],
+      ["breakeven_at_pct", [null, 0.10, 0.20, 0.30, 0.50], "breakeven"],
+      ["max_hold_minutes", [5, 10, 15, 20, 25, 30], "max hold time"],
     ];
-    for (const [field, values] of grid) { onStatus("testing " + field.replace(/_/g, " ") + "…"); sw[field] = sweepCfg(pts, field, values); await sleep(0); step++; }
-    onStatus("testing trailing stops…");
-    sw.trailing_tiers = sweepCfg(pts, "trailing_tiers", [[], [[0.30, 0.25]], [[0.30, 0.25], [0.50, 0.15]], [[0.50, 0.20]], [[0.40, 0.30], [0.80, 0.15]]]); await sleep(0);
-    onStatus("testing exit modes…"); sw.exit_mode = sweepExitMode(pts, ["rules", "rules_close", "alerts"]); await sleep(0);
-    onStatus("testing budget filter…"); sw.trade_budget_usd = budgetSweep(pts, [150, 200, 250, 300, 400, 600, 1000]); await sleep(0);
+    for (const [field, values, name] of grid) { onP("Testing " + name + "…", at()); sw[field] = sweepCfg(pts, field, values); done++; await sleep(0); }
+    onP("Testing trailing stops…", at()); sw.trailing_tiers = sweepCfg(pts, "trailing_tiers", [[], [[0.30, 0.25]], [[0.30, 0.25], [0.50, 0.15]], [[0.50, 0.20]], [[0.40, 0.30], [0.80, 0.15]]]); done++; await sleep(0);
+    onP("Testing exit modes…", at()); sw.exit_mode = sweepExitMode(pts, ["rules", "rules_close", "alerts"]); done++; await sleep(0);
+    onP("Testing budget filter…", at()); sw.trade_budget_usd = budgetSweep(pts, [150, 200, 250, 300, 400, 600, 1000]); done++; await sleep(0);
+    onP("Testing weekday patterns…", at());
 
     // weekday breakdown (1 contract, rules-only ride to 30m)
     const byday = {};
@@ -342,6 +364,7 @@
     const weekday = {};
     Object.keys(byday).forEach((d) => { const vs = byday[d]; weekday[d] = { total_per_contract: Math.round(vs.reduce((a, v) => a + v, 0)), win_pct: Math.round(100 * vs.filter((v) => v > 0).length / vs.length), trades: vs.length }; });
 
+    onP("Compiling the analysis…", 0.90);
     const payload = {
       note: "All sweep/weekday P&L is per 1 contract, rules-only isolation over the real tape. Horizon = entry to +30 min. Max contracts is fixed at 1.",
       n_trades: pts.length, trades: profiles, daily_feed: feed,
@@ -395,6 +418,29 @@
 
   // ------------------------------------------------------------- rendering
   const pctS = (v) => v == null ? "off" : Math.round(v * 100) + "%";
+  // tiny, safe markdown -> html for chat replies (bold, italic, code, bullet lists)
+  function mdEsc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function mdInline(s) {
+    return mdEsc(s)
+      .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+      .replace(/(^|[^*])\*(?!\s)([^*\n]+?)\*(?!\*)/g, "$1<i>$2</i>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+  function mdToHtml(t) {
+    const lines = String(t == null ? "" : t).split(/\n/);
+    let html = "", inList = false;
+    const close = () => { if (inList) { html += "</ul>"; inList = false; } };
+    for (const raw of lines) {
+      const line = raw.replace(/\s+$/, "");
+      const m = line.match(/^\s*[-*•]\s+(.*)$/);
+      if (m) { if (!inList) { html += "<ul>"; inList = true; } html += "<li>" + mdInline(m[1]) + "</li>"; continue; }
+      close();
+      if (!line.trim()) { html += "<div class='adv-sp'></div>"; continue; }
+      html += "<div>" + mdInline(line) + "</div>";
+    }
+    close();
+    return html;
+  }
   function Orb(props) {
     const sm = props.sm ? " sm" : "";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
@@ -454,28 +500,29 @@
     const [input, setInput] = useState("");
     const [busy, setBusy] = useState(false);
     const [status, setStatus] = useState("");
+    const [prog, setProg] = useState(null);      // {label, pct} during analysis
     const [ready, setReady] = useState(null);
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     useEffect(() => { injectCSS(); checkReady().then(setReady); }, []);
-    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" }); }, [msgs, status]);
+    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog]);
 
     const started = msgs.length > 0;
     const push = (m) => setMsgs((x) => x.concat([m]));
 
     async function ensureAnalysis() {
       if (analysisRef.current) return analysisRef.current;
-      const a = await analyze(window.NT_CLIENT, setStatus);
+      const a = await analyze(window.NT_CLIENT, (label, pct) => setProg({ label: label, pct: pct }));
       analysisRef.current = a; return a;
     }
 
     async function design() {
-      if (busy) return; setBusy(true); setStatus("starting…");
+      if (busy) return; setBusy(true); setProg({ label: "Starting…", pct: 0.02 });
       push({ role: "me", kind: "text", text: "Design a strategy from my trades." });
       try {
         const a = await ensureAnalysis();
-        setStatus("Claude is designing the strategy…");
+        setProg({ label: "Claude is designing your strategy…", pct: 0.95 });
         const messages = [{ role: "user", content: [
           { type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
           { type: "text", text: "Design one complete strategy now." },
@@ -486,7 +533,7 @@
         convo.current = messages.concat([{ role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" }]);
         push({ role: "ai", kind: "proposal", p: prop, m: m, n: a.pts.length });
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
-      setBusy(false); setStatus("");
+      setBusy(false); setStatus(""); setProg(null);
     }
 
     async function ask(q) {
@@ -494,17 +541,17 @@
       if (/design (a )?(new )?strateg/i.test(q) && !/why|explain/i.test(q)) { setInput(""); return design(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
       try {
-        if (!convo.current.length) {              // asked before designing -> run analysis first, seed context
+        if (!convo.current.length) {              // asked before designing -> run analysis first (shows the progress bar), seed context
           const a = await ensureAnalysis();
           convo.current = [{ role: "user", content: [{ type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } }, { type: "text", text: "I'll ask questions about this data." }] }, { role: "assistant", content: "Understood — I've studied all your trades, the price paths, your feed, and the sensitivity sweeps. Ask away." }];
         }
         convo.current.push({ role: "user", content: q });
-        setStatus("thinking…");
+        setProg(null); setStatus("thinking…");
         const res = await callClaude({ system: SYSTEM, messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } });
         convo.current.push({ role: "assistant", content: res.text });
         push({ role: "ai", kind: "text", text: res.text });
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
-      setBusy(false); setStatus("");
+      setBusy(false); setStatus(""); setProg(null);
     }
 
     const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } };
@@ -523,9 +570,18 @@
           {msgs.map((m, i) => (<div key={i} className={"adv-msg " + (m.role === "me" ? "me" : "ai")}>
             {m.kind === "proposal"
               ? <ProposalCard p={m.p} m={m.m} n={m.n} />
-              : <div className="adv-bubble">{m.err ? <span className="adv-err">⚠ {m.err}</span> : m.text}</div>}
+              : m.err
+                ? <div className="adv-bubble"><span className="adv-err">⚠ {m.err}</span></div>
+                : m.role === "ai"
+                  ? <div className="adv-bubble" dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
+                  : <div className="adv-bubble">{m.text}</div>}
           </div>))}
-          {busy && (<div className="adv-msg ai"><div className="adv-think"><span className="adv-dot" />{status || "working…"}</div></div>)}
+          {busy && (<div className="adv-msg ai">{prog
+            ? <div className="adv-progress">
+                <div className="adv-prog-label"><span className="adv-dot" />{prog.label}<span className="adv-prog-pct">{Math.round(prog.pct * 100)}%</span></div>
+                <div className="adv-prog-track"><div className="adv-prog-fill" style={{ width: Math.max(3, Math.round(prog.pct * 100)) + "%" }} /></div>
+              </div>
+            : <div className="adv-think"><span className="adv-dot" />{status || "working…"}</div>}</div>)}
           <div ref={endRef} />
         </div>
 

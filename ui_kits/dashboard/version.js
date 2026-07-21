@@ -12,6 +12,7 @@ window.NT_CHANGELOG = [
       "Replay preview: the trade list now scrolls when it's longer than the panel — before, a long list was cut off with no way to reach the rest of the trades (fixed on desktop and touch).",
       "New AI Advisor page — a chat-first assistant that studies every trade you've taken (the full price path to +30 min plus your own Discord feed) and designs a complete strategy from it: trade budget, per-weekday sizing, stops and exits — with the reasoning spelled out and validated on your real trades. Ask it questions right there (\"why no stop?\", \"which day loses money?\") or have it design a fresh one. Your Anthropic key stays in Supabase, never in the browser.",
       "Polished the AI Advisor's orb — a soft glowing, layered sphere with a feathered edge and a breathing halo, instead of the earlier hard-edged circle.",
+      "AI Advisor now formats its answers (bold, bullet lists) so they're easy to read instead of showing raw markdown, and a live progress bar with a percentage shows exactly where a strategy design is (loading trades, testing each parameter, Claude designing) so you can see how long is left.",
     ],
   },
   {
