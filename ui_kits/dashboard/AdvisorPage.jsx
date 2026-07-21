@@ -118,12 +118,16 @@
   .adv-voice.on{background:var(--violet-soft);border-color:var(--violet-line);color:var(--accent)}
   .adv-note{text-align:center;color:var(--dryrun);font:var(--w-regular) var(--t-xs)/1.4 var(--font-sans);margin:0 0 9px}
   .adv-err{color:var(--loss);font:var(--w-regular) var(--t-sm)/1.5 var(--font-sans)}
-  .adv-bubble ul{margin:7px 0;padding-left:20px}
-  .adv-bubble li{margin:4px 0}
-  .adv-bubble b{color:var(--text-primary);font-weight:var(--w-semibold)}
-  .adv-bubble i{color:var(--text-primary);font-style:italic}
-  .adv-bubble code{font-family:var(--font-mono);background:rgba(255,255,255,.07);padding:1px 6px;border-radius:6px;font-size:.9em;color:#d9d3ff}
-  .adv-bubble .adv-sp{height:8px}
+  /* AI answers are unframed — plain text, like a natural assistant reply */
+  .adv-answer{color:var(--text-primary);font:var(--w-regular) var(--t-body)/1.65 var(--font-sans);
+    max-width:100%;word-break:break-word;padding:1px 2px}
+  .adv-bubble ul,.adv-answer ul{margin:9px 0;padding-left:19px;display:flex;flex-direction:column;gap:6px}
+  .adv-bubble li,.adv-answer li{margin:0;padding-left:2px}
+  .adv-answer li::marker{color:var(--accent)}
+  .adv-bubble b,.adv-answer b{color:var(--text-primary);font-weight:var(--w-semibold)}
+  .adv-bubble i,.adv-answer i{color:var(--text-primary);font-style:italic}
+  .adv-bubble code,.adv-answer code{font-family:var(--font-mono);background:rgba(255,255,255,.07);padding:1px 6px;border-radius:6px;font-size:.9em;color:#d9d3ff}
+  .adv-bubble .adv-sp,.adv-answer .adv-sp{height:8px}
   .adv-progress{width:min(440px,100%);background:rgba(255,255,255,.04);border:1px solid var(--border);
     border-radius:14px;padding:13px 16px;backdrop-filter:blur(6px)}
   .adv-prog-label{display:flex;align-items:center;gap:9px;color:var(--text-secondary);
@@ -200,7 +204,7 @@
       take_half_at_pct: { anyOf: [{ type: "number" }, { type: "null" }] },
       trailing_tiers: { type: "array", items: { type: "array", items: { type: "number" } } },
       max_hold_minutes: { anyOf: [{ type: "integer" }, { type: "null" }] },
-      rationale: { type: "string" },
+      rationale: { type: "string", description: "Markdown, structured for easy reading. Line 1: ONE bold summary sentence (the core idea, <=16 words). Then a blank line, then 3-5 bullet points ('- '), each starting with a bold 2-3 word label + ' — ' + a short plain-language reason tied to the real numbers (e.g. '- **Exit mode** — followed your close alerts: +$210 vs +$60 rules-only'). One line per bullet, no nested bullets, no headings." },
     },
   };
 
@@ -500,6 +504,26 @@
     close();
     return html;
   }
+  // Pick the most natural speech voice the OS/browser offers (Siri / neural /
+  // enhanced beat the robotic default). No Anthropic TTS API exists, so this is
+  // the best free option; a premium provider would need a key + an edge relay.
+  function bestVoice() {
+    const synth = window.speechSynthesis; if (!synth) return null;
+    const vs = synth.getVoices() || []; if (!vs.length) return null;
+    const en = vs.filter((v) => /^en(\b|[-_])/i.test(v.lang || ""));
+    const pool = en.length ? en : vs;
+    const rank = (v) => { const n = (v.name || "").toLowerCase();
+      if (/siri/.test(n)) return 7;
+      if (/natural|neural/.test(n)) return 6;
+      if (/premium|enhanced/.test(n)) return 5;
+      if (/google/.test(n)) return 4;
+      if (/(ava|samantha|allison|serena|zoe|jamie|nathan|evan)/.test(n)) return 3;
+      if (v.localService === false) return 2;
+      return 1; };
+    return pool.slice().sort((a, b) => rank(b) - rank(a))[0] || null;
+  }
+  const THINK_LINES = ["Let me take a look at that…", "Give me a moment to think this through…",
+    "One sec — let me dig into your trades…", "Okay, let me work through that…"];
   function Orb(props) {
     const sm = props.sm ? " sm" : "";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
@@ -563,7 +587,8 @@
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
-    useEffect(() => { injectCSS(); checkReady().then(setReady); }, []);
+    useEffect(() => { injectCSS(); checkReady().then(setReady);
+      if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); } catch (e) {} } }, []);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
     const started = msgs.length > 0;
@@ -577,12 +602,19 @@
       setScopeMode(true);
     };
     const chooseScope = (range) => { setScopeMode(false); design(range); };
+    const speakNow = (text, rate) => {
+      if (!window.speechSynthesis) return;
+      try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text);
+        const v = bestVoice(); if (v) u.voice = v; u.rate = rate || 1.0; u.pitch = 1.02;
+        window.speechSynthesis.speak(u); } catch (e) {}
+    };
     const speakText = (t) => {
       if (!speak || !window.speechSynthesis) return;
       const plain = String(t || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>|[\]-]/g, " ").replace(/\s+/g, " ").trim();
-      if (!plain) return;
-      try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(plain); u.rate = 1.05; window.speechSynthesis.speak(u); } catch (e) {}
+      if (plain) speakNow(plain, 1.0);
     };
+    // natural conversation: say "let me think" up front, then go quiet while working
+    const sayThinking = () => { if (speak && window.speechSynthesis) speakNow(THINK_LINES[Math.floor(Math.random() * THINK_LINES.length)], 1.0); };
     const toggleMic = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { push({ role: "ai", kind: "text", text: "Voice input isn't supported in this browser — try Chrome or Safari." }); return; }
@@ -617,6 +649,7 @@
       if (busy) return; setBusy(true); setProg({ label: "Starting…", pct: 0.02 });
       const scopeTxt = range && range.label && range.label !== "all trades" ? " · " + range.label : "";
       push({ role: "me", kind: "text", text: "Analyse my trades" + scopeTxt });
+      sayThinking();
       try {
         const a = await ensureAnalysis(range, true);
         const t0 = Date.now();
@@ -640,7 +673,7 @@
           { role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" },
         ];
         push({ role: "ai", kind: "proposal", p: prop, m: m, n: a.pts.length });
-        push({ role: "ai", kind: "text", text: "**Why this strategy** — " + prop.rationale });
+        push({ role: "ai", kind: "text", text: "**Why this strategy**\n\n" + prop.rationale });
         speakText("Here's the strategy I designed. " + prop.rationale);
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
       setBusy(false); setStatus(""); setProg(null);
@@ -658,6 +691,7 @@
       }
       if (/^\s*(analy[sz]e|design)\b/i.test(q) && /trade|strateg/i.test(q) && !/why|explain|what if/i.test(q)) { setInput(""); return openScope(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
+      sayThinking();
       try {
         if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
           setStatus("Loading your trades & strategies…");
@@ -703,7 +737,7 @@
               : m.err
                 ? <div className="adv-bubble"><span className="adv-err">⚠ {m.err}</span></div>
                 : m.role === "ai"
-                  ? <div className="adv-bubble" dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
+                  ? <div className="adv-answer" dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
                   : <div className="adv-bubble">{m.text}</div>}
           </div>))}
           {busy && (<div className="adv-msg ai">{prog

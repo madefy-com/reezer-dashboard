@@ -19,6 +19,7 @@ window.NT_CHANGELOG = [
       "Ask Reezer now speaks as “Reezer” everywhere (no more “Claude is…”); the strategy write-up comes back as a chat message you can read easily instead of a wall of text in the card; and when it designs a strategy it now also weighs following your Discord alerts and their tone — not just the mechanical rules — so its ideas match how the trades actually played out.",
       "Ask Reezer voice: tap the mic to talk to it, and toggle “Read aloud” to have its replies spoken back.",
       "Ask Reezer is faster and never looks stuck: designing a strategy now runs lighter (about half the wait), the progress bar keeps moving with a live seconds counter while it works, and if the connection ever stalls it times out with a “tap to retry” instead of hanging. Bigger, seamlessly-looping orb that stays visible while you chat; the welcome screen and its glow are now centred; refreshed side-menu orbit icon.",
+      "Ask Reezer chat is easier to read: replies are now plain text (no boxes), the strategy write-up is broken into a one-line summary plus short labelled points, and the voice picks the most natural system voice and says it’s thinking before a pause instead of going silent.",
     ],
   },
   {
