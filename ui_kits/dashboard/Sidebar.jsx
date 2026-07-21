@@ -45,11 +45,11 @@ function Sidebar({ page, onNav }) {
           style={{ display: "flex", alignItems: "center", gap: 11, height: 40, marginTop: 34, padding: "0 11px",
             borderRadius: "var(--radius-md)", cursor: "pointer", textAlign: "left", width: "100%",
             font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)" }}>
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
-            <ellipse cx="12" cy="12" rx="4" ry="8.6" />
-            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(45 12 12)" />
-            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(90 12 12)" />
-            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(135 12 12)" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
+            <ellipse cx="12" cy="12" rx="3.6" ry="8" />
+            <ellipse cx="12" cy="12" rx="3.6" ry="8" transform="rotate(60 12 12)" />
+            <ellipse cx="12" cy="12" rx="3.6" ry="8" transform="rotate(120 12 12)" />
+            <circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none" />
           </svg>
           Ask Reezer
         </button>

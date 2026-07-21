@@ -16,21 +16,22 @@
   .adv-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:
       linear-gradient(to bottom, var(--bg-app), transparent 15%),
-      linear-gradient(to right, var(--bg-app), transparent 9%),
-      linear-gradient(to left, var(--bg-app), transparent 9%),
-      radial-gradient(60% 45% at 50% 2%, rgba(110,91,242,.30), transparent 68%),
-      radial-gradient(50% 40% at 85% 15%, rgba(242,74,141,.16), transparent 70%),
-      radial-gradient(55% 45% at 12% 25%, rgba(74,141,247,.18), transparent 70%),
+      linear-gradient(to top, var(--bg-app), transparent 18%),
+      linear-gradient(to right, var(--bg-app), transparent 12%),
+      linear-gradient(to left, var(--bg-app), transparent 12%),
+      radial-gradient(52% 46% at 50% 46%, rgba(110,91,242,.32), transparent 66%),
+      radial-gradient(42% 40% at 68% 40%, rgba(242,74,141,.16), transparent 70%),
+      radial-gradient(46% 42% at 33% 52%, rgba(74,141,247,.17), transparent 70%),
       var(--bg-app);}
   .adv-scroll{position:relative;z-index:1;flex:1;min-height:0;overflow-y:auto;
     display:flex;flex-direction:column;align-items:center;scroll-padding-bottom:215px}
   .adv-inner{width:100%;max-width:840px;padding:26px 20px 250px;
     display:flex;flex-direction:column;align-items:center}
   /* orb — organic morphing blob (SVG turbulence + halftone grain) */
-  .adv-orbstage{position:relative;width:200px;height:200px;display:grid;place-items:center;
+  .adv-orbstage{position:relative;width:250px;height:250px;display:grid;place-items:center;
     animation:adv-float 7s ease-in-out infinite}
-  .adv-orbstage.sm{width:60px;height:60px;animation:none}
-  .adv-orbglow{position:absolute;width:150px;height:150px;border-radius:50%;pointer-events:none;
+  .adv-orbstage.sm{width:64px;height:64px;animation:none}
+  .adv-orbglow{position:absolute;width:186px;height:186px;border-radius:50%;pointer-events:none;
     background:radial-gradient(circle at 50% 48%,rgba(139,92,246,.4),rgba(242,74,141,.2) 44%,transparent 70%);
     filter:blur(30px);animation:adv-breathe 5.5s ease-in-out infinite}
   .adv-orbstage.sm .adv-orbglow{width:52px;height:52px;filter:blur(9px)}
@@ -136,6 +137,11 @@
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
     transform:translateX(-100%);animation:adv-shimmer 1.25s ease-in-out infinite}
   @keyframes adv-shimmer{to{transform:translateX(100%)}}
+  /* indeterminate — a stripe that keeps travelling while Reezer designs (no frozen bar) */
+  .adv-prog-track.indet .adv-prog-fill{position:absolute;width:38%;transition:none;
+    animation:adv-indet 1.35s cubic-bezier(.5,0,.3,1) infinite}
+  .adv-prog-track.indet{position:relative}
+  @keyframes adv-indet{0%{left:-40%}100%{left:100%}}
   .adv-scope{width:min(560px,100%);border:1px solid var(--violet-line);border-radius:16px;
     background:linear-gradient(180deg,rgba(110,91,242,.10),rgba(110,91,242,.02));padding:18px;backdrop-filter:blur(8px)}
   .adv-scope-h{font:var(--w-semibold) var(--t-body)/1.3 var(--font-sans);color:var(--text-primary);margin-bottom:14px}
@@ -439,13 +445,21 @@
   }
 
   // ------------------------------------------------------------- claude relay
-  async function callClaude(body) {
+  async function callClaude(body, timeoutMs) {
     const SB = window.NT_SUPABASE || {};
     let jwt = SB.key;
     try { const s = await window.NT_CLIENT.auth.getSession(); if (s && s.data && s.data.session) jwt = s.data.session.access_token; } catch (e) {}
-    const r = await fetch((SB.url || "") + "/functions/v1/advisor-chat", {
-      method: "POST", headers: { Authorization: "Bearer " + jwt, apikey: SB.key, "Content-Type": "application/json" }, body: JSON.stringify(body),
-    });
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), timeoutMs || 180000);
+    let r;
+    try {
+      r = await fetch((SB.url || "") + "/functions/v1/advisor-chat", {
+        method: "POST", headers: { Authorization: "Bearer " + jwt, apikey: SB.key, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal,
+      });
+    } catch (e) {
+      if (e && e.name === "AbortError") throw new Error("That took too long to respond. Tap “Analyse again” to retry.");
+      throw new Error("Couldn't reach Reezer — check your connection and retry.");
+    } finally { clearTimeout(to); }
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j.error) throw new Error(j.error ? (j.detail ? j.error + " — " + j.detail : j.error) : "HTTP " + r.status);
     const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
@@ -490,7 +504,7 @@
     const sm = props.sm ? " sm" : "";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
       <div className="adv-orbglow" />
-      <img className="adv-orbgif" src="/assets/orb.webp?v=99" alt="" draggable="false" />
+      <img className="adv-orbgif" src="/assets/orb.webp?v=102" alt="" draggable="false" />
     </div>);
   }
   function ProposalCard(props) {
@@ -605,12 +619,16 @@
       push({ role: "me", kind: "text", text: "Analyse my trades" + scopeTxt });
       try {
         const a = await ensureAnalysis(range, true);
-        setProg({ label: "Reezer is designing your strategy…", pct: 0.95 });
+        const t0 = Date.now();
+        const tick = setInterval(() => setProg({ label: "Reezer is designing your strategy…", pct: 0.95, indet: true, secs: Math.round((Date.now() - t0) / 1000) }), 1000);
+        setProg({ label: "Reezer is designing your strategy…", pct: 0.95, indet: true, secs: 0 });
         const messages = [{ role: "user", content: [
           { type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
           { type: "text", text: "Design one complete strategy now." },
         ] }];
-        const res = await callClaude({ system: SYSTEM, messages: messages, max_tokens: 12000, thinking: { type: "adaptive" }, output_config: { effort: "high", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } });
+        let res;
+        try { res = await callClaude({ system: SYSTEM, messages: messages, max_tokens: 8000, thinking: { type: "adaptive" }, output_config: { effort: "medium", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } }); }
+        finally { clearInterval(tick); }
         const prop = JSON.parse(res.text);
         const m = validate(a.pts, prop);
         const ctx = await loadContext(window.NT_CLIENT);
@@ -650,8 +668,13 @@
           ];
         }
         convo.current.push({ role: "user", content: q });
-        setProg(null); setStatus("thinking…");
-        const res = await callClaude({ system: SYSTEM, messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } });
+        setStatus("");
+        const t0 = Date.now();
+        const tick = setInterval(() => setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: Math.round((Date.now() - t0) / 1000) }), 1000);
+        setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: 0 });
+        let res;
+        try { res = await callClaude({ system: SYSTEM, messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } }); }
+        finally { clearInterval(tick); }
         convo.current.push({ role: "assistant", content: res.text });
         push({ role: "ai", kind: "text", text: res.text });
         speakText(res.text);
@@ -664,11 +687,14 @@
     return (<div className="adv-wrap">
       <div className="adv-bg" />
       <div className="adv-scroll"><div className="adv-inner">
-        {!started && (<div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "6vh" }}>
+        {!started && (<div style={{ display: "flex", flexDirection: "column", alignItems: "center", minHeight: "72vh", justifyContent: "center" }}>
           <Orb busy={busy} />
           <h1 className="adv-hero-h">Let's find your edge.</h1>
           <p className="adv-hero-p">I'll study your recorded trades — the full price path to +30 min and your own feed — then design a complete strategy from it, and you can ask me anything about it.</p>
+          {!busy && (<button className="adv-chip primary" style={{ marginTop: 6 }} onClick={openScope}>Analyse my trades</button>)}
         </div>)}
+
+        {started && (<div style={{ display: "flex", justifyContent: "center", margin: "2px 0 18px" }}><Orb sm busy={busy} /></div>)}
 
         <div className="adv-convo">
           {msgs.map((m, i) => (<div key={i} className={"adv-msg " + (m.role === "me" ? "me" : "ai")}>
@@ -682,16 +708,13 @@
           </div>))}
           {busy && (<div className="adv-msg ai">{prog
             ? <div className="adv-progress">
-                <div className="adv-prog-label"><span className="adv-dot" />{prog.label}<span className="adv-prog-pct">{Math.round(prog.pct * 100)}%</span></div>
-                <div className="adv-prog-track"><div className="adv-prog-fill" style={{ width: Math.max(3, Math.round(prog.pct * 100)) + "%" }} /></div>
+                <div className="adv-prog-label"><span className="adv-dot" />{prog.label}<span className="adv-prog-pct">{prog.indet ? (prog.secs ? prog.secs + "s" : "") : Math.round(prog.pct * 100) + "%"}</span></div>
+                <div className={"adv-prog-track" + (prog.indet ? " indet" : "")}><div className="adv-prog-fill" style={prog.indet ? undefined : { width: Math.max(3, Math.round(prog.pct * 100)) + "%" }} /></div>
               </div>
             : <div className="adv-think"><span className="adv-dot" />{status || "working…"}</div>}</div>)}
           <div ref={endRef} />
         </div>
 
-        {!started && !busy && (<div className="adv-chips" style={{ marginTop: 8 }}>
-          <button className="adv-chip primary" onClick={openScope}>Analyse my trades</button>
-        </div>)}
       </div></div>
 
       <div className="adv-composer"><div className="adv-composer-in">
