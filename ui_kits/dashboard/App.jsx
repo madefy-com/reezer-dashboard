@@ -105,6 +105,7 @@ function App() {
     if (page === "fronttest") return <FronttestPage />;
     if (page === "updates") return <ChangelogPage />;
     if (page === "strategies") return <StrategiesPage />;
+    if (page === "advisor") return <AdvisorPage />;
     if (page === "sources" || page === "settings") return <SourcesPage />;
     return <DashboardPage mode={mode} kill={kill} />;
   };
@@ -118,9 +119,10 @@ function App() {
         <WatchdogBanner />
         <main style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <div style={{
-            maxWidth: "var(--content-max)", width: "100%", margin: "0 auto", padding: "22px 26px 24px",
+            maxWidth: "var(--content-max)", width: "100%", margin: "0 auto",
+            padding: page === "advisor" ? 0 : "22px 26px 24px",
             flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
-            overflowY: page === "dashboard" ? "hidden" : "auto",
+            overflowY: (page === "dashboard" || page === "advisor") ? "hidden" : "auto",
           }}>
             {renderPage()}
           </div>
