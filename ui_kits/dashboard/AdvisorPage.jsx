@@ -24,19 +24,38 @@
   .adv-inner{width:100%;max-width:840px;padding:26px 20px 250px;
     display:flex;flex-direction:column;align-items:center}
   /* orb */
-  .adv-orb{position:relative;width:148px;height:148px;border-radius:50%;overflow:hidden;
-    box-shadow:0 24px 70px rgba(110,91,242,.5),0 0 90px rgba(242,74,141,.28);
-    animation:adv-float 6.5s ease-in-out infinite}
-  .adv-orb.sm{width:60px;height:60px;box-shadow:0 10px 30px rgba(110,91,242,.5)}
-  .adv-orb .band{position:absolute;inset:-30%;filter:blur(3px) saturate(1.15);
+  .adv-orbstage{position:relative;width:196px;height:196px;display:grid;place-items:center;
+    animation:adv-float 7s ease-in-out infinite}
+  .adv-orbstage.sm{width:64px;height:64px;animation:none}
+  .adv-orbglow{position:absolute;width:184px;height:184px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle at 50% 44%,rgba(139,92,246,.60),rgba(242,74,141,.34) 40%,rgba(34,211,238,.16) 62%,transparent 72%);
+    filter:blur(34px);animation:adv-breathe 5.5s ease-in-out infinite}
+  .adv-orbstage.sm .adv-orbglow{width:60px;height:60px;filter:blur(11px)}
+  .adv-orbstage.busy .adv-orbglow{animation-duration:2.4s}
+  .adv-orb{position:relative;width:150px;height:150px;border-radius:50%;
+    -webkit-mask:radial-gradient(circle at 50% 50%,#000 58%,rgba(0,0,0,.5) 69%,transparent 78%);
+            mask:radial-gradient(circle at 50% 50%,#000 58%,rgba(0,0,0,.5) 69%,transparent 78%);
+    filter:drop-shadow(0 26px 58px rgba(110,91,242,.45))}
+  .adv-orb.sm{width:54px;height:54px;filter:drop-shadow(0 8px 18px rgba(110,91,242,.5))}
+  .adv-orb .band{position:absolute;inset:-28%;filter:blur(8px) saturate(1.3) brightness(1.05);
     background:conic-gradient(from 200deg,#6E5BF2,#8B5CF6,#C04AF2,#F24A8D,#FB7185,#F5A524,#4A8DF7,#22D3EE,#6E5BF2);
-    animation:adv-spin 13s linear infinite}
+    animation:adv-spin 17s linear infinite}
+  .adv-orb .band.b2{inset:-6%;filter:blur(18px) saturate(1.1);opacity:.5;mix-blend-mode:screen;
+    animation:adv-spinrev 24s linear infinite}
+  .adv-orb .sweep{position:absolute;inset:-2%;mix-blend-mode:screen;opacity:.6;
+    background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.55) 22deg,transparent 60deg);
+    animation:adv-spin 7s linear infinite}
   .adv-orb .sheen{position:absolute;inset:0;border-radius:50%;
-    background:radial-gradient(circle at 33% 26%,rgba(255,255,255,.92),transparent 42%),
-               radial-gradient(circle at 70% 80%,rgba(8,4,26,.62),transparent 55%)}
-  .adv-orb.busy .band{animation-duration:3.5s}
+    background:radial-gradient(circle at 34% 23%,rgba(255,255,255,.95),rgba(255,255,255,0) 34%),
+               radial-gradient(circle at 72% 84%,rgba(6,3,22,.62),transparent 50%)}
+  .adv-orb .rim{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;
+    background:radial-gradient(circle at 50% 50%,transparent 57%,rgba(190,170,255,.5) 70%,transparent 79%)}
+  .adv-orbstage.busy .band{animation-duration:6s}
+  .adv-orbstage.busy .sweep{animation-duration:3.5s}
   @keyframes adv-spin{to{transform:rotate(360deg)}}
-  @keyframes adv-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes adv-spinrev{to{transform:rotate(-360deg)}}
+  @keyframes adv-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes adv-breathe{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.09)}}
   /* hero */
   .adv-hero-h{font:var(--w-semibold) 40px/1.08 var(--font-sans);letter-spacing:-.02em;
     text-align:center;margin:26px 0 10px;background:linear-gradient(180deg,#fff,#c9c2ff);
@@ -377,8 +396,14 @@
   // ------------------------------------------------------------- rendering
   const pctS = (v) => v == null ? "off" : Math.round(v * 100) + "%";
   function Orb(props) {
-    return (<div className={"adv-orb" + (props.sm ? " sm" : "") + (props.busy ? " busy" : "")}>
-      <div className="band" /><div className="sheen" /></div>);
+    const sm = props.sm ? " sm" : "";
+    return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
+      <div className="adv-orbglow" />
+      <div className={"adv-orb" + sm}>
+        <div className="band" /><div className="band b2" /><div className="sweep" />
+        <div className="sheen" /><div className="rim" />
+      </div>
+    </div>);
   }
   function ProposalCard(props) {
     const p = props.p, m = props.m;
