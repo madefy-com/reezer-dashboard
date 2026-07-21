@@ -10,7 +10,6 @@ function Sidebar({ page, onNav }) {
     { id: "trades", label: "Trades", icon: "candlestick-chart" },
     { id: "log", label: "Alerts", icon: "message-square-dot" },
     { id: "strategies", label: "Strategies", icon: "target" },
-    { id: "advisor", label: "AI Advisor", icon: "sparkles" },
     { id: "fronttest", label: "Exit Lab", icon: "flask-conical" },
   ];
   return (
@@ -41,6 +40,19 @@ function Sidebar({ page, onNav }) {
             </button>
           );
         })}
+        {/* standout "Ask Reezer" pill — separate from the nav, one blank row above */}
+        <button className="nt-askai" data-on={page === "advisor" ? "" : undefined} onClick={() => onNav("advisor")}
+          style={{ display: "flex", alignItems: "center", gap: 10, height: 46, marginTop: 34, padding: "0 16px",
+            borderRadius: "999px", cursor: "pointer", textAlign: "left", width: "100%",
+            font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)" }}>
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}>
+            <ellipse cx="12" cy="12" rx="4" ry="8.6" />
+            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(45 12 12)" />
+            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(90 12 12)" />
+            <ellipse cx="12" cy="12" rx="4" ry="8.6" transform="rotate(135 12 12)" />
+          </svg>
+          Ask Reezer
+        </button>
       </nav>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 3, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
@@ -73,6 +85,12 @@ function Sidebar({ page, onNav }) {
         .nt-nav{ background: transparent; border: 1px solid transparent; color: var(--text-secondary); font-weight: var(--w-medium); }
         .nt-nav[data-on]{ background: var(--violet-soft); border-color: var(--violet-line); color: var(--accent); font-weight: var(--w-semibold); }
         .nt-nav:not([data-on]):hover{ background: var(--surface-inset); color: var(--text-primary); }
+        .nt-askai{ border: none; color: #fff;
+          background: linear-gradient(100deg, #b28cf0 0%, #d79ce0 42%, #8aa9f2 100%);
+          box-shadow: 0 6px 18px rgba(139,91,242,0.35);
+          transition: filter var(--dur) var(--ease-out), transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out); }
+        .nt-askai:hover{ filter: brightness(1.07) saturate(1.05); transform: translateY(-1px); box-shadow: 0 9px 26px rgba(139,91,242,0.48); }
+        .nt-askai[data-on]{ box-shadow: 0 0 0 1px rgba(255,255,255,0.4), 0 9px 26px rgba(139,91,242,0.55); filter: brightness(1.05); }
       `}</style>
     </aside>
   );

@@ -14,6 +14,7 @@ window.NT_CHANGELOG = [
       "Polished the AI Advisor's orb — a soft glowing, layered sphere with a feathered edge and a breathing halo, instead of the earlier hard-edged circle.",
       "AI Advisor now formats its answers (bold, bullet lists) so they're easy to read instead of showing raw markdown, and a live progress bar with a percentage shows exactly where a strategy design is (loading trades, testing each parameter, Claude designing) so you can see how long is left.",
       "AI Advisor refresh: the button is now \"Analyse my trades\" and first asks which trades to use — all of them, the last 7/30 days, this month, or a custom date range — so you can design a strategy from a chosen window. New organic, animated orb, the background now fades to black under the header and side menu, and the chat input text is vertically centred.",
+      "The AI Advisor now has its own standout \"Ask Reezer\" button in the side menu — a gradient pill set apart below the other menu items — instead of a plain nav row.",
     ],
   },
   {
