@@ -797,8 +797,10 @@
       if (/^\s*(analy[sz]e|design)\b/i.test(q) && /trade|strateg/i.test(q) && !/why|explain|what if/i.test(q)) { setInput(""); return openScope(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
       unlockAudio();
-      // only say "let me think" if the answer is actually taking a while — not on quick questions
-      const thinkT = setTimeout(sayThinking, 2600);
+      // "let me think" only for substantive questions that actually take a while — never for
+      // greetings / small talk / very short questions (say hi, how are you, thanks, …).
+      const chit = /^(hi|hey|hello|yo|sup|thanks|thank you|thx|cheers|good (morning|afternoon|evening|night)|how are you|how'?s it going|how are things|what'?s up|nice|cool|ok|okay|great|hey reezer|hi reezer)\b/i.test(q.trim()) || q.trim().split(/\s+/).length <= 3;
+      const thinkT = chit ? 0 : setTimeout(sayThinking, 3200);
       try {
         if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
           setStatus("Loading your trades & strategies…");
