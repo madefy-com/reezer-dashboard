@@ -550,6 +550,19 @@
   }
   const THINK_LINES = ["Let me take a look at that…", "Give me a moment to think this through…",
     "One sec — let me dig into your trades…", "Okay, let me work through that…"];
+  // Expand trading shorthand so the voice speaks words, not letters (301p -> "301 puts",
+  // Wed -> "Wednesday", 20m -> "20 minutes"). Speech-only; never changes on-screen text.
+  const WEEKDAYS = { mon: "Monday", tue: "Tuesday", tues: "Tuesday", wed: "Wednesday", thu: "Thursday", thur: "Thursday", thurs: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+  function speechNorm(t) {
+    let s = String(t || "");
+    s = s.replace(/\b(\d+(?:\.\d+)?)\s*p\b/g, "$1 puts").replace(/\b(\d+(?:\.\d+)?)\s*c\b/g, "$1 calls");
+    s = s.replace(/\b(\d+)\s*m\b/g, "$1 minutes");
+    s = s.replace(/\b(mon|tues?|wed|thur?s?|fri|sat|sun)\b/gi, (m) => WEEKDAYS[m.toLowerCase()] || m);
+    s = s.replace(/\bBE\b/g, "breakeven").replace(/\bP&L\b/gi, "P and L").replace(/\bPF\b/g, "profit factor")
+      .replace(/\brules_close\b/gi, "rules close").replace(/\bvs\.?\b/gi, "versus").replace(/&/g, " and ");
+    s = s.replace(/[·→—–|]+/g, " ").replace(/\s+/g, " ").trim();
+    return s;
+  }
   function Orb(props) {
     const sm = props.sm ? " sm" : "";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
@@ -610,7 +623,9 @@
     const [listening, setListening] = useState(false);   // voice input active
     const [speak, setSpeak] = useState(false);           // read replies aloud
     const [ttsReady, setTtsReady] = useState(false);     // ElevenLabs premium voice available
+    const [convoMode, setConvoMode] = useState(false);   // hands-free conversation loop
     const recRef = useRef(null);
+    const convoRef = useRef(false);              // latest convoMode for async callbacks
     const audioRef = useRef(null);               // currently-playing premium audio
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
@@ -628,46 +643,65 @@
       if (busy) return;
       push({ role: "ai", kind: "text", text: "**Which trades should I analyse?** Tap a range below — or type dates like `2026-07-01 to 2026-07-15`, or `last 2 weeks`." });
       setScopeMode(true);
+      if (convoRef.current) voiceSay("Which trades should I analyse? You can say all trades, the last seven days, or a date range.", true);
     };
     const chooseScope = (range) => { setScopeMode(false); design(range); };
     const stopVoice = () => {
       try { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } } catch (e) {}
       try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     };
-    const browserSay = (text, rate) => {   // fallback when ElevenLabs isn't available
-      if (!window.speechSynthesis) return;
+    const browserSay = (text, onDone) => {   // fallback when ElevenLabs isn't available
+      if (!window.speechSynthesis) { onDone && onDone(); return; }
       try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text);
-        const v = bestVoice(); if (v) u.voice = v; u.rate = rate || 1.0; u.pitch = 1.02;
-        window.speechSynthesis.speak(u); } catch (e) {}
+        const v = bestVoice(); if (v) u.voice = v; u.rate = 1.0; u.pitch = 1.02;
+        if (onDone) u.onend = onDone;
+        window.speechSynthesis.speak(u); } catch (e) { onDone && onDone(); }
     };
     // Speak `raw` aloud: premium ElevenLabs voice when configured, else the browser voice.
-    const voiceSay = (raw) => {
-      const plain = String(raw || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>|[\]-]/g, " ").replace(/\s+/g, " ").trim();
+    // resumeMic: in conversation mode, re-open the mic once this utterance finishes.
+    const voiceSay = (raw, resumeMic) => {
+      const plain = speechNorm(String(raw || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>[\]]/g, " "));
       if (!plain) return;
       stopVoice();
+      const done = () => { if (resumeMic && convoRef.current) startListen(); };
       if (ttsReady) {
         ttsFetch(plain).then((url) => {
-          if (!url) { browserSay(plain, 1.0); return; }
+          if (!url) { browserSay(plain, done); return; }
           try { const a = new Audio(url); audioRef.current = a;
-            a.onended = () => { URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; };
-            a.play().catch(() => browserSay(plain, 1.0));
-          } catch (e) { browserSay(plain, 1.0); }
+            a.onended = () => { URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; done(); };
+            a.play().catch(() => browserSay(plain, done));
+          } catch (e) { browserSay(plain, done); }
         });
-      } else browserSay(plain, 1.0);
+      } else browserSay(plain, done);
     };
-    const speakText = (t) => { if (speak) voiceSay(t); };
+    const speakText = (t) => { if (speak || convoRef.current) voiceSay(t, convoRef.current); };
     // natural conversation: say "let me think" up front, then go quiet while working
-    const sayThinking = () => { if (speak) voiceSay(THINK_LINES[Math.floor(Math.random() * THINK_LINES.length)]); };
-    const toggleMic = () => {
+    const sayThinking = () => { if (speak || convoRef.current) voiceSay(THINK_LINES[Math.floor(Math.random() * THINK_LINES.length)], false); };
+    // one listening turn; the loop is driven by replies finishing (voiceSay -> done)
+    const startListen = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) { push({ role: "ai", kind: "text", text: "Voice input isn't supported in this browser — try Chrome or Safari." }); return; }
-      if (listening) { try { recRef.current && recRef.current.stop(); } catch (e) {} setListening(false); return; }
+      if (!SR || !convoRef.current) return;
       try {
         const r = new SR(); r.lang = "en-US"; r.interimResults = false; r.maxAlternatives = 1;
-        r.onresult = (e) => { const txt = e.results[0][0].transcript; setListening(false); if (txt && txt.trim()) ask(txt.trim()); };
-        r.onerror = () => setListening(false); r.onend = () => setListening(false);
+        let got = false;
+        r.onresult = (e) => { const txt = (e.results[0][0].transcript || "").trim(); if (txt) { got = true; setListening(false); ask(txt); } };
+        r.onerror = () => {};
+        r.onend = () => { setListening(false); if (convoRef.current && !got) setTimeout(() => { if (convoRef.current) startListen(); }, 500); };
         recRef.current = r; setListening(true); r.start();
       } catch (e) { setListening(false); }
+    };
+    // mic button = hands-free conversation toggle (talk, it replies aloud, mic re-opens)
+    const toggleMic = () => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { push({ role: "ai", kind: "text", text: "Voice conversation isn't supported in this browser — try Chrome or Safari." }); return; }
+      if (convoRef.current) {   // stop
+        convoRef.current = false; setConvoMode(false); setListening(false);
+        try { recRef.current && recRef.current.stop(); } catch (e) {} stopVoice();
+        return;
+      }
+      convoRef.current = true; setConvoMode(true);      // start
+      if (!speak) setSpeak(true);
+      startListen();
     };
     const parseScope = (text) => {
       const t = String(text).trim().toLowerCase();
@@ -809,9 +843,9 @@
           </button>
         </div>
         <div className="adv-box">
-          <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : (listening ? "Listening…" : "Ask about your trades…")}
+          <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : convoMode ? (listening ? "Listening… just talk" : "Conversation on — tap the mic to stop") : "Ask about your trades…"}
             onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} disabled={busy} />
-          <button className="adv-mic" data-on={listening ? "" : undefined} disabled={busy} onClick={toggleMic} title="Speak">
+          <button className={"adv-mic" + (convoMode ? " convo" : "")} data-on={(convoMode || listening) ? "" : undefined} onClick={toggleMic} title={convoMode ? "Stop conversation" : "Talk to Reezer — hands-free conversation"}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
           </button>
           <button className="adv-send" disabled={busy || !input.trim()} onClick={() => ask(input)} title="Send">
