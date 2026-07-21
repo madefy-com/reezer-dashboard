@@ -163,6 +163,7 @@
 
   // --------------------------------------------------------------- constants
   const HORIZON_MIN = 30, STEP_S = 15, MAX_CONTRACTS = 1;
+  const TTS_VOICE = "Rachel";   // ElevenLabs voice name (resolved server-side); change to re-voice Reezer
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const dt = (s) => new Date(String(s));
   const dayShort = (iso) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(iso)); } catch (e) { return "?"; } };
@@ -478,6 +479,31 @@
       const j = await r.json(); return !!j.ready;
     } catch (e) { return false; }
   }
+  // Fetch premium (ElevenLabs) speech audio for `text`; returns a playable blob URL, or null to fall back.
+  async function ttsFetch(text) {
+    const SB = window.NT_SUPABASE || {};
+    let jwt = SB.key;
+    try { const s = await window.NT_CLIENT.auth.getSession(); if (s && s.data && s.data.session) jwt = s.data.session.access_token; } catch (e) {}
+    try {
+      const r = await fetch((SB.url || "") + "/functions/v1/tts", {
+        method: "POST", headers: { Authorization: "Bearer " + jwt, apikey: SB.key, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text, voice: TTS_VOICE }),
+      });
+      if (!r.ok) return null;
+      const blob = await r.blob();
+      if (!blob || !blob.size) return null;
+      return URL.createObjectURL(blob);
+    } catch (e) { return null; }
+  }
+  async function ttsReadyCheck() {
+    const SB = window.NT_SUPABASE || {};
+    let jwt = SB.key;
+    try { const s = await window.NT_CLIENT.auth.getSession(); if (s && s.data && s.data.session) jwt = s.data.session.access_token; } catch (e) {}
+    try {
+      const r = await fetch((SB.url || "") + "/functions/v1/tts?action=status", { headers: { Authorization: "Bearer " + jwt, apikey: SB.key } });
+      const j = await r.json(); return !!j.ready;
+    } catch (e) { return false; }
+  }
 
   // ------------------------------------------------------------- rendering
   const pctS = (v) => v == null ? "off" : Math.round(v * 100) + "%";
@@ -583,11 +609,13 @@
     const [scopeMode, setScopeMode] = useState(false);   // asking which trades to analyse, in-chat
     const [listening, setListening] = useState(false);   // voice input active
     const [speak, setSpeak] = useState(false);           // read replies aloud
+    const [ttsReady, setTtsReady] = useState(false);     // ElevenLabs premium voice available
     const recRef = useRef(null);
+    const audioRef = useRef(null);               // currently-playing premium audio
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
-    useEffect(() => { injectCSS(); checkReady().then(setReady);
+    useEffect(() => { injectCSS(); checkReady().then(setReady); ttsReadyCheck().then(setTtsReady);
       if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); } catch (e) {} } }, []);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
@@ -602,19 +630,34 @@
       setScopeMode(true);
     };
     const chooseScope = (range) => { setScopeMode(false); design(range); };
-    const speakNow = (text, rate) => {
+    const stopVoice = () => {
+      try { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } } catch (e) {}
+      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    };
+    const browserSay = (text, rate) => {   // fallback when ElevenLabs isn't available
       if (!window.speechSynthesis) return;
       try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text);
         const v = bestVoice(); if (v) u.voice = v; u.rate = rate || 1.0; u.pitch = 1.02;
         window.speechSynthesis.speak(u); } catch (e) {}
     };
-    const speakText = (t) => {
-      if (!speak || !window.speechSynthesis) return;
-      const plain = String(t || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>|[\]-]/g, " ").replace(/\s+/g, " ").trim();
-      if (plain) speakNow(plain, 1.0);
+    // Speak `raw` aloud: premium ElevenLabs voice when configured, else the browser voice.
+    const voiceSay = (raw) => {
+      const plain = String(raw || "").replace(/```[\s\S]*?```/g, "").replace(/[*_`#>|[\]-]/g, " ").replace(/\s+/g, " ").trim();
+      if (!plain) return;
+      stopVoice();
+      if (ttsReady) {
+        ttsFetch(plain).then((url) => {
+          if (!url) { browserSay(plain, 1.0); return; }
+          try { const a = new Audio(url); audioRef.current = a;
+            a.onended = () => { URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; };
+            a.play().catch(() => browserSay(plain, 1.0));
+          } catch (e) { browserSay(plain, 1.0); }
+        });
+      } else browserSay(plain, 1.0);
     };
+    const speakText = (t) => { if (speak) voiceSay(t); };
     // natural conversation: say "let me think" up front, then go quiet while working
-    const sayThinking = () => { if (speak && window.speechSynthesis) speakNow(THINK_LINES[Math.floor(Math.random() * THINK_LINES.length)], 1.0); };
+    const sayThinking = () => { if (speak) voiceSay(THINK_LINES[Math.floor(Math.random() * THINK_LINES.length)]); };
     const toggleMic = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { push({ role: "ai", kind: "text", text: "Voice input isn't supported in this browser — try Chrome or Safari." }); return; }
@@ -760,9 +803,9 @@
             : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => setSpeak((s) => { if (s && window.speechSynthesis) window.speechSynthesis.cancel(); return !s; })} title="Read replies aloud">
+          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => { const n = !speak; setSpeak(n); if (!n) stopVoice(); }} title="Read replies aloud">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
-            {speak ? "Voice on" : "Read aloud"}
+            {speak ? (ttsReady ? "Voice on" : "Read aloud on") : "Read aloud"}
           </button>
         </div>
         <div className="adv-box">
