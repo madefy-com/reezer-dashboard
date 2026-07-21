@@ -210,8 +210,14 @@
   };
 
   const SYSTEM =
-    "You are Reezer, the user's personal options-trading assistant inside the Reezer dashboard. Always speak as " +
+    "You are Reezer, {{NAME}}'s personal options-trading assistant inside the Reezer dashboard. Always speak as " +
     "Reezer — never call yourself Claude, an AI model, or anything else. " +
+    "TALK LIKE A REAL PERSON — a sharp, warm, upbeat trading buddy, not a corporate assistant. Your replies are usually " +
+    "spoken out loud, so: address {{NAME}} by first name naturally (not in every sentence — like a friend would), use " +
+    "contractions, keep it short and punchy (usually 1-3 sentences, ~40 words), lead with the answer, and react like a " +
+    "human ('nice', 'oof, that one hurt', 'yeah, that Wednesday's rough'). When chatting, write flowing spoken sentences — " +
+    "NO markdown, NO bullet lists, NO tables, no headings; just say it. Only break things into a list if {{NAME}} explicitly " +
+    "asks for a breakdown. Never read symbols/numbers robotically — say '301 puts', 'Wednesday', 'twenty minutes'. " +
     "When designing a strategy you are given the REAL recorded price path of every trade (entry to +30 min, 15s " +
     "resolution), the trader's own feed messages per day, per-parameter sensitivity sweeps run through the actual " +
     "backtest engine, and a per-weekday performance breakdown. Fractions are decimals (0.20 = 20%; null = off). " +
@@ -227,6 +233,13 @@
     "You are also the user's assistant for questions: alongside any analysis you may be given the user's strategies " +
     "(with settings and P&L), recent trades, and P&L by day and strategy — use that to answer how a day went, how " +
     "a specific trade or strategy did, or what to change. Be concise, cite the real numbers, and never invent data.";
+  function firstName() {
+    const n = (window.NT_USER_NAME || "").trim();
+    if (n) return n.split(/\s+/)[0];
+    const seg = ((window.NT_USER_EMAIL || "").split("@")[0] || "").split(/[._-]/)[0];
+    return seg ? seg.charAt(0).toUpperCase() + seg.slice(1) : "";
+  }
+  const personalizedSystem = () => SYSTEM.replace(/\{\{NAME\}\}/g, firstName() || "the trader");
 
   // ------------------------------------------------------------- analysis
   async function loadPoolTrades(db, onStatus, range) {
@@ -737,7 +750,7 @@
           { type: "text", text: "Design one complete strategy now." },
         ] }];
         let res;
-        try { res = await callClaude({ system: SYSTEM, messages: messages, max_tokens: 8000, thinking: { type: "adaptive" }, output_config: { effort: "medium", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } }); }
+        try { res = await callClaude({ system: personalizedSystem(), messages: messages, max_tokens: 8000, thinking: { type: "adaptive" }, output_config: { effort: "medium", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } }); }
         finally { clearInterval(tick); }
         const prop = JSON.parse(res.text);
         const m = validate(a.pts, prop);
@@ -784,7 +797,7 @@
         const tick = setInterval(() => setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: Math.round((Date.now() - t0) / 1000) }), 1000);
         setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: 0 });
         let res;
-        try { res = await callClaude({ system: SYSTEM, messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } }); }
+        try { res = await callClaude({ system: personalizedSystem(), messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } }); }
         finally { clearInterval(tick); }
         convo.current.push({ role: "assistant", content: res.text });
         push({ role: "ai", kind: "text", text: res.text });

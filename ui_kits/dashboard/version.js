@@ -21,7 +21,8 @@ window.NT_CHANGELOG = [
       "Ask Reezer is faster and never looks stuck: designing a strategy now runs lighter (about half the wait), the progress bar keeps moving with a live seconds counter while it works, and if the connection ever stalls it times out with a “tap to retry” instead of hanging. Bigger, seamlessly-looping orb that stays visible while you chat; the welcome screen and its glow are now centred; refreshed side-menu orbit icon.",
       "Ask Reezer chat is easier to read: replies are now plain text (no boxes), the strategy write-up is broken into a one-line summary plus short labelled points, and the voice picks the most natural system voice and says it’s thinking before a pause instead of going silent.",
       "Ask Reezer can now speak in a real, natural voice (ElevenLabs) when it’s connected — your voice key stays in Supabase, never in the browser; if it’s not set up it falls back to the built-in system voice.",
-      "Hands-free voice conversation: tap the mic once and just talk — Reezer answers aloud and re-opens the mic for you, back and forth, no tapping between turns. The voice now speaks at a calmer pace and says shorthand as words (“Wed” → Wednesday, “301p” → 301 puts, “20m” → 20 minutes).",
+      "Hands-free voice conversation: tap the mic once and just talk — Reezer answers aloud and re-opens the mic for you, back and forth, no tapping between turns. It says shorthand as words (“Wed” → Wednesday, “301p” → 301 puts, “20m” → 20 minutes).",
+      "Reezer now talks like a person — it greets you by your first name and replies warmly and conversationally instead of like a formal assistant. (Also fixed the voice cutting out.)",
     ],
   },
   {
