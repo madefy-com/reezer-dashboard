@@ -15,7 +15,10 @@
     color:var(--text-primary);overflow:hidden}
   .adv-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
     background:
-      radial-gradient(60% 45% at 50% 0%, rgba(110,91,242,.28), transparent 70%),
+      linear-gradient(to bottom, var(--bg-app), transparent 15%),
+      linear-gradient(to right, var(--bg-app), transparent 9%),
+      linear-gradient(to left, var(--bg-app), transparent 9%),
+      radial-gradient(60% 45% at 50% 2%, rgba(110,91,242,.30), transparent 68%),
       radial-gradient(50% 40% at 85% 15%, rgba(242,74,141,.16), transparent 70%),
       radial-gradient(55% 45% at 12% 25%, rgba(74,141,247,.18), transparent 70%),
       var(--bg-app);}
@@ -23,39 +26,20 @@
     display:flex;flex-direction:column;align-items:center;scroll-padding-bottom:215px}
   .adv-inner{width:100%;max-width:840px;padding:26px 20px 250px;
     display:flex;flex-direction:column;align-items:center}
-  /* orb */
-  .adv-orbstage{position:relative;width:196px;height:196px;display:grid;place-items:center;
+  /* orb — organic morphing blob (SVG turbulence + halftone grain) */
+  .adv-orbstage{position:relative;width:200px;height:200px;display:grid;place-items:center;
     animation:adv-float 7s ease-in-out infinite}
-  .adv-orbstage.sm{width:64px;height:64px;animation:none}
-  .adv-orbglow{position:absolute;width:184px;height:184px;border-radius:50%;pointer-events:none;
-    background:radial-gradient(circle at 50% 44%,rgba(139,92,246,.60),rgba(242,74,141,.34) 40%,rgba(34,211,238,.16) 62%,transparent 72%);
-    filter:blur(34px);animation:adv-breathe 5.5s ease-in-out infinite}
-  .adv-orbstage.sm .adv-orbglow{width:60px;height:60px;filter:blur(11px)}
+  .adv-orbstage.sm{width:60px;height:60px;animation:none}
+  .adv-orbglow{position:absolute;width:170px;height:170px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle at 50% 46%,rgba(139,92,246,.55),rgba(242,74,141,.32) 42%,rgba(74,141,247,.16) 64%,transparent 74%);
+    filter:blur(32px);animation:adv-breathe 5.5s ease-in-out infinite}
+  .adv-orbstage.sm .adv-orbglow{width:56px;height:56px;filter:blur(10px)}
   .adv-orbstage.busy .adv-orbglow{animation-duration:2.4s}
-  .adv-orb{position:relative;width:150px;height:150px;border-radius:50%;
-    -webkit-mask:radial-gradient(circle at 50% 50%,#000 58%,rgba(0,0,0,.5) 69%,transparent 78%);
-            mask:radial-gradient(circle at 50% 50%,#000 58%,rgba(0,0,0,.5) 69%,transparent 78%);
-    filter:drop-shadow(0 26px 58px rgba(110,91,242,.45))}
-  .adv-orb.sm{width:54px;height:54px;filter:drop-shadow(0 8px 18px rgba(110,91,242,.5))}
-  .adv-orb .band{position:absolute;inset:-28%;filter:blur(8px) saturate(1.3) brightness(1.05);
-    background:conic-gradient(from 200deg,#6E5BF2,#8B5CF6,#C04AF2,#F24A8D,#FB7185,#F5A524,#4A8DF7,#22D3EE,#6E5BF2);
-    animation:adv-spin 17s linear infinite}
-  .adv-orb .band.b2{inset:-6%;filter:blur(18px) saturate(1.1);opacity:.5;mix-blend-mode:screen;
-    animation:adv-spinrev 24s linear infinite}
-  .adv-orb .sweep{position:absolute;inset:-2%;mix-blend-mode:screen;opacity:.6;
-    background:conic-gradient(from 0deg,transparent 0deg,rgba(255,255,255,.55) 22deg,transparent 60deg);
-    animation:adv-spin 7s linear infinite}
-  .adv-orb .sheen{position:absolute;inset:0;border-radius:50%;
-    background:radial-gradient(circle at 34% 23%,rgba(255,255,255,.95),rgba(255,255,255,0) 34%),
-               radial-gradient(circle at 72% 84%,rgba(6,3,22,.62),transparent 50%)}
-  .adv-orb .rim{position:absolute;inset:0;border-radius:50%;mix-blend-mode:screen;
-    background:radial-gradient(circle at 50% 50%,transparent 57%,rgba(190,170,255,.5) 70%,transparent 79%)}
-  .adv-orbstage.busy .band{animation-duration:6s}
-  .adv-orbstage.busy .sweep{animation-duration:3.5s}
-  @keyframes adv-spin{to{transform:rotate(360deg)}}
-  @keyframes adv-spinrev{to{transform:rotate(-360deg)}}
+  .adv-orbsvg{position:relative;width:100%;height:100%;overflow:visible;
+    filter:drop-shadow(0 22px 52px rgba(178,74,232,.42))}
+  .adv-orbstage.sm .adv-orbsvg{filter:drop-shadow(0 7px 16px rgba(178,74,232,.5))}
   @keyframes adv-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-  @keyframes adv-breathe{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.09)}}
+  @keyframes adv-breathe{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
   /* hero */
   .adv-hero-h{font:var(--w-semibold) 40px/1.08 var(--font-sans);letter-spacing:-.02em;
     text-align:center;margin:26px 0 10px;background:linear-gradient(180deg,#fff,#c9c2ff);
@@ -114,12 +98,12 @@
   .adv-composer{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;
     padding:16px 20px 22px;background:linear-gradient(180deg,transparent,var(--bg-app) 42%)}
   .adv-composer-in{width:100%;max-width:840px}
-  .adv-box{display:flex;align-items:flex-end;gap:8px;background:var(--surface-card);
-    border:1px solid var(--border-strong);border-radius:18px;padding:8px 8px 8px 16px;
+  .adv-box{display:flex;align-items:center;gap:8px;background:var(--surface-card);
+    border:1px solid var(--border-strong);border-radius:18px;padding:7px 7px 7px 18px;
     box-shadow:var(--shadow-pop)}
   .adv-box:focus-within{border-color:var(--violet-line)}
   .adv-box textarea{flex:1;background:transparent;border:0;outline:0;resize:none;color:var(--text-primary);
-    font:var(--w-regular) var(--t-body)/1.4 var(--font-sans);max-height:140px;padding:6px 0}
+    font:var(--w-regular) var(--t-body)/1.5 var(--font-sans);max-height:140px;padding:0;display:block}
   .adv-send{flex:none;width:38px;height:38px;border-radius:12px;border:0;cursor:pointer;background:var(--accent);
     color:#fff;display:flex;align-items:center;justify-content:center;transition:background var(--dur)}
   .adv-send:hover{background:#7d6cff}.adv-send[disabled]{opacity:.4;cursor:default}
@@ -144,6 +128,14 @@
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);
     transform:translateX(-100%);animation:adv-shimmer 1.25s ease-in-out infinite}
   @keyframes adv-shimmer{to{transform:translateX(100%)}}
+  .adv-scope{width:min(560px,100%);border:1px solid var(--violet-line);border-radius:16px;
+    background:linear-gradient(180deg,rgba(110,91,242,.10),rgba(110,91,242,.02));padding:18px;backdrop-filter:blur(8px)}
+  .adv-scope-h{font:var(--w-semibold) var(--t-body)/1.3 var(--font-sans);color:var(--text-primary);margin-bottom:14px}
+  .adv-scope-row{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:15px}
+  .adv-scope-custom{display:flex;flex-wrap:wrap;align-items:center;gap:9px;color:var(--text-tertiary);
+    font:var(--w-regular) var(--t-sm)/1 var(--font-sans);border-top:1px solid var(--violet-line);padding-top:15px}
+  .adv-scope-custom input[type=date]{background:var(--surface-inset);border:1px solid var(--border-strong);
+    color:var(--text-primary);border-radius:9px;padding:7px 10px;font:var(--w-regular) var(--t-sm) var(--font-mono);color-scheme:dark}
   `;
   function injectCSS() {
     if (document.getElementById("advisor-css")) return;
@@ -210,8 +202,11 @@
     "data. When answering questions, be concise and specific and cite the real numbers from the analysis.";
 
   // ------------------------------------------------------------- analysis
-  async function loadPoolTrades(db, onStatus) {
-    const poolRes = await db.from("replay_pool").select("*").order("entry_ts");
+  async function loadPoolTrades(db, onStatus, range) {
+    let q = db.from("replay_pool").select("*").order("entry_ts");
+    if (range && range.from) q = q.gte("entry_ts", range.from);
+    if (range && range.to) q = q.lte("entry_ts", range.to);
+    const poolRes = await q;
     if (poolRes.error) throw poolRes.error;
     const pool = poolRes.data || [];
     const alRes = await db.from("alerts").select("ts,type,ticker").in("type", ["PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
@@ -329,14 +324,14 @@
     });
   }
 
-  async function analyze(db, onP) {
+  async function analyze(db, onP, range) {
     const P = 0.58, W = 0.30, TOTAL = 9; let done = 0;
     const at = () => P + W * (done / TOTAL);
     onP("Waking the analysis engine…", 0.04);
     await window.Replay.ensure(() => onP("Waking the analysis engine (first run ~5s)…", 0.09));
     onP("Loading your trades…", 0.15);
-    const pts = await loadPoolTrades(db, (i, n) => onP("Loading trades (" + i + "/" + n + ")…", 0.15 + 0.40 * (i / n)));
-    if (!pts.length) throw new Error("No trades with recorded price tape were found.");
+    const pts = await loadPoolTrades(db, (i, n) => onP("Loading trades (" + i + "/" + n + ")…", 0.15 + 0.40 * (i / n)), range);
+    if (!pts.length) throw new Error(range && range.label && range.label !== "all trades" ? "No trades with recorded tape in that range (" + range.label + ")." : "No trades with recorded price tape were found.");
     onP("Reading your feed…", 0.56);
     const profiles = pts.map(profile);
     const feed = await dailyFeed(db);
@@ -367,6 +362,7 @@
     onP("Compiling the analysis…", 0.90);
     const payload = {
       note: "All sweep/weekday P&L is per 1 contract, rules-only isolation over the real tape. Horizon = entry to +30 min. Max contracts is fixed at 1.",
+      scope: (range && range.label) || "all trades",
       n_trades: pts.length, trades: profiles, daily_feed: feed,
       weekday_performance: weekday, sensitivity_sweeps: sw,
     };
@@ -441,14 +437,46 @@
     close();
     return html;
   }
+  let _orbN = 0;
   function Orb(props) {
     const sm = props.sm ? " sm" : "";
+    const idRef = useRef(0); if (!idRef.current) idRef.current = ++_orbN;
+    const u = idRef.current, id = (k) => k + u, ref = (k) => "url(#" + k + u + ")";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
       <div className="adv-orbglow" />
-      <div className={"adv-orb" + sm}>
-        <div className="band" /><div className="band b2" /><div className="sweep" />
-        <div className="sheen" /><div className="rim" />
-      </div>
+      <svg className="adv-orbsvg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id={id("og")} cx="38%" cy="30%" r="78%">
+            <stop offset="0%" stopColor="#ece2ff" /><stop offset="28%" stopColor="#9b7bff" />
+            <stop offset="58%" stopColor="#B24AE8" /><stop offset="100%" stopColor="#F24A8D" />
+          </radialGradient>
+          <radialGradient id={id("hi")} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.9" /><stop offset="100%" stopColor="#fff" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id={id("core")} cx="50%" cy="50%" r="50%">
+            <stop offset="60%" stopColor="#22D3EE" stopOpacity="0" /><stop offset="100%" stopColor="#4A8DF7" stopOpacity="0.42" />
+          </radialGradient>
+          <radialGradient id={id("df")} cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0" /><stop offset="55%" stopColor="#fff" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#fff" stopOpacity="0.6" />
+          </radialGradient>
+          <mask id={id("dm")}><rect width="220" height="220" fill={ref("df")} /></mask>
+          <pattern id={id("dots")} width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="1.5" cy="1.5" r="1.15" fill="#fff" />
+          </pattern>
+          <filter id={id("wob")} x="-45%" y="-45%" width="190%" height="190%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="4" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="24" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+        <g filter={ref("wob")}>
+          <animateTransform attributeName="transform" type="rotate" from="0 110 110" to="360 110 110" dur="24s" repeatCount="indefinite" />
+          <circle cx="110" cy="110" r="72" fill={ref("og")} />
+          <circle cx="110" cy="110" r="72" fill={ref("dots")} mask={ref("dm")} />
+          <circle cx="110" cy="110" r="72" fill={ref("core")} />
+        </g>
+        <ellipse cx="86" cy="76" rx="34" ry="24" fill={ref("hi")} opacity="0.5" />
+      </svg>
     </div>);
   }
   function ProposalCard(props) {
@@ -492,8 +520,7 @@
     </div>);
   }
 
-  const DESIGN_CHIPS = ["Design a strategy"];
-  const ASK_CHIPS = ["Why no stop?", "Which day loses money?", "What if Wednesday runs full budget?", "Design a new one"];
+  const ASK_CHIPS = ["Why no stop?", "Which day loses money?", "What if Wednesday runs full budget?", "Analyse again"];
 
   function AdvisorPage() {
     const [msgs, setMsgs] = useState([]);       // {role:'me'|'ai', kind:'text'|'proposal', text?, p?, m?, n?}
@@ -502,26 +529,36 @@
     const [status, setStatus] = useState("");
     const [prog, setProg] = useState(null);      // {label, pct} during analysis
     const [ready, setReady] = useState(null);
+    const [picking, setPicking] = useState(false);   // showing the data-scope picker
+    const [cFrom, setCFrom] = useState("");
+    const [cTo, setCTo] = useState("");
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     useEffect(() => { injectCSS(); checkReady().then(setReady); }, []);
-    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog]);
+    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, picking]);
 
     const started = msgs.length > 0;
     const push = (m) => setMsgs((x) => x.concat([m]));
 
-    async function ensureAnalysis() {
-      if (analysisRef.current) return analysisRef.current;
-      const a = await analyze(window.NT_CLIENT, (label, pct) => setProg({ label: label, pct: pct }));
+    const openScope = () => { if (!busy) setPicking(true); };
+    const scopeDays = (n) => ({ from: new Date(Date.now() - n * 86400000).toISOString(), to: null, label: "last " + n + " days" });
+    const scopeMonth = () => { const d = new Date(); return { from: new Date(d.getFullYear(), d.getMonth(), 1).toISOString(), to: null, label: "this month" }; };
+    const scopeCustom = () => ({ from: cFrom ? new Date(cFrom + "T00:00:00").toISOString() : null, to: cTo ? new Date(cTo + "T23:59:59").toISOString() : null, label: (cFrom || "start") + " → " + (cTo || "now") });
+    const chooseScope = (range) => { setPicking(false); design(range); };
+
+    async function ensureAnalysis(range, force) {
+      if (analysisRef.current && !force) return analysisRef.current;
+      const a = await analyze(window.NT_CLIENT, (label, pct) => setProg({ label: label, pct: pct }), range);
       analysisRef.current = a; return a;
     }
 
-    async function design() {
-      if (busy) return; setBusy(true); setProg({ label: "Starting…", pct: 0.02 });
-      push({ role: "me", kind: "text", text: "Design a strategy from my trades." });
+    async function design(range) {
+      if (busy) return; setBusy(true); setPicking(false); setProg({ label: "Starting…", pct: 0.02 });
+      const scopeTxt = range && range.label && range.label !== "all trades" ? " · " + range.label : "";
+      push({ role: "me", kind: "text", text: "Analyse my trades" + scopeTxt });
       try {
-        const a = await ensureAnalysis();
+        const a = await ensureAnalysis(range, true);
         setProg({ label: "Claude is designing your strategy…", pct: 0.95 });
         const messages = [{ role: "user", content: [
           { type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
@@ -538,11 +575,11 @@
 
     async function ask(q) {
       if (busy || !q.trim()) return;
-      if (/design (a )?(new )?strateg/i.test(q) && !/why|explain/i.test(q)) { setInput(""); return design(); }
+      if (/^\s*(analy[sz]e|design)\b/i.test(q) && /trade|strateg/i.test(q) && !/why|explain|what if/i.test(q)) { setInput(""); return openScope(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
       try {
         if (!convo.current.length) {              // asked before designing -> run analysis first (shows the progress bar), seed context
-          const a = await ensureAnalysis();
+          const a = await ensureAnalysis(null, false);
           convo.current = [{ role: "user", content: [{ type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } }, { type: "text", text: "I'll ask questions about this data." }] }, { role: "assistant", content: "Understood — I've studied all your trades, the price paths, your feed, and the sensitivity sweeps. Ask away." }];
         }
         convo.current.push({ role: "user", content: q });
@@ -555,7 +592,6 @@
     }
 
     const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input); } };
-    const chips = started ? ASK_CHIPS : DESIGN_CHIPS;
 
     return (<div className="adv-wrap">
       <div className="adv-bg" />
@@ -563,7 +599,7 @@
         {!started && (<div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: "6vh" }}>
           <Orb busy={busy} />
           <h1 className="adv-hero-h">Let's find your edge.</h1>
-          <p className="adv-hero-p">I'll study every trade you've taken — the full price path to +30 min and your own feed — then design a strategy from it, and you can ask me anything about it.</p>
+          <p className="adv-hero-p">I'll study your recorded trades — the full price path to +30 min and your own feed — then design a complete strategy from it, and you can ask me anything about it.</p>
         </div>)}
 
         <div className="adv-convo">
@@ -576,6 +612,22 @@
                   ? <div className="adv-bubble" dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
                   : <div className="adv-bubble">{m.text}</div>}
           </div>))}
+          {picking && !busy && (<div className="adv-msg ai"><div className="adv-scope">
+            <div className="adv-scope-h">Which trades should I analyse?</div>
+            <div className="adv-scope-row">
+              <button className="adv-chip primary" onClick={() => chooseScope({ from: null, to: null, label: "all trades" })}>All trades</button>
+              <button className="adv-chip" onClick={() => chooseScope(scopeDays(7))}>Last 7 days</button>
+              <button className="adv-chip" onClick={() => chooseScope(scopeDays(30))}>Last 30 days</button>
+              <button className="adv-chip" onClick={() => chooseScope(scopeMonth())}>This month</button>
+            </div>
+            <div className="adv-scope-custom">
+              <span>or a date range</span>
+              <input type="date" value={cFrom} onChange={(e) => setCFrom(e.target.value)} />
+              <span>→</span>
+              <input type="date" value={cTo} onChange={(e) => setCTo(e.target.value)} />
+              <button className="adv-chip primary" disabled={!cFrom && !cTo} onClick={() => chooseScope(scopeCustom())}>Analyse range</button>
+            </div>
+          </div></div>)}
           {busy && (<div className="adv-msg ai">{prog
             ? <div className="adv-progress">
                 <div className="adv-prog-label"><span className="adv-dot" />{prog.label}<span className="adv-prog-pct">{Math.round(prog.pct * 100)}%</span></div>
@@ -585,18 +637,18 @@
           <div ref={endRef} />
         </div>
 
-        {!started && (<div className="adv-chips" style={{ marginTop: 8 }}>
-          {chips.map((c) => (<button key={c} className={"adv-chip" + (c === "Design a strategy" ? " primary" : "")} disabled={busy} onClick={() => ask(c)}>{c}</button>))}
+        {!started && !busy && !picking && (<div className="adv-chips" style={{ marginTop: 8 }}>
+          <button className="adv-chip primary" onClick={openScope}>Analyse my trades</button>
         </div>)}
       </div></div>
 
       <div className="adv-composer"><div className="adv-composer-in">
         {ready === false && (<p className="adv-note">Add your ANTHROPIC_API_KEY in Supabase → Edge Functions → Secrets to enable the advisor.</p>)}
         {started && (<div className="adv-chips" style={{ marginBottom: 10 }}>
-          {ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => ask(c)}>{c}</button>))}
+          {ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
         <div className="adv-box">
-          <textarea rows={1} value={input} placeholder="Ask about your trades, or design a strategy…"
+          <textarea rows={1} value={input} placeholder="Ask about your trades…"
             onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} disabled={busy} />
           <button className="adv-send" disabled={busy || !input.trim()} onClick={() => ask(input)} title="Send">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
