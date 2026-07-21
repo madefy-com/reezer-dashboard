@@ -23,6 +23,7 @@ window.NT_CHANGELOG = [
       "Ask Reezer can now speak in a real, natural voice (ElevenLabs) when it’s connected — your voice key stays in Supabase, never in the browser; if it’s not set up it falls back to the built-in system voice.",
       "Hands-free voice conversation: tap the mic once and just talk — Reezer answers aloud and re-opens the mic for you, back and forth, no tapping between turns. It says shorthand as words (“Wed” → Wednesday, “301p” → 301 puts, “20m” → 20 minutes).",
       "Reezer now talks like a person — it greets you by your first name and replies warmly and conversationally instead of like a formal assistant. (Also fixed the voice cutting out.)",
+      "Exit Lab no longer lists trades from strategies you've deleted (they used to show up as a nameless “—”). Removed the confusing “Live only” item from the strategy filter — it was a filter, not a real strategy. And the No Stop strategy now has its full trade history in Exit Lab, replayed across every recorded trade, so you can compare it head-to-head with your others.",
     ],
   },
   {

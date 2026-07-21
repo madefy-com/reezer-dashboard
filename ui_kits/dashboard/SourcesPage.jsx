@@ -77,9 +77,7 @@ function SourcesPage() {
   const strategies = window.NT_DATA.strategies || [];
   const machines = window.NT_DATA.machines || [];
   const cmds = window.NT_DATA.machineCommands || [];   // newest first (id desc)
-  const anyLive = strategies.some((s) => s.account === "live");
   const viewOptions = [{ value: "all", label: "All strategies" }]
-    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
     .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
   const view = String(window.NT_DATA.viewStrategy || "all");
   const range = String(window.NT_DATA.dateRange || "week");

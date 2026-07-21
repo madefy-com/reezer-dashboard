@@ -298,9 +298,7 @@ function StrategyViewSelect() {
   const strategies = window.NT_DATA.strategies || [];
   if (strategies.length < 2) return null;
   const view = String(window.NT_DATA.viewStrategy || "all");
-  const anyLive = strategies.some((s) => s.account === "live");
   const options = [{ value: "all", label: "All strategies" }]
-    .concat(anyLive ? [{ value: "live", label: "Live only" }] : [])
     .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
   return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
 }

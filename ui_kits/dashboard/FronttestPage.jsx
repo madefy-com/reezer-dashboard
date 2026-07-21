@@ -56,7 +56,9 @@ function FronttestPage() {
   const liveIds = {}; strategies.forEach((s) => { if (s.account === "live") liveIds[s.id] = true; });
   const inView = (sid) => view === "all" ? true : view === "live" ? !!liveIds[sid] : String(sid) === view;
   const inDate = (iso) => { if (!bounds || !iso) return true; const d = new Date(iso); return d >= bounds.from && d <= bounds.to; };
-  const dateRows = (rows || []).filter((r) => inDate(r.when));   // date-filtered (all strategies) -> drives the stats
+  // only strategies that still exist — a removed strategy leaves its trades behind
+  // with no matching row; those must NOT show up (they'd render as a nameless "—").
+  const dateRows = (rows || []).filter((r) => inDate(r.when) && stratMap[r.sid]);   // date-filtered (existing strategies) -> drives the stats
   const shown = dateRows.filter((r) => inView(r.sid));           // + strategy filter -> drives the trades table
 
   const pct = (n) => (n == null ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(1) + "%");
