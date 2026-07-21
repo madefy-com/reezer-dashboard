@@ -163,7 +163,7 @@
 
   // --------------------------------------------------------------- constants
   const HORIZON_MIN = 30, STEP_S = 15, MAX_CONTRACTS = 1;
-  const TTS_VOICE = "Rachel";   // ElevenLabs voice name (resolved server-side); change to re-voice Reezer
+  const TTS_VOICE = "George";   // ElevenLabs voice name (resolved server-side); change to re-voice Reezer
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const dt = (s) => new Date(String(s));
   const dayShort = (iso) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(iso)); } catch (e) { return "?"; } };
