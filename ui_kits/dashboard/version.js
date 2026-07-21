@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.013";
+window.NT_VERSION = "1.014";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.014", date: "2026-07-21",
+    notes: [
+      "Replay preview: the trade list now scrolls when it's longer than the panel — before, a long list was cut off with no way to reach the rest of the trades (fixed on desktop and touch).",
+    ],
+  },
   {
     v: "1.013", date: "2026-07-14",
     notes: [

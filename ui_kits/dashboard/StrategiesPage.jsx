@@ -247,7 +247,7 @@ function StrategyCard({ strat, sources }) {
 
       {replay && (
         <div onMouseDown={(e) => { if (e.target === e.currentTarget && !(replay.status)) setReplay(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
-          <div style={{ width: 460, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14, maxHeight: "88vh", overflowY: "auto" }}>
+          <div style={{ width: 460, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14, maxHeight: "88vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)" }}>Replay · {strat.name}</span>
               {!replay.status && <button onClick={() => setReplay(null)} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -279,7 +279,7 @@ function StrategyCard({ strat, sources }) {
                   {d === 0 ? "Same as the recorded outcomes." : (d > 0 ? "+$" + d : "−$" + Math.abs(d)) + " vs the recorded outcomes."} Click a trade for its replayed chart &amp; log — the recorded trades stay untouched.
                 </div>
                 {list.length > 0 && (
-                  <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+                  <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflowX: "hidden", overflowY: "auto", maxHeight: "42vh", WebkitOverflowScrolling: "touch" }}>
                     {list.map((t, i) => { const rp = Math.round(t.realized), op = Math.round(t.orig_realized); const rc = rp > 0 ? "var(--profit)" : rp < 0 ? "var(--loss)" : "var(--text-secondary)"; return (
                       <button key={i} onClick={() => openReplayTrade(t)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "9px 12px", border: "none", borderTop: i ? "1px solid var(--border)" : "none", background: "var(--surface-inset)", cursor: "pointer", textAlign: "left" }}>
                         <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{t.ticker} <span style={{ color: "var(--text-tertiary)" }}>{String(Number(t.strike)) + (t.side || "")}</span></span>
