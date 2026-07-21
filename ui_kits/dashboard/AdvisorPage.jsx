@@ -639,7 +639,8 @@
     const [convoMode, setConvoMode] = useState(false);   // hands-free conversation loop
     const recRef = useRef(null);
     const convoRef = useRef(false);              // latest convoMode for async callbacks
-    const audioRef = useRef(null);               // currently-playing premium audio
+    const audioRef = useRef(null);               // ONE reusable audio element (unlocked by a gesture)
+    const lastUrlRef = useRef(null);             // last blob URL, revoked when replaced
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
@@ -659,8 +660,16 @@
       if (convoRef.current) voiceSay("Which trades should I analyse? You can say all trades, the last seven days, or a date range.", true);
     };
     const chooseScope = (range) => { setScopeMode(false); design(range); };
+    // ONE reusable <audio> element. In voice mode the reply plays from inside a
+    // speech-recognition callback (no fresh user gesture), which browsers block for
+    // a fresh Audio() — so ElevenLabs would silently fall back to the Mac voice.
+    // We unlock this single element on the mic tap (a real gesture); reusing it lets
+    // every later reply play the premium voice.
+    const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
+    const getAudioEl = () => { if (!audioRef.current) { const a = new Audio(); a.preload = "auto"; audioRef.current = a; } return audioRef.current; };
+    const unlockAudio = () => { if (audioRef.current && audioRef.current._unlocked) return; try { const a = getAudioEl(); a.src = SILENT_WAV; const p = a.play(); if (p && p.then) p.then(() => { a._unlocked = true; a.pause(); a.currentTime = 0; }).catch(() => {}); } catch (e) {} };
     const stopVoice = () => {
-      try { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } } catch (e) {}
+      try { if (audioRef.current) audioRef.current.pause(); } catch (e) {}
       try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
     };
     const browserSay = (text, onDone) => {   // fallback when ElevenLabs isn't available
@@ -680,9 +689,13 @@
       if (ttsReady) {
         ttsFetch(plain).then((url) => {
           if (!url) { browserSay(plain, done); return; }
-          try { const a = new Audio(url); audioRef.current = a;
-            a.onended = () => { URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; done(); };
-            a.play().catch(() => browserSay(plain, done));
+          try {
+            const a = getAudioEl();
+            if (lastUrlRef.current) { try { URL.revokeObjectURL(lastUrlRef.current); } catch (e) {} }
+            lastUrlRef.current = url;
+            a.muted = false; a.onended = done; a.onerror = null; a.src = url; a.currentTime = 0;
+            const p = a.play();
+            if (p && p.catch) p.catch(() => browserSay(plain, done));
           } catch (e) { browserSay(plain, done); }
         });
       } else browserSay(plain, done);
@@ -714,6 +727,7 @@
       }
       convoRef.current = true; setConvoMode(true);      // start
       if (!speak) setSpeak(true);
+      unlockAudio();   // this tap is a user gesture — unlock the audio element so replies play the premium voice
       startListen();
     };
     const parseScope = (text) => {
@@ -736,10 +750,10 @@
     }
 
     async function design(range) {
-      if (busy) return; setBusy(true); setProg({ label: "Starting…", pct: 0.02 });
+      if (busy) return; setBusy(true); unlockAudio(); setProg({ label: "Starting…", pct: 0.02 });
       const scopeTxt = range && range.label && range.label !== "all trades" ? " · " + range.label : "";
       push({ role: "me", kind: "text", text: "Analyse my trades" + scopeTxt });
-      sayThinking();
+      sayThinking();   // designing always takes a while — the up-front "let me think" fits here
       try {
         const a = await ensureAnalysis(range, true);
         const t0 = Date.now();
@@ -781,7 +795,9 @@
       }
       if (/^\s*(analy[sz]e|design)\b/i.test(q) && /trade|strateg/i.test(q) && !/why|explain|what if/i.test(q)) { setInput(""); return openScope(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
-      sayThinking();
+      unlockAudio();
+      // only say "let me think" if the answer is actually taking a while — not on quick questions
+      const thinkT = setTimeout(sayThinking, 2600);
       try {
         if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
           setStatus("Loading your trades & strategies…");
@@ -799,10 +815,11 @@
         let res;
         try { res = await callClaude({ system: personalizedSystem(), messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } }); }
         finally { clearInterval(tick); }
+        clearTimeout(thinkT);   // reply arrived — cancel the pending "let me think" if it hasn't fired
         convo.current.push({ role: "assistant", content: res.text });
         push({ role: "ai", kind: "text", text: res.text });
         speakText(res.text);
-      } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
+      } catch (e) { clearTimeout(thinkT); push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
       setBusy(false); setStatus(""); setProg(null);
     }
 
@@ -850,7 +867,7 @@
             : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => { const n = !speak; setSpeak(n); if (!n) stopVoice(); }} title="Read replies aloud">
+          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => { const n = !speak; setSpeak(n); if (n) unlockAudio(); else stopVoice(); }} title="Read replies aloud">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
             {speak ? (ttsReady ? "Voice on" : "Read aloud on") : "Read aloud"}
           </button>
