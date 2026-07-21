@@ -30,14 +30,13 @@
   .adv-orbstage{position:relative;width:200px;height:200px;display:grid;place-items:center;
     animation:adv-float 7s ease-in-out infinite}
   .adv-orbstage.sm{width:60px;height:60px;animation:none}
-  .adv-orbglow{position:absolute;width:170px;height:170px;border-radius:50%;pointer-events:none;
-    background:radial-gradient(circle at 50% 46%,rgba(139,92,246,.55),rgba(242,74,141,.32) 42%,rgba(74,141,247,.16) 64%,transparent 74%);
-    filter:blur(32px);animation:adv-breathe 5.5s ease-in-out infinite}
-  .adv-orbstage.sm .adv-orbglow{width:56px;height:56px;filter:blur(10px)}
+  .adv-orbglow{position:absolute;width:150px;height:150px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle at 50% 48%,rgba(139,92,246,.4),rgba(242,74,141,.2) 44%,transparent 70%);
+    filter:blur(30px);animation:adv-breathe 5.5s ease-in-out infinite}
+  .adv-orbstage.sm .adv-orbglow{width:52px;height:52px;filter:blur(9px)}
   .adv-orbstage.busy .adv-orbglow{animation-duration:2.4s}
-  .adv-orbsvg{position:relative;width:100%;height:100%;overflow:visible;
-    filter:drop-shadow(0 22px 52px rgba(178,74,232,.42))}
-  .adv-orbstage.sm .adv-orbsvg{filter:drop-shadow(0 7px 16px rgba(178,74,232,.5))}
+  .adv-orbgif{position:relative;width:132%;height:132%;object-fit:contain;
+    filter:hue-rotate(-66deg) saturate(1.32) brightness(1.04) drop-shadow(0 16px 38px rgba(139,91,242,.5))}
   @keyframes adv-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
   @keyframes adv-breathe{0%,100%{opacity:.72;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
   /* hero */
@@ -199,7 +198,10 @@
     "IMPORTANT: max contracts is FIXED at 1, so trade_budget_usd is NOT leverage — it is a max-premium-per-" +
     "contract filter (a trade whose price*100 exceeds budget*day% is SKIPPED). Use it plus budget_day_pct to " +
     "avoid expensive premium and skip weak days. When designing, return one complete strategy justified by the " +
-    "data. When answering questions, be concise and specific and cite the real numbers from the analysis.";
+    "data. You are also Reezer's trading assistant: alongside any analysis you may be given the user's strategies " +
+    "(with their settings and P&L), their recent trades, and P&L by day and by strategy — use that data to answer " +
+    "questions like how a day went, how a specific trade or strategy did, or what to change. Be concise and " +
+    "specific, cite the real numbers, and never invent data you were not given.";
 
   // ------------------------------------------------------------- analysis
   async function loadPoolTrades(db, onStatus, range) {
@@ -266,6 +268,32 @@
       (byDay[d] = byDay[d] || []).push(line);
     });
     return byDay;
+  }
+
+  // Broad context for Q&A: strategies (+settings), recent trades, P&L rollups by strategy/day.
+  async function loadContext(db) {
+    const [str, pos] = await Promise.all([
+      db.from("strategies").select("*").order("id"),
+      db.from("positions").select("ticker,strike,side,entry_ts,exit_ts,entry_price,exit_price,realized_pnl,strategy_id,status,orig_qty").order("entry_ts", { ascending: false }).limit(400),
+    ]);
+    const strategies = (str.data || []).map((s) => ({
+      id: s.id, name: s.name, account: s.account, trade_budget_usd: s.trade_budget_usd,
+      max_contracts: s.max_contracts_per_trade, stop_loss_pct: s.stop_loss_pct, take_profit_pct: s.take_profit_pct,
+      take_half_at_pct: s.take_half_at_pct, breakeven_at_pct: s.breakeven_at_pct, trailing_tiers: s.trailing_tiers,
+      max_hold_minutes: s.max_hold_minutes, exit_mode: s.exit_mode, budget_day_pct: s.budget_day_pct, allowlist: s.allowlist,
+    }));
+    const nameById = {}; strategies.forEach((s) => { nameById[s.id] = s.name; });
+    const trades = (pos.data || []).map((p) => ({
+      ticker: p.ticker, side: p.side === "C" ? "call" : "put", strike: p.strike, qty: p.orig_qty,
+      day: dayShort(p.entry_ts), date: new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(dt(p.entry_ts)),
+      time_et: new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: false }).format(dt(p.entry_ts)),
+      entry: p.entry_price, exit: p.exit_price, pnl: p.realized_pnl == null ? null : Math.round(p.realized_pnl),
+      strategy: nameById[p.strategy_id] || ("#" + p.strategy_id), status: p.status,
+    }));
+    const round = (o) => { const r = {}; Object.keys(o).forEach((k) => r[k] = Math.round(o[k])); return r; };
+    const byStrat = {}, byDay = {};
+    trades.forEach((t) => { const v = Number(t.pnl || 0); byStrat[t.strategy] = (byStrat[t.strategy] || 0) + v; byDay[t.date] = (byDay[t.date] || 0) + v; });
+    return { strategies: strategies, pnl_by_strategy: round(byStrat), pnl_by_day: round(byDay), n_trades: trades.length, trades: trades };
   }
 
   function sizeFor(row, px, ts) {
@@ -437,46 +465,11 @@
     close();
     return html;
   }
-  let _orbN = 0;
   function Orb(props) {
     const sm = props.sm ? " sm" : "";
-    const idRef = useRef(0); if (!idRef.current) idRef.current = ++_orbN;
-    const u = idRef.current, id = (k) => k + u, ref = (k) => "url(#" + k + u + ")";
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
       <div className="adv-orbglow" />
-      <svg className="adv-orbsvg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <radialGradient id={id("og")} cx="38%" cy="30%" r="78%">
-            <stop offset="0%" stopColor="#ece2ff" /><stop offset="28%" stopColor="#9b7bff" />
-            <stop offset="58%" stopColor="#B24AE8" /><stop offset="100%" stopColor="#F24A8D" />
-          </radialGradient>
-          <radialGradient id={id("hi")} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.9" /><stop offset="100%" stopColor="#fff" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={id("core")} cx="50%" cy="50%" r="50%">
-            <stop offset="60%" stopColor="#22D3EE" stopOpacity="0" /><stop offset="100%" stopColor="#4A8DF7" stopOpacity="0.42" />
-          </radialGradient>
-          <radialGradient id={id("df")} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0" /><stop offset="55%" stopColor="#fff" stopOpacity="0.04" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0.6" />
-          </radialGradient>
-          <mask id={id("dm")}><rect width="220" height="220" fill={ref("df")} /></mask>
-          <pattern id={id("dots")} width="7" height="7" patternUnits="userSpaceOnUse">
-            <circle cx="1.5" cy="1.5" r="1.15" fill="#fff" />
-          </pattern>
-          <filter id={id("wob")} x="-45%" y="-45%" width="190%" height="190%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.009 0.013" numOctaves="2" seed="4" result="n" />
-            <feDisplacementMap in="SourceGraphic" in2="n" scale="24" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </defs>
-        <g filter={ref("wob")}>
-          <animateTransform attributeName="transform" type="rotate" from="0 110 110" to="360 110 110" dur="24s" repeatCount="indefinite" />
-          <circle cx="110" cy="110" r="72" fill={ref("og")} />
-          <circle cx="110" cy="110" r="72" fill={ref("dots")} mask={ref("dm")} />
-          <circle cx="110" cy="110" r="72" fill={ref("core")} />
-        </g>
-        <ellipse cx="86" cy="76" rx="34" ry="24" fill={ref("hi")} opacity="0.5" />
-      </svg>
+      <img className="adv-orbgif" src="/assets/orb.webp?v=99" alt="" draggable="false" />
     </div>);
   }
   function ProposalCard(props) {
@@ -529,23 +522,36 @@
     const [status, setStatus] = useState("");
     const [prog, setProg] = useState(null);      // {label, pct} during analysis
     const [ready, setReady] = useState(null);
-    const [picking, setPicking] = useState(false);   // showing the data-scope picker
-    const [cFrom, setCFrom] = useState("");
-    const [cTo, setCTo] = useState("");
+    const [scopeMode, setScopeMode] = useState(false);   // asking which trades to analyse, in-chat
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     useEffect(() => { injectCSS(); checkReady().then(setReady); }, []);
-    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, picking]);
+    useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
     const started = msgs.length > 0;
     const push = (m) => setMsgs((x) => x.concat([m]));
 
-    const openScope = () => { if (!busy) setPicking(true); };
     const scopeDays = (n) => ({ from: new Date(Date.now() - n * 86400000).toISOString(), to: null, label: "last " + n + " days" });
     const scopeMonth = () => { const d = new Date(); return { from: new Date(d.getFullYear(), d.getMonth(), 1).toISOString(), to: null, label: "this month" }; };
-    const scopeCustom = () => ({ from: cFrom ? new Date(cFrom + "T00:00:00").toISOString() : null, to: cTo ? new Date(cTo + "T23:59:59").toISOString() : null, label: (cFrom || "start") + " → " + (cTo || "now") });
-    const chooseScope = (range) => { setPicking(false); design(range); };
+    const openScope = () => {
+      if (busy) return;
+      push({ role: "ai", kind: "text", text: "**Which trades should I analyse?** Tap a range below — or type dates like `2026-07-01 to 2026-07-15`, or `last 2 weeks`." });
+      setScopeMode(true);
+    };
+    const chooseScope = (range) => { setScopeMode(false); design(range); };
+    const parseScope = (text) => {
+      const t = String(text).trim().toLowerCase();
+      if (!t) return null;
+      if (/^all\b|all trades|everything/.test(t)) return { from: null, to: null, label: "all trades" };
+      if (/this month/.test(t)) return scopeMonth();
+      const m = t.match(/last\s+(\d+)\s*(day|week|month)/);
+      if (m) return scopeDays(parseInt(m[1], 10) * (m[2][0] === "w" ? 7 : m[2][0] === "m" ? 30 : 1));
+      const iso = (s) => { const p = s.replace(/\//g, "-").split("-"); let y, mo, d; if (p[0].length === 4) { y = p[0]; mo = p[1]; d = p[2]; } else { d = p[0]; mo = p[1]; y = p[2]; } if (!y || !mo || !d) return null; return new Date(+y, +mo - 1, +d).toISOString(); };
+      const toks = t.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/g);
+      if (toks && toks.length) { const from = iso(toks[0]); const to = toks[1] ? iso(toks[1]) : null; return { from: from, to: to, label: toks.join(" → ") + (to ? "" : " → now") }; }
+      return null;
+    };
 
     async function ensureAnalysis(range, force) {
       if (analysisRef.current && !force) return analysisRef.current;
@@ -567,7 +573,14 @@
         const res = await callClaude({ system: SYSTEM, messages: messages, max_tokens: 12000, thinking: { type: "adaptive" }, output_config: { effort: "high", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } });
         const prop = JSON.parse(res.text);
         const m = validate(a.pts, prop);
-        convo.current = messages.concat([{ role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" }]);
+        const ctx = await loadContext(window.NT_CLIENT);
+        convo.current = [
+          { role: "user", content: [
+            { type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx) + "\n\nAnd the deep sweep analysis used to design a strategy:\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
+            { type: "text", text: "You designed a strategy from the sweep." },
+          ] },
+          { role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" },
+        ];
         push({ role: "ai", kind: "proposal", p: prop, m: m, n: a.pts.length });
       } catch (e) { push({ role: "ai", kind: "text", text: "", err: String(e.message || e) }); }
       setBusy(false); setStatus(""); setProg(null);
@@ -575,12 +588,24 @@
 
     async function ask(q) {
       if (busy || !q.trim()) return;
+      if (scopeMode) {
+        setInput("");
+        const r = parseScope(q);
+        if (r) return chooseScope(r);
+        push({ role: "me", kind: "text", text: q });
+        push({ role: "ai", kind: "text", text: "I couldn't read that as a date range. Try `2026-07-01 to 2026-07-15`, `last 2 weeks`, or tap a range above." });
+        return;
+      }
       if (/^\s*(analy[sz]e|design)\b/i.test(q) && /trade|strateg/i.test(q) && !/why|explain|what if/i.test(q)) { setInput(""); return openScope(); }
       setBusy(true); setInput(""); push({ role: "me", kind: "text", text: q });
       try {
-        if (!convo.current.length) {              // asked before designing -> run analysis first (shows the progress bar), seed context
-          const a = await ensureAnalysis(null, false);
-          convo.current = [{ role: "user", content: [{ type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } }, { type: "text", text: "I'll ask questions about this data." }] }, { role: "assistant", content: "Understood — I've studied all your trades, the price paths, your feed, and the sensitivity sweeps. Ask away." }];
+        if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
+          setStatus("Loading your trades & strategies…");
+          const ctx = await loadContext(window.NT_CLIENT);
+          convo.current = [
+            { role: "user", content: [{ type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx), cache_control: { type: "ephemeral" } }, { type: "text", text: "I'll ask questions about my trading." }] },
+            { role: "assistant", content: "Loaded — I can see your strategies, trades, and daily P&L. Ask me anything." },
+          ];
         }
         convo.current.push({ role: "user", content: q });
         setProg(null); setStatus("thinking…");
@@ -612,22 +637,6 @@
                   ? <div className="adv-bubble" dangerouslySetInnerHTML={{ __html: mdToHtml(m.text) }} />
                   : <div className="adv-bubble">{m.text}</div>}
           </div>))}
-          {picking && !busy && (<div className="adv-msg ai"><div className="adv-scope">
-            <div className="adv-scope-h">Which trades should I analyse?</div>
-            <div className="adv-scope-row">
-              <button className="adv-chip primary" onClick={() => chooseScope({ from: null, to: null, label: "all trades" })}>All trades</button>
-              <button className="adv-chip" onClick={() => chooseScope(scopeDays(7))}>Last 7 days</button>
-              <button className="adv-chip" onClick={() => chooseScope(scopeDays(30))}>Last 30 days</button>
-              <button className="adv-chip" onClick={() => chooseScope(scopeMonth())}>This month</button>
-            </div>
-            <div className="adv-scope-custom">
-              <span>or a date range</span>
-              <input type="date" value={cFrom} onChange={(e) => setCFrom(e.target.value)} />
-              <span>→</span>
-              <input type="date" value={cTo} onChange={(e) => setCTo(e.target.value)} />
-              <button className="adv-chip primary" disabled={!cFrom && !cTo} onClick={() => chooseScope(scopeCustom())}>Analyse range</button>
-            </div>
-          </div></div>)}
           {busy && (<div className="adv-msg ai">{prog
             ? <div className="adv-progress">
                 <div className="adv-prog-label"><span className="adv-dot" />{prog.label}<span className="adv-prog-pct">{Math.round(prog.pct * 100)}%</span></div>
@@ -637,7 +646,7 @@
           <div ref={endRef} />
         </div>
 
-        {!started && !busy && !picking && (<div className="adv-chips" style={{ marginTop: 8 }}>
+        {!started && !busy && (<div className="adv-chips" style={{ marginTop: 8 }}>
           <button className="adv-chip primary" onClick={openScope}>Analyse my trades</button>
         </div>)}
       </div></div>
@@ -645,10 +654,13 @@
       <div className="adv-composer"><div className="adv-composer-in">
         {ready === false && (<p className="adv-note">Add your ANTHROPIC_API_KEY in Supabase → Edge Functions → Secrets to enable the advisor.</p>)}
         {started && (<div className="adv-chips" style={{ marginBottom: 10 }}>
-          {ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
+          {scopeMode
+            ? [["All trades", { from: null, to: null, label: "all trades" }], ["Last 7 days", scopeDays(7)], ["Last 30 days", scopeDays(30)], ["This month", scopeMonth()]].map((e) => (
+                <button key={e[0]} className={"adv-chip" + (e[0] === "All trades" ? " primary" : "")} disabled={busy} onClick={() => chooseScope(e[1])}>{e[0]}</button>))
+            : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
         <div className="adv-box">
-          <textarea rows={1} value={input} placeholder="Ask about your trades…"
+          <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : "Ask about your trades…"}
             onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} disabled={busy} />
           <button className="adv-send" disabled={busy || !input.trim()} onClick={() => ask(input)} title="Send">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
