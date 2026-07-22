@@ -97,6 +97,14 @@ function StrategyCard({ strat, sources }) {
       budget_day_pct: Object.fromEntries(Object.entries(form.dayPct || {}).map(function (e) { return [e[0], Number(e[1])]; }).filter(function (e) { return e[1] !== 100; })),
       updated_at: new Date().toISOString(),
     };
+    // going live requires a broker account (DB constraint strategies_live_needs_account) —
+    // auto-link the connected Schwab account (there's one), or explain if none is connected.
+    if (form.account === "live") {
+      const brokers = (window.NT_DATA && window.NT_DATA.brokerAccounts) || [];
+      const bid = (brokers.find((b) => b.is_default) || brokers[0] || {}).id;
+      if (!bid) { await window.NT_ALERT("No broker account is connected yet — connect your Schwab account in Settings before going live.", { title: "Can’t go live" }); setSaving(false); return; }
+      payload.broker_account = bid;
+    }
     try {
       const r = await window.NT_CLIENT.from("strategies").update(payload).eq("id", strat.id);
       if (r.error) throw r.error;

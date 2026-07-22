@@ -27,6 +27,7 @@ window.NT_CHANGELOG = [
       "Voice mode now uses the real (ElevenLabs) voice too — before, only the “Read aloud” toggle did, while hands-free voice fell back to the robotic system voice. And Reezer only says “let me think” when an answer actually takes a moment, not on every quick question.",
       "Reezer now knows its own name is Reezer and won't confuse it with yours. And the No Stop strategy now shows its account return (it was missing a starting balance, so the % had nothing to divide by).",
       "No Stop strategy trades now show their full price path and exit markers when you open one. And Reezer no longer says “let me think” for greetings or quick questions — only for ones that genuinely take a moment.",
+      "Fixed the error when switching a strategy to Live — it now automatically links your connected Schwab account (a strategy can’t go live without one), instead of failing to save.",
     ],
   },
   {
