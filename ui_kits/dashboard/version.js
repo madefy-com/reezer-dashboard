@@ -28,6 +28,7 @@ window.NT_CHANGELOG = [
       "Reezer now knows its own name is Reezer and won't confuse it with yours. And the No Stop strategy now shows its account return (it was missing a starting balance, so the % had nothing to divide by).",
       "No Stop strategy trades now show their full price path and exit markers when you open one. And Reezer no longer says “let me think” for greetings or quick questions — only for ones that genuinely take a moment.",
       "Fixed the error when switching a strategy to Live — it now automatically links your connected Schwab account (a strategy can’t go live without one), instead of failing to save.",
+      "The status dots in the top bar (LIVE, session) now blink in sync instead of drifting apart, and removed the redundant dot on the strategies pill.",
     ],
   },
   {

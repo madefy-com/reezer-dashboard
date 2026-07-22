@@ -51,7 +51,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies }) {
               borderRadius: "var(--radius-sm)", background: liveMode ? "var(--live-bg)" : "var(--dryrun-bg)",
               border: "1px solid color-mix(in srgb, " + mc + " 34%, transparent)", color: mc,
               font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: mc, animation: liveMode ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }} />
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: mc, opacity: liveMode ? "var(--nt-blink-o, 1)" : 1 }} />
             {liveMode ? "LIVE" : "SIMULATION"}
           </span>
         );
@@ -59,7 +59,6 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, strategies }) {
 
       {/* STRATEGIES — read-only summary; click to manage on the Strategies page */}
       <button onClick={() => onNav && onNav("strategies")} className="nt-strat-pill" title="Manage strategies" style={{ ...pill, cursor: "pointer" }}>
-        <span style={dot(counts.live ? "var(--live)" : "var(--dryrun)", !!counts.live)}></span>
         <span><span style={{ color: "var(--text-primary)", fontWeight: "var(--w-semibold)" }}>{list.length}</span> {list.length === 1 ? "strategy" : "strategies"}</span>
         <span style={{ color: "var(--text-tertiary)", letterSpacing: 0 }}>
           {(counts.live ? " · " + counts.live + " live" : "") + (counts.fronttest ? " · " + counts.fronttest + " paper" : "") + (counts.draft ? " · " + counts.draft + " draft" : "")}
