@@ -647,6 +647,27 @@
   function saveChat(ms) {
     try { localStorage.setItem(CHAT_KEY, JSON.stringify((ms || []).slice(-60))); } catch (e) {}
   }
+  // The conversation lives with the USER (Supabase, RLS-scoped to their email), so it
+  // follows them to any Mac/browser. localStorage stays as an offline cache only.
+  const chatEmail = () => String(window.NT_USER_EMAIL || "").toLowerCase();
+  async function loadChatRemote() {
+    const email = chatEmail();
+    if (!email || !window.NT_CLIENT) return null;
+    try {
+      const r = await window.NT_CLIENT.from("advisor_chat").select("messages").eq("user_email", email).maybeSingle();
+      if (r.error || !r.data || !Array.isArray(r.data.messages)) return null;
+      return r.data.messages;
+    } catch (e) { return null; }
+  }
+  async function saveChatRemote(ms) {
+    const email = chatEmail();
+    if (!email || !window.NT_CLIENT) return;
+    try {
+      await window.NT_CLIENT.from("advisor_chat")
+        .upsert({ user_email: email, messages: (ms || []).slice(-60), updated_at: new Date().toISOString() },
+                { onConflict: "user_email" });
+    } catch (e) {}
+  }
   // Flatten past messages into a short transcript so a resumed chat keeps its thread.
   function transcriptOf(ms) {
     return (ms || [])
@@ -679,10 +700,19 @@
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     useEffect(() => { injectCSS(); checkReady().then(setReady); ttsReadyCheck().then(setTtsReady);
-      const saved = loadChat();                       // resume the ongoing conversation
-      if (saved.length) { setMsgs(saved); priorRef.current = transcriptOf(saved); }
+      const cached = loadChat();                      // instant: local cache
+      if (cached.length) { setMsgs(cached); priorRef.current = transcriptOf(cached); }
+      loadChatRemote().then((remote) => {             // authoritative: this USER's history
+        if (remote && remote.length) { setMsgs(remote); priorRef.current = transcriptOf(remote); saveChat(remote); }
+      });
       if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); } catch (e) {} } }, []);
-    useEffect(() => { if (msgs.length) saveChat(msgs); }, [msgs]);
+    // cache locally at once; push to the user's account debounced (don't write per keystroke)
+    useEffect(() => {
+      if (!msgs.length) return;
+      saveChat(msgs);
+      const t = setTimeout(() => saveChatRemote(msgs), 1200);
+      return () => clearTimeout(t);
+    }, [msgs]);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
     const started = showChat && msgs.length > 0;
