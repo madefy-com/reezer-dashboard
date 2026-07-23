@@ -31,6 +31,7 @@ window.NT_CHANGELOG = [
       "The status dots in the top bar (LIVE, session) now blink in sync instead of drifting apart, and removed the redundant dot on the strategies pill.",
       "Ask Reezer: your conversation is now saved — reload or come back later and it's still there, with a “New chat” button to start fresh. It no longer answers with raw settings code when you ask it for a strategy, and the orb in the chat is much bigger.",
       "Phone alerts now cover every live trade in real time — entries, partials, closes and stop-outs, on top of the existing error alerts. Paper trades stay silent.",
+      "Ask Reezer always opens on the clean home screen now, with your previous conversation one tap away under “Continue last chat” — history without the noise. Voice mode also greets you out loud the moment you tap the mic, and if your microphone is blocked it now tells you instead of failing silently.",
     ],
   },
   {

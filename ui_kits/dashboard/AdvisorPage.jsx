@@ -660,6 +660,9 @@
     const [listening, setListening] = useState(false);   // voice input active
     const [speak, setSpeak] = useState(false);           // read replies aloud
     const [ttsReady, setTtsReady] = useState(false);     // ElevenLabs premium voice available
+    // Always LAND on the clean home screen, even with a saved conversation. The history is
+    // kept and one tap away ("Continue last chat") — so opening the page is never noisy.
+    const [showChat, setShowChat] = useState(false);
     const [convoMode, setConvoMode] = useState(false);   // hands-free conversation loop
     const recRef = useRef(null);
     const convoRef = useRef(false);              // latest convoMode for async callbacks
@@ -676,8 +679,9 @@
     useEffect(() => { if (msgs.length) saveChat(msgs); }, [msgs]);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
-    const started = msgs.length > 0;
-    const push = (m) => setMsgs((x) => x.concat([m]));
+    const started = showChat && msgs.length > 0;
+    // any NEW message reveals the conversation; a restored one stays hidden behind the home screen
+    const push = (m) => { setShowChat(true); setMsgs((x) => x.concat([m])); };
 
     const scopeDays = (n) => ({ from: new Date(Date.now() - n * 86400000).toISOString(), to: null, label: "last " + n + " days" });
     const scopeMonth = () => { const d = new Date(); return { from: new Date(d.getFullYear(), d.getMonth(), 1).toISOString(), to: null, label: "this month" }; };
@@ -739,7 +743,18 @@
         const r = new SR(); r.lang = "en-US"; r.interimResults = false; r.maxAlternatives = 1;
         let got = false;
         r.onresult = (e) => { const txt = (e.results[0][0].transcript || "").trim(); if (txt) { got = true; setListening(false); ask(txt); } };
-        r.onerror = () => {};
+        // NEVER swallow mic errors — a blocked/unsupported mic used to fail silently and
+        // retry forever, which just looked like "voice mode does nothing".
+        r.onerror = (e) => {
+          const err = (e && e.error) || "unknown";
+          if (err === "no-speech" || err === "aborted") return;    // harmless, keep listening
+          convoRef.current = false; setConvoMode(false); setListening(false);
+          const why = err === "not-allowed" || err === "service-not-allowed"
+            ? "Microphone access is blocked. Allow the mic for reezer.io in your browser's site settings (Safari: Settings → Websites → Microphone), then tap the mic again."
+            : err === "network" ? "Speech recognition couldn't reach the network — check your connection and try again."
+            : "The microphone couldn't start (" + err + "). Chrome works best for voice; Safari's support is limited.";
+          push({ role: "ai", kind: "text", text: "**Voice mode stopped.** " + why });
+        };
         r.onend = () => { setListening(false); if (convoRef.current && !got) setTimeout(() => { if (convoRef.current) startListen(); }, 500); };
         recRef.current = r; setListening(true); r.start();
       } catch (e) { setListening(false); }
@@ -756,6 +771,9 @@
       convoRef.current = true; setConvoMode(true);      // start
       if (!speak) setSpeak(true);
       unlockAudio();   // this tap is a user gesture — unlock the audio element so replies play the premium voice
+      // Speak a greeting IMMEDIATELY (inside the tap gesture, so it's guaranteed audible).
+      // It proves the voice works and tells you it's listening, instead of silent dead air.
+      voiceSay("I'm listening" + (firstName() ? ", " + firstName() : "") + ".", false);
       startListen();
     };
     const parseScope = (text) => {
@@ -876,12 +894,17 @@
           <Orb busy={busy} />
           <h1 className="adv-hero-h">Let's find your edge.</h1>
           <p className="adv-hero-p">I'll study your recorded trades — the full price path to +30 min and your own feed — then design a complete strategy from it, and you can ask me anything about it.</p>
-          {!busy && (<button className="adv-chip primary" style={{ marginTop: 6 }} onClick={openScope}>Analyse my trades</button>)}
+          {!busy && (<div className="adv-chips" style={{ marginTop: 6 }}>
+            <button className="adv-chip primary" onClick={openScope}>Analyse my trades</button>
+            {msgs.length > 0 && (<button className="adv-chip" onClick={() => setShowChat(true)}>
+              Continue last chat <span style={{ opacity: .6 }}>· {msgs.length}</span>
+            </button>)}
+          </div>)}
         </div>)}
 
         {started && (<div style={{ display: "flex", justifyContent: "center", margin: "2px 0 10px" }}><Orb md busy={busy} /></div>)}
 
-        <div className="adv-convo">
+        {started && (<div className="adv-convo">
           {msgs.map((m, i) => (<div key={i} className={"adv-msg " + (m.role === "me" ? "me" : "ai")}>
             {m.kind === "proposal"
               ? <ProposalCard p={m.p} m={m.m} n={m.n} />
@@ -898,7 +921,7 @@
               </div>
             : <div className="adv-think"><span className="adv-dot" />{status || "working…"}</div>}</div>)}
           <div ref={endRef} />
-        </div>
+        </div>)}
 
       </div></div>
 
