@@ -696,6 +696,7 @@
     const audioRef = useRef(null);               // ONE reusable audio element (unlocked by a gesture)
     const lastUrlRef = useRef(null);             // last blob URL, revoked when replaced
     const priorRef = useRef("");                 // transcript of a resumed conversation
+    const inputRef = useRef(null);               // chat box — kept focused so you can just type
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
@@ -714,6 +715,15 @@
       return () => clearTimeout(t);
     }, [msgs]);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
+    // Land ready to type: focus the chat box on open, and again whenever it frees up (after a
+    // reply, on the scope prompt, switching home<->chat) so you never have to click it first.
+    useEffect(() => {
+      if (busy) return;
+      const t = setTimeout(() => {
+        try { inputRef.current && inputRef.current.focus({ preventScroll: true }); } catch (e) {}
+      }, 60);
+      return () => clearTimeout(t);
+    }, [busy, showChat, scopeMode, msgs.length]);
 
     const started = showChat && msgs.length > 0;
     // any NEW message reveals the conversation; a restored one stays hidden behind the home screen
@@ -989,6 +999,7 @@
         </div>
         <div className="adv-box">
           <textarea rows={1} value={input} placeholder={scopeMode ? "Type a date range… e.g. 2026-07-01 to 2026-07-15" : convoMode ? (listening ? "Listening… just talk" : "Conversation on — tap the mic to stop") : "Ask about your trades…"}
+            ref={inputRef} autoFocus
             onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} disabled={busy} />
           <button className={"adv-mic" + (convoMode ? " convo" : "")} data-on={(convoMode || listening) ? "" : undefined} onClick={toggleMic} title={convoMode ? "Stop conversation" : "Talk to Reezer — hands-free conversation"}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /></svg>
