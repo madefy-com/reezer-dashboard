@@ -234,7 +234,13 @@
     "'rules_close' applies your rules but ALSO honors the trader's CLOSE alerts; 'alerts' follows the trader's " +
     "partial/close calls. The exit_mode sweep gives the real P&L of each, and every trade carries the trader's " +
     "entry note and exit alerts. Read the alert sentiment (e.g. 'locked in majority', 'choppy today') and " +
-    "genuinely weigh rules_close and alerts against pure rules — many traders time their exits well. Return one " +
+    "genuinely weigh rules_close and alerts against pure rules — many traders time their exits well. " +
+    "OBJECTIVE — THE GOAL IS MAXIMUM TOTAL PROFIT. Optimise for the highest TOTAL realised P&L over the whole " +
+    "sample. Do NOT optimise for win rate, a 'smoother ride', consistency or fewer losers — a higher win rate " +
+    "with lower total profit is the WRONG answer. Work from the sweeps: for each parameter take the value with " +
+    "the best total, then sanity-check the combination together. Break ties strictly in this order: (1) higher " +
+    "total P&L, (2) lower max drawdown, (3) simpler (fewer active rules). Given the same data you must reach the " +
+    "same conclusion — follow the numbers, don't improvise a different philosophy each time. Return one " +
     "complete strategy justified by the data, and say WHY you chose that exit_mode. " +
     "You are also the user's assistant for questions: alongside any analysis you may be given the user's strategies " +
     "(with settings and P&L), recent trades, and P&L by day and strategy — use that to answer how a day went, how " +
@@ -807,7 +813,7 @@
         setProg({ label: "Reezer is designing your strategy…", pct: 0.95, indet: true, secs: 0 });
         const messages = [{ role: "user", content: [
           { type: "text", text: "Full analysis of my recorded trades (JSON):\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
-          { type: "text", text: "Design one complete strategy now." },
+          { type: "text", text: "Design one complete strategy now. Objective: MAXIMUM TOTAL PROFIT over this whole sample — pick the parameter values the sweeps show earn the most, not the ones that look smoothest." },
         ] }];
         let res;
         try { res = await callClaude({ system: personalizedSystem(), messages: messages, max_tokens: 8000, thinking: { type: "adaptive" }, output_config: { effort: "medium", format: { type: "json_schema", schema: PROPOSAL_SCHEMA } } }); }
@@ -934,13 +940,19 @@
             : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
-          {started && (<button className="adv-voice" title="Clear this conversation and start fresh"
-            onClick={() => { stopVoice(); setMsgs([]); convo.current = []; analysisRef.current = null;
-              priorRef.current = ""; setScopeMode(false); try { localStorage.removeItem(CHAT_KEY); } catch (e) {} }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
-            New chat
+          {started && (<button className="adv-voice" title="Back to the Ask Reezer home screen (your chat is kept)"
+            onClick={() => { stopVoice(); setShowChat(false); }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>
+            Home
           </button>)}
-          <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => { const n = !speak; setSpeak(n); if (n) unlockAudio(); else stopVoice(); }} title="Read replies aloud">
+          {/* Turning Read aloud ON also speaks the latest reply, so it's useful right now. */}
+          <button className={"adv-voice" + (speak ? " on" : "")} title="Read replies aloud (and read the last one now)"
+            onClick={() => { const n = !speak; setSpeak(n);
+              if (!n) { stopVoice(); return; }
+              unlockAudio();
+              const last = msgs.slice().reverse().find((m) => m && m.role === "ai" && m.text && !m.err);
+              if (last) voiceSay(last.text, false);
+            }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
             {speak ? (ttsReady ? "Voice on" : "Read aloud on") : "Read aloud"}
           </button>

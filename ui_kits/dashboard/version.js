@@ -32,6 +32,7 @@ window.NT_CHANGELOG = [
       "Ask Reezer: your conversation is now saved — reload or come back later and it's still there, with a “New chat” button to start fresh. It no longer answers with raw settings code when you ask it for a strategy, and the orb in the chat is much bigger.",
       "Phone alerts now cover every live trade in real time — entries, partials, closes and stop-outs, on top of the existing error alerts. Paper trades stay silent.",
       "Ask Reezer always opens on the clean home screen now, with your previous conversation one tap away under “Continue last chat” — history without the noise. Voice mode also greets you out loud the moment you tap the mic, and if your microphone is blocked it now tells you instead of failing silently.",
+      "Strategy analyses are now aimed at ONE goal: the highest total profit. Before, no goal was set, so it could chase a “smoother ride” one time and something else the next — which is why the same question gave two different strategies. It also follows fixed tie-break rules now, so the same trades give you the same answer. Replaced “New chat” (which deleted your history) with a Home button that keeps it, and pressing “Read aloud” now reads the latest reply straight away.",
     ],
   },
   {
