@@ -29,6 +29,8 @@ window.NT_CHANGELOG = [
       "No Stop strategy trades now show their full price path and exit markers when you open one. And Reezer no longer says “let me think” for greetings or quick questions — only for ones that genuinely take a moment.",
       "Fixed the error when switching a strategy to Live — it now automatically links your connected Schwab account (a strategy can’t go live without one), instead of failing to save.",
       "The status dots in the top bar (LIVE, session) now blink in sync instead of drifting apart, and removed the redundant dot on the strategies pill.",
+      "Ask Reezer: your conversation is now saved — reload or come back later and it's still there, with a “New chat” button to start fresh. It no longer answers with raw settings code when you ask it for a strategy, and the orb in the chat is much bigger.",
+      "Phone alerts now cover every live trade in real time — entries, partials, closes and stop-outs, on top of the existing error alerts. Paper trades stay silent.",
     ],
   },
   {

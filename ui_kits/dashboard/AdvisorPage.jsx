@@ -30,11 +30,13 @@
   /* orb — organic morphing blob (SVG turbulence + halftone grain) */
   .adv-orbstage{position:relative;width:250px;height:250px;display:grid;place-items:center;
     animation:adv-float 7s ease-in-out infinite}
-  .adv-orbstage.sm{width:64px;height:64px;animation:none}
+  .adv-orbstage.sm{width:64px;height:64px;animation:none}   /* small icon (proposal card) */
+  .adv-orbstage.md{width:200px;height:200px}                /* chat orb — 80% of the 250px hero */
   .adv-orbglow{position:absolute;width:186px;height:186px;border-radius:50%;pointer-events:none;
     background:radial-gradient(circle at 50% 48%,rgba(139,92,246,.4),rgba(242,74,141,.2) 44%,transparent 70%);
     filter:blur(30px);animation:adv-breathe 5.5s ease-in-out infinite}
   .adv-orbstage.sm .adv-orbglow{width:52px;height:52px;filter:blur(9px)}
+  .adv-orbstage.md .adv-orbglow{width:149px;height:149px;filter:blur(24px)}
   .adv-orbstage.busy .adv-orbglow{animation-duration:2.4s}
   .adv-orbgif{position:relative;width:132%;height:132%;object-fit:contain;
     filter:hue-rotate(-66deg) saturate(1.32) brightness(1.04) drop-shadow(0 16px 38px rgba(139,91,242,.5))}
@@ -219,6 +221,9 @@
     "human ('nice', 'oof, that one hurt', 'yeah, that Wednesday's rough'). When chatting, write flowing spoken sentences — " +
     "NO markdown, NO bullet lists, NO tables, no headings; just say it. Only break things into a list if {{NAME}} explicitly " +
     "asks for a breakdown. Never read symbols/numbers robotically — say '301 puts', 'Wednesday', 'twenty minutes'. " +
+    "NEVER reply with raw JSON, a settings dump, curly braces, field names like trade_budget_usd, or escaped " +
+    "characters such as \\n. If you're proposing a strategy or settings in chat, SAY them in plain sentences " +
+    "('$250 a trade, 20% stop, take half at +25%, skip Wednesday') — the app renders the real card separately. " +
     "When designing a strategy you are given the REAL recorded price path of every trade (entry to +30 min, 15s " +
     "resolution), the trader's own feed messages per day, per-parameter sensitivity sweeps run through the actual " +
     "backtest engine, and a per-weekday performance breakdown. Fractions are decimals (0.20 = 20%; null = off). " +
@@ -578,7 +583,7 @@
     return s;
   }
   function Orb(props) {
-    const sm = props.sm ? " sm" : "";
+    const sm = props.sm ? " sm" : (props.md ? " md" : "");
     return (<div className={"adv-orbstage" + sm + (props.busy ? " busy" : "")}>
       <div className="adv-orbglow" />
       <img className="adv-orbgif" src="/assets/orb.webp?v=102" alt="" draggable="false" />
@@ -626,6 +631,24 @@
 
   const ASK_CHIPS = ["Why no stop?", "Which day loses money?", "What if Wednesday runs full budget?", "Analyse again"];
 
+  // ---- chat persistence: ONE ongoing conversation, kept across reloads. We store only
+  // the visible messages (never the huge sweep payload), so it stays well inside quota.
+  const CHAT_KEY = "nt_advisor_chat_v1";
+  function loadChat() {
+    try { const v = JSON.parse(localStorage.getItem(CHAT_KEY) || "[]"); return Array.isArray(v) ? v : []; }
+    catch (e) { return []; }
+  }
+  function saveChat(ms) {
+    try { localStorage.setItem(CHAT_KEY, JSON.stringify((ms || []).slice(-60))); } catch (e) {}
+  }
+  // Flatten past messages into a short transcript so a resumed chat keeps its thread.
+  function transcriptOf(ms) {
+    return (ms || [])
+      .filter((m) => m && m.text && !m.err && m.kind !== "proposal")
+      .map((m) => (m.role === "me" ? "Me: " : "Reezer: ") + String(m.text).replace(/\s+/g, " "))
+      .join("\n").slice(-6000);
+  }
+
   function AdvisorPage() {
     const [msgs, setMsgs] = useState([]);       // {role:'me'|'ai', kind:'text'|'proposal', text?, p?, m?, n?}
     const [input, setInput] = useState("");
@@ -642,11 +665,15 @@
     const convoRef = useRef(false);              // latest convoMode for async callbacks
     const audioRef = useRef(null);               // ONE reusable audio element (unlocked by a gesture)
     const lastUrlRef = useRef(null);             // last blob URL, revoked when replaced
+    const priorRef = useRef("");                 // transcript of a resumed conversation
     const convo = useRef([]);                    // raw anthropic message history
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     useEffect(() => { injectCSS(); checkReady().then(setReady); ttsReadyCheck().then(setTtsReady);
+      const saved = loadChat();                       // resume the ongoing conversation
+      if (saved.length) { setMsgs(saved); priorRef.current = transcriptOf(saved); }
       if (window.speechSynthesis) { try { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices(); } catch (e) {} } }, []);
+    useEffect(() => { if (msgs.length) saveChat(msgs); }, [msgs]);
     useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, status, prog, scopeMode]);
 
     const started = msgs.length > 0;
@@ -775,7 +802,18 @@
             { type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx) + "\n\nAnd the deep sweep analysis used to design a strategy:\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
             { type: "text", text: "You designed a strategy from the sweep." },
           ] },
-          { role: "assistant", content: res.text + "\n\n[Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor " + (m.profit_factor == null ? "inf" : m.profit_factor) + ", avg $" + m.avg + "/trade, max drawdown $" + m.max_drawdown + ".]" },
+          // Seed the assistant turn as PROSE, never the raw JSON — otherwise the model
+          // copies that shape and answers later chat questions with a JSON dump.
+          { role: "assistant", content:
+              "Here's the strategy I designed: $" + Math.round(prop.trade_budget_usd) + " a trade (max 1 contract), "
+              + "exits on " + prop.exit_mode + ", stop " + pctS(prop.stop_loss_pct)
+              + ", breakeven " + pctS(prop.breakeven_at_pct) + ", take profit " + pctS(prop.take_profit_pct)
+              + ", take half at " + pctS(prop.take_half_at_pct)
+              + ", max hold " + (prop.max_hold_minutes == null ? "none" : prop.max_hold_minutes + " minutes")
+              + ", weekday budget " + Object.keys(prop.budget_day_pct || {}).map(function (d) { return d + " " + prop.budget_day_pct[d] + "%"; }).join(", ")
+              + ". Validated on the real tape: total $" + m.total + ", win " + m.win_pct + "%, profit factor "
+              + (m.profit_factor == null ? "infinite" : m.profit_factor) + ", avg $" + m.avg
+              + " a trade, max drawdown $" + m.max_drawdown + ". " + prop.rationale },
         ];
         push({ role: "ai", kind: "proposal", p: prop, m: m, n: a.pts.length });
         push({ role: "ai", kind: "text", text: "**Why this strategy**\n\n" + prop.rationale });
@@ -805,8 +843,11 @@
         if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
           setStatus("Loading your trades & strategies…");
           const ctx = await loadContext(window.NT_CLIENT);
+          const blocks = [{ type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx), cache_control: { type: "ephemeral" } }];
+          if (priorRef.current) blocks.push({ type: "text", text: "Earlier in this same conversation:\n" + priorRef.current });
+          blocks.push({ type: "text", text: "I'll ask questions about my trading." });
           convo.current = [
-            { role: "user", content: [{ type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx), cache_control: { type: "ephemeral" } }, { type: "text", text: "I'll ask questions about my trading." }] },
+            { role: "user", content: blocks },
             { role: "assistant", content: "Loaded — I can see your strategies, trades, and daily P&L. Ask me anything." },
           ];
         }
@@ -838,7 +879,7 @@
           {!busy && (<button className="adv-chip primary" style={{ marginTop: 6 }} onClick={openScope}>Analyse my trades</button>)}
         </div>)}
 
-        {started && (<div style={{ display: "flex", justifyContent: "center", margin: "2px 0 18px" }}><Orb sm busy={busy} /></div>)}
+        {started && (<div style={{ display: "flex", justifyContent: "center", margin: "2px 0 10px" }}><Orb md busy={busy} /></div>)}
 
         <div className="adv-convo">
           {msgs.map((m, i) => (<div key={i} className={"adv-msg " + (m.role === "me" ? "me" : "ai")}>
@@ -869,7 +910,13 @@
                 <button key={e[0]} className={"adv-chip" + (e[0] === "All trades" ? " primary" : "")} disabled={busy} onClick={() => chooseScope(e[1])}>{e[0]}</button>))
             : ASK_CHIPS.map((c) => (<button key={c} className="adv-chip" disabled={busy} onClick={() => c === "Analyse again" ? openScope() : ask(c)}>{c}</button>))}
         </div>)}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 8 }}>
+          {started && (<button className="adv-voice" title="Clear this conversation and start fresh"
+            onClick={() => { stopVoice(); setMsgs([]); convo.current = []; analysisRef.current = null;
+              priorRef.current = ""; setScopeMode(false); try { localStorage.removeItem(CHAT_KEY); } catch (e) {} }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            New chat
+          </button>)}
           <button className={"adv-voice" + (speak ? " on" : "")} onClick={() => { const n = !speak; setSpeak(n); if (n) unlockAudio(); else stopVoice(); }} title="Read replies aloud">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /></svg>
             {speak ? (ttsReady ? "Voice on" : "Read aloud on") : "Read aloud"}
