@@ -3,9 +3,16 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.014";
+window.NT_VERSION = "1.015";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.015", date: "2026-07-27",
+    notes: [
+      "New “⚠ Problems only” filter on the Activity page — one tap shows just the warnings and errors (with a count next to it), so you can see what went wrong without scrolling past all the normal activity. Error rows are now tinted red so they stand out even in the full list.",
+      "The Activity feed now captures far more of what can go wrong on a live trade, in real time: a strategy choosing NOT to enter (with the exact reason), a Schwab order being rejected or only partly filled, and a box stuck restarting in a loop. Before, several of these were silent — they only ever reached a log file on the box itself, so if you weren’t at that Mac you couldn’t see them. Now they show up on the dashboard (and still page your phone).",
+    ],
+  },
   {
     v: "1.014", date: "2026-07-21",
     notes: [

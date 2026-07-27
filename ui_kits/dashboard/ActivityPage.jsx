@@ -5,9 +5,13 @@ function ActivityPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const all = window.NT_DATA.events || [];
   const [box, setBox] = React.useState("all");
+  const [problemsOnly, setProblemsOnly] = React.useState(false);
 
+  const isProblem = (e) => e.level === "warn" || e.level === "error";
   const boxes = Array.from(new Set(all.map((e) => e.machine_id).filter(Boolean)));
-  const rows = box === "all" ? all : all.filter((e) => e.machine_id === box);
+  let rows = box === "all" ? all : all.filter((e) => e.machine_id === box);
+  const problemCount = rows.filter(isProblem).length;
+  if (problemsOnly) rows = rows.filter(isProblem);
 
   const tz = (window.NT_DATA.marketHours || {}).display_tz || "Europe/Amsterdam";
   const fmt = (iso) => {
@@ -26,7 +30,13 @@ function ActivityPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Activity" subtitle="Live operational log from every box — sizing basis, entries, exits and session lifecycle"
         right={
-          <div style={{ display: "inline-flex", gap: 6 }}>
+          <div style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={() => setProblemsOnly((v) => !v)} className="nt-boxfilter" data-on={problemsOnly ? "" : undefined}
+              style={{ padding: "6px 11px", borderRadius: "var(--radius-pill)", border: "1px solid var(--border)", cursor: "pointer",
+                font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", background: "transparent", color: "var(--text-secondary)" }}>
+              {"⚠ Problems only" + (problemCount ? " · " + problemCount : "")}
+            </button>
+            <span style={{ width: 1, height: 18, background: "var(--border)", margin: "0 4px" }} />
             {["all", ...boxes].map((b) => (
               <button key={b} onClick={() => setBox(b)} className="nt-boxfilter" data-on={box === b ? "" : undefined}
                 style={{ padding: "6px 11px", borderRadius: "var(--radius-pill)", border: "1px solid var(--border)", cursor: "pointer",
@@ -53,7 +63,8 @@ function ActivityPage() {
               </tr></thead>
               <tbody>
                 {rows.map((e, i) => (
-                  <tr key={e.id != null ? e.id : i} className="nt-trow" title={e.data ? JSON.stringify(e.data) : undefined}>
+                  <tr key={e.id != null ? e.id : i} className="nt-trow" title={e.data ? JSON.stringify(e.data) : undefined}
+                    style={e.level === "error" ? { background: "rgba(239,68,68,0.08)" } : undefined}>
                     <td style={{ ...td, ...mono, color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{fmt(e.ts)}</td>
                     <td style={{ ...td, ...mono, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{e.machine_id || "—"}</td>
                     <td style={{ ...td, whiteSpace: "nowrap" }}>
