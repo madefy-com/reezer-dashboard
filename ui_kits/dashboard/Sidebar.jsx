@@ -9,6 +9,7 @@ function Sidebar({ page, onNav }) {
     { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
     { id: "trades", label: "Trades", icon: "candlestick-chart" },
     { id: "log", label: "Alerts", icon: "message-square-dot" },
+    { id: "activity", label: "Activity", icon: "activity" },
     { id: "strategies", label: "Strategies", icon: "target" },
     { id: "fronttest", label: "Exit Lab", icon: "flask-conical" },
   ];

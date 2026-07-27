@@ -100,6 +100,7 @@ function App() {
 
   const renderPage = () => {
     if (page === "trades") return <TradesPage />;
+    if (page === "activity") return <ActivityPage />;
     if (page === "log") return <LogPage />;
     if (page === "backtesting") return <BacktestingPage />;
     if (page === "fronttest") return <FronttestPage />;

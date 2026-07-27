@@ -11,6 +11,7 @@ window.NT_CHANGELOG = [
     notes: [
       "New “⚠ Problems only” filter on the Activity page — one tap shows just the warnings and errors (with a count next to it), so you can see what went wrong without scrolling past all the normal activity. Error rows are now tinted red so they stand out even in the full list.",
       "The Activity feed now captures far more of what can go wrong on a live trade, in real time: a strategy choosing NOT to enter (with the exact reason), a Schwab order being rejected or only partly filled, and a box stuck restarting in a loop. Before, several of these were silent — they only ever reached a log file on the box itself, so if you weren’t at that Mac you couldn’t see them. Now they show up on the dashboard (and still page your phone).",
+      "Put the Activity page back in the sidebar (Workspace → Activity) — it had been hidden since July, so all the new problem-logging above had nowhere to show. It’s one click from the menu again.",
     ],
   },
   {
