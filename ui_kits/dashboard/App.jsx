@@ -13,27 +13,39 @@ function FlagBanner() {
       if (c) c.from("operator_flags").update({ seen: 1 }).eq("id", id).then(function () {}, function () {});
     } catch (e) { /* offline/demo — local hide is enough */ }
   };
+  // A completed live order (closed / filled / placed) is INFORMATIONAL, not a problem —
+  // it must NOT look like the red "Review needed" alarm (a +$82 take-profit did). Only real
+  // issues (reject, unfilled, not-flat, not-ready, ambiguous alert) stay red.
+  const PROBLEM = /reject|not filled|unfilled|fail|unmanaged|still open|not flat|check schwab|not ready|oversold|crash|expired/i;
+  const GOOD = /closed|filled|placed|\bsold\b|\bbought\b/i;
+  const isInfo = (f) => GOOD.test(f.message || "") && !PROBLEM.test(f.message || "");
   return (
     <div style={{ flex: "0 0 auto" }}>
-      {flags.map((f) => (
-        <div key={f.id} style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "10px 26px", background: "rgba(220,38,38,0.12)",
-          borderBottom: "1px solid rgba(220,38,38,0.45)",
-          color: "#fca5a5", font: "500 13px/1.4 var(--font-sans)",
-        }}>
-          <i data-lucide="alert-triangle" style={{ width: 16, height: 16, flex: "0 0 auto" }} />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <b style={{ color: "#fecaca" }}>Review needed{f.ticker ? " · " + f.ticker : ""}</b>
-            {"  "}{f.message}
-          </span>
-          <button onClick={() => dismiss(f.id)} style={{
-            flex: "0 0 auto", cursor: "pointer", background: "transparent",
-            border: "1px solid rgba(252,165,165,0.5)", color: "#fecaca",
-            borderRadius: 8, padding: "4px 12px", font: "600 12px var(--font-sans)",
-          }}>Dismiss</button>
-        </div>
-      ))}
+      {flags.map((f) => {
+        const ok = isInfo(f);
+        const s = ok
+          ? { bg: "rgba(148,163,184,0.12)", bd: "rgba(148,163,184,0.40)", tx: "#cbd5e1", hd: "#e2e8f0", icon: "check-circle", label: "Live order" }
+          : { bg: "rgba(220,38,38,0.12)", bd: "rgba(220,38,38,0.45)", tx: "#fca5a5", hd: "#fecaca", icon: "alert-triangle", label: "Review needed" };
+        return (
+          <div key={f.id} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "10px 26px", background: s.bg,
+            borderBottom: "1px solid " + s.bd,
+            color: s.tx, font: "500 13px/1.4 var(--font-sans)",
+          }}>
+            <i data-lucide={s.icon} style={{ width: 16, height: 16, flex: "0 0 auto" }} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <b style={{ color: s.hd }}>{s.label}{f.ticker ? " · " + f.ticker : ""}</b>
+              {"  "}{f.message}
+            </span>
+            <button onClick={() => dismiss(f.id)} style={{
+              flex: "0 0 auto", cursor: "pointer", background: "transparent",
+              border: "1px solid " + s.bd, color: s.hd,
+              borderRadius: 8, padding: "4px 12px", font: "600 12px var(--font-sans)",
+            }}>Dismiss</button>
+          </div>
+        );
+      })}
     </div>
   );
 }

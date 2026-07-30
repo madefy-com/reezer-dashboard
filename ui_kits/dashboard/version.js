@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.015";
+window.NT_VERSION = "1.016";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.016", date: "2026-07-30",
+    notes: [
+      "Fixed a misleading banner: a successful live order (like a take-profit close for a profit) was showing in the same red “Review needed” alarm as an actual problem. Completed orders now show as a calm, neutral “Live order” notice — only real issues (a rejected order, an unfilled close, a box not ready) stay red. So a green +$82 close no longer looks like something went wrong.",
+    ],
+  },
   {
     v: "1.015", date: "2026-07-27",
     notes: [
