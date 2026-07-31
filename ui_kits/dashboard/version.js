@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.016";
+window.NT_VERSION = "1.017";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.017", date: "2026-07-31",
+    notes: [
+      "Exit Lab: moved the “realized %” column to sit right after “p&l”, so “realized %” and “peak %” are now side by side — easier to compare what a trade actually captured versus its peak, at a glance.",
+    ],
+  },
   {
     v: "1.016", date: "2026-07-30",
     notes: [

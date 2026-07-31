@@ -104,7 +104,7 @@ function FronttestPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
               <thead><tr>
                 <th style={thL}>strategy</th><th style={thL}>closed</th><th style={thL}>contract</th><th style={th}>qty</th>
-                <th style={th}>entry</th><th style={th}>exit</th><th style={th}>realized %</th><th style={th}>p&l</th>
+                <th style={th}>entry</th><th style={th}>exit</th><th style={th}>p&l</th><th style={th}>realized %</th>
                 <th style={th}>peak %</th><th style={th}>left on table</th><th style={th}>tape</th>
               </tr></thead>
               <tbody>
@@ -116,8 +116,8 @@ function FronttestPage() {
                     <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
                     <td style={td}>{r.entry.toFixed(2)}</td>
                     <td style={td}>{r.exit == null ? "—" : r.exit.toFixed(2)}</td>
-                    <td style={{ ...td, color: tone(r.retPct) }}>{pct(r.retPct)}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
+                    <td style={{ ...td, color: tone(r.retPct) }}>{pct(r.retPct)}</td>
                     <td style={{ ...td, color: tone(r.peakPct) }}>{pct(r.peakPct)}</td>
                     <td style={{ ...td, color: r.left ? "var(--profit)" : "var(--text-tertiary)" }}>{r.left == null ? "—" : pct(r.left)}</td>
                     <td style={{ ...td, color: "var(--text-tertiary)" }}>{r.samples ? r.samples + " pts" : "—"}</td>
