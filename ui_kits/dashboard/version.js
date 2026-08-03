@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.017";
+window.NT_VERSION = "1.018";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.018", date: "2026-08-03",
+    notes: [
+      "Fixed the Trades list jumping around during a live trade — the open row(s) now stay put as the P&L ticks and on the background refresh. Rows are keyed by trade and held in a stable newest-first order, so near-simultaneous entries (several strategies on the same alert) no longer shuffle.",
+    ],
+  },
   {
     v: "1.017", date: "2026-07-31",
     notes: [

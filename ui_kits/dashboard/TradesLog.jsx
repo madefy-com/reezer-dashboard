@@ -1,7 +1,14 @@
 /* TradesLog — live trades table / log. Fillable with internal scroll + sticky header. */
 function TradesLog({ onSelect, fill = false }) {
   const NT = window.NitroTraderDesignSystem_95e598;
-  const rows = window.NT_DATA.trades;
+  // Stable order: newest entry first, tie-broken by id — so a live (open) trade's row
+  // never jumps around as its mark-to-market P&L ticks or the 10s poll refreshes, and
+  // near-simultaneous entries (several strategies on the same alert) stay put.
+  const rows = (window.NT_DATA.trades || []).slice().sort(function (a, b) {
+    var ta = a.entryTs || "", tb = b.entryTs || "";
+    if (ta !== tb) return ta < tb ? 1 : -1;
+    return (b.id || 0) - (a.id || 0);
+  });
   const money = (n) => (n > 0 ? "+$" + n.toFixed(2) : n < 0 ? "\u2212$" + Math.abs(n).toFixed(2) : "$0.00");
   const pct = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "") + Math.abs(n).toFixed(1) + "%";
   const tone = (n) => (n > 0 ? "var(--profit)" : n < 0 ? "var(--loss)" : "var(--breakeven)");
@@ -46,7 +53,7 @@ function TradesLog({ onSelect, fill = false }) {
           </tr></thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
+              <tr key={r.id != null ? r.id : i} onClick={() => onSelect && onSelect(r)} className="nt-trow" style={{ cursor: onSelect ? "pointer" : "default" }}>
                 <td style={{ ...tdL }}><NT.StatusDot status={r.status} /></td>
                 <td className="nt-datecol" style={{ ...tdL, color: "var(--text-tertiary)", overflow: "hidden" }}>{dlabel(dkey(r.entryTs))}</td>
                 <td style={{ ...tdL, color: "var(--text-secondary)" }}>{r.t.slice(0, 5)}</td>
