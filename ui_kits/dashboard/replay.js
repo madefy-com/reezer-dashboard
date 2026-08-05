@@ -117,57 +117,52 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
   // through the in-browser engine, write ONE revertible snapshot to replay_results.
   // Never touches positions/trade_events/price_samples. Paper/draft only.
   //   db = window.NT_CLIENT (supabase-js, carries the user's session)
-  async function replayStrategy(strat, db, onStatus) {
+  async function replayStrategy(strat, db, onStatus, overrides) {
     const say = (m) => { try { onStatus && onStatus(m); } catch (_) {} };
     if (!db) throw new Error("no Supabase client");
 
     // 1) the EXACT strategies row the bot reads (so config maps identically)
     const sres = await db.from("strategies").select("*").eq("id", strat.id).single();
     if (sres.error) throw sres.error;
-    const row = sres.data;
+    const base = sres.data;
     // 2) hard guard: paper/draft only — a live strategy is refused before any work
-    if (row.account !== "fronttest" && row.account !== "draft") {
-      throw new Error("Replay is paper/draft only (this is “" + row.account + "”).");
+    if (base.account !== "fronttest" && base.account !== "draft") {
+      throw new Error("Replay is paper/draft only (this is “" + base.account + "”).");
     }
+    // what-if overrides are layered on top of the strategy's real settings and NEVER saved back.
+    // No overrides -> baseline, which reproduces the recorded card exactly.
+    const ov = overrides || {};
+    const hasOv = Object.keys(ov).length > 0;
+    const row = Object.assign({}, base, ov);
 
     say("loading engine…");
     await ensure(say);
 
-    // what this strategy would ACT ON: its allowlist (tickers) + its sources (alert channels).
-    // Replay always works off the shared pool of recorded alert-trades — NOT just this
-    // strategy's own positions — so a brand-new strategy still has trades to replay.
-    const allow = (row.allowlist || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
-    const srcRes = await db.from("strategy_sources").select("source_id").eq("strategy_id", strat.id);
-    if (srcRes.error) throw srcRes.error;
-    const listen = (srcRes.data || []).map((r) => r.source_id);   // [] = listens to every source
-
-    say("loading available trades…");
-    const poolRes = await db.from("replay_pool").select("*").order("entry_ts");
-    if (poolRes.error) throw poolRes.error;
-    const pool = (poolRes.data || []).filter((t) => {
-      const okTicker = !allow.length || allow.indexOf(String(t.ticker || "").toUpperCase()) >= 0;
-      const okSource = !listen.length || t.source_id == null || listen.indexOf(t.source_id) >= 0;
-      return okTicker && okSource;
-    });
-
-    // For each alert this strategy actually TRADED, use its OWN position (its own tape,
-    // entry price and recorded P&L) so "recorded" is its own result — never another
-    // strategy's. Fall back to the pool representative only for alerts it never traded.
+    say("loading this strategy's recorded trades…");
+    // BASELINE = this strategy's OWN recorded trades (all of them), so opening Replay with
+    // nothing changed reproduces the strategy card exactly, trade for trade. What-if overrides
+    // re-run each trade on its own recorded tape — the recorded trades are never touched.
     const ownRes = await db.from("positions")
-      .select("id,ticker,strike,side,entry_ts,entry_price,realized_pnl,exit_price,pinned").eq("strategy_id", strat.id);
+      .select("id,ticker,symbol,strike,side,entry_ts,entry_price,orig_qty,realized_pnl,exit_price,pinned")
+      .eq("strategy_id", strat.id).eq("status", "closed").order("entry_ts");
     if (ownRes.error) throw ownRes.error;
-    const keyOf = (x) => x.ticker + "|" + Number(x.strike) + "|" + x.side + "|" + String(x.entry_ts).slice(0, 16);
-    const ownByKey = {};
-    (ownRes.data || []).forEach((p) => { ownByKey[keyOf(p)] = p; });
-    // the recorded P&L to compare against = this strategy's OWN result for the alert (if it
-    // traded it), else the representative's. The TAPE always comes from the clean pool rep
-    // (the strategy's own position may have no tape recorded).
-    const recordedFor = (t) => {
-      const own = ownByKey[keyOf(t)];
-      return own ? Number(own.realized_pnl || 0) : Number(t.recorded_pnl || 0);
+    const own = ownRes.data || [];
+
+    // the trader's recorded exit alerts (partials/closes), bounded to each trade's own session
+    const alRes = await db.from("alerts").select("ts,type,ticker").in("type", ["PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
+    const exitAlerts = alRes.error ? [] : (alRes.data || []);
+    const entriesByTicker = {};
+    own.forEach((t) => { (entriesByTicker[t.ticker] = entriesByTicker[t.ticker] || []).push(t.entry_ts); });
+    Object.keys(entriesByTicker).forEach((k) => entriesByTicker[k].sort());
+    const alertsFor = (t) => {
+      const arr = entriesByTicker[t.ticker] || [];
+      let end = null;
+      for (let j = 0; j < arr.length; j++) { if (arr[j] > t.entry_ts) { end = arr[j]; break; } }
+      return exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end))
+                       .map((a) => ({ ts: a.ts, type: a.type }));
     };
 
-    // size each matched trade to THIS strategy's budget (+ weekday %, capped), like the live entry rule
+    // sizing — only recomputed when a what-if changes the budget / weekday % / contract cap
     const dayKey = (iso) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short" }).format(new Date(iso)).toLowerCase().slice(0, 3); } catch (e) { return ""; } };
     const sizeFor = (entryPx, entryTs) => {
       const dp = row.budget_day_pct || {};
@@ -179,71 +174,52 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       if (cap > 0) q = Math.min(q, cap);
       return q;
     };
-
-    // the trader's recorded exit alerts (partials/closes). A strategy that follows alerts
-    // (ignore_exit_alerts off) replays them; a rules-only strategy ignores them (engine guard).
-    const alRes = await db.from("alerts").select("ts,type,ticker").in("type", ["PARTIAL", "CLOSE"]).eq("fired", 1).order("ts");
-    const exitAlerts = alRes.error ? [] : (alRes.data || []);
-    const entriesByTicker = {};
-    (poolRes.data || []).forEach((t) => { (entriesByTicker[t.ticker] = entriesByTicker[t.ticker] || []).push(t.entry_ts); });
-    Object.keys(entriesByTicker).forEach((k) => entriesByTicker[k].sort());
-    const alertsFor = (t) => {
-      const arr = entriesByTicker[t.ticker] || [];
-      let end = null;
-      for (let j = 0; j < arr.length; j++) { if (arr[j] > t.entry_ts) { end = arr[j]; break; } }
-      return exitAlerts.filter((a) => a.ticker === t.ticker && a.ts >= t.entry_ts && (end == null || a.ts < end))
-                       .map((a) => ({ ts: a.ts, type: a.type }));
-    };
+    const resize = hasOv && (("trade_budget_usd" in ov) || ("max_contracts_per_trade" in ov) || ("budget_day_pct" in ov));
 
     const trades = [];
     let skipped = 0, unaffordable = 0;
-    for (let i = 0; i < pool.length; i++) {
-      const t = pool[i];
-      say("replaying " + (i + 1) + "/" + pool.length + " (" + (t.ticker || "?") + ")…");
-      const qty = sizeFor(t.entry_price, t.entry_ts);
-      if (qty < 1) { unaffordable++; continue; }   // budget can't afford one contract -> not taken
-      // clip the tape to THIS trade's own session — guards against old ID-clobbered
-      // ticks from other days being stapled onto a reused position_id
+    for (let i = 0; i < own.length; i++) {
+      const t = own[i];
+      const recorded = Number(t.realized_pnl || 0);
+      // BASELINE (no what-if): return the recorded outcome verbatim -> Replay == the card.
+      if (!hasOv) {
+        trades.push({ position_id: t.id, ticker: t.ticker, side: t.side, strike: t.strike,
+                      entry_price: Number(t.entry_price), orig_qty: Number(t.orig_qty || 0), entry_ts: t.entry_ts,
+                      realized: recorded, exit_price: t.exit_price != null ? Number(t.exit_price) : null,
+                      peak_gain_pct: null, orig_realized: recorded, events: [] });
+        continue;
+      }
+      say("replaying " + (i + 1) + "/" + own.length + " (" + (t.ticker || "?") + ")…");
+      const qty = resize ? sizeFor(Number(t.entry_price), t.entry_ts) : Number(t.orig_qty || 0);
       const sessEnd = new Date(new Date(t.entry_ts).getTime() + 8 * 3600 * 1000).toISOString();
-      // Replay on the STRATEGY'S OWN recorded tape + entry when it traded this alert, so the
-      // in-browser Replay matches the strategy's stored (replay-consistent) P&L exactly. Fall
-      // back to the shared pool representative's tape only when the strategy has no own tape.
-      const ownRec = ownByKey[keyOf(t)];
-      const tapePid = ownRec ? ownRec.id : t.position_id;
-      const fetchTape = (pid) => db.from("fronttest_tape").select("ts,price,bid,ask")
-        .eq("position_id", pid).gte("ts", t.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
-      let tres = await fetchTape(tapePid);
+      const tres = await db.from("fronttest_tape").select("ts,price,bid,ask")
+        .eq("position_id", t.id).gte("ts", t.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
       if (tres.error) throw tres.error;
-      let tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
-      if (!tape.length && ownRec) { tres = await fetchTape(t.position_id); if (tres.error) throw tres.error; tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]); }
-      if (!tape.length) { skipped++; continue; }
-      const entry = { ticker: t.ticker, osi_symbol: String(t.ticker || ""), side: t.side, strike: t.strike,
-                      qty: qty, fill_price: ownRec ? Number(ownRec.entry_price) : Number(t.entry_price), opened_at: t.entry_ts };
+      const tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
+      if (qty < 1 || !tape.length) {
+        if (qty < 1) unaffordable++; else skipped++;
+        trades.push({ position_id: t.id, ticker: t.ticker, side: t.side, strike: t.strike,
+                      entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
+                      realized: qty < 1 ? 0 : recorded, exit_price: t.exit_price != null ? Number(t.exit_price) : null,
+                      peak_gain_pct: null, orig_realized: recorded, events: [] });
+        continue;
+      }
+      const entry = { ticker: t.ticker, osi_symbol: String(t.symbol || t.ticker || ""), side: t.side, strike: t.strike,
+                      qty: qty, fill_price: Number(t.entry_price), opened_at: t.entry_ts };
       const r = runStrategy(row, entry, tape, alertsFor(t));
-      // A pinned trade is a manual override — keep its recorded result, don't apply the rules replay.
-      const pinned = !!(ownRec && ownRec.pinned);
-      trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
+      const pinned = !!t.pinned;   // manual override -> keep its recorded result
+      trades.push({ position_id: t.id, ticker: t.ticker, side: t.side, strike: t.strike,
                     entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
-                    realized: pinned ? Number(ownRec.realized_pnl || 0) : r.realized,
-                    exit_price: pinned && ownRec.exit_price != null ? Number(ownRec.exit_price) : r.exit_price,
-                    peak_gain_pct: r.peak_gain_pct,
-                    orig_realized: recordedFor(t), events: r.events });
+                    realized: pinned ? recorded : r.realized,
+                    exit_price: pinned && t.exit_price != null ? Number(t.exit_price) : r.exit_price,
+                    peak_gain_pct: r.peak_gain_pct, orig_realized: recorded, events: r.events });
     }
 
     const sum = (f) => Math.round(trades.reduce((a, t) => a + f(t), 0) * 100) / 100;
-    const summary = { trades: trades.length, matched: pool.length, skipped: skipped, unaffordable: unaffordable,
+    const summary = { trades: trades.length, matched: own.length, skipped: skipped, unaffordable: unaffordable,
                       realized: sum((t) => t.realized), orig_realized: sum((t) => t.orig_realized) };
-    const snap = { strategy_id: strat.id, replayed_at: new Date().toISOString(),
-                   settings_hash: JSON.stringify([row.stop_loss_pct, row.breakeven_at_pct, row.take_profit_pct,
-                     row.take_half_at_pct, row.trailing_tiers, row.max_hold_minutes, row.breakeven_after_partial,
-                     row.ignore_exit_alerts, row.exit_mode, row.budget_day_pct]),
-                   summary: summary, trades: trades };
-
-    say("saving…");
-    const wres = await db.from("replay_results").upsert(snap, { onConflict: "strategy_id" });
-    if (wres.error) throw wres.error;
     say("done");
-    return snap;   // {strategy_id, replayed_at, settings_hash, summary, trades}
+    return { strategy_id: strat.id, replayed_at: null, summary: summary, trades: trades };
   }
 
   window.Replay = { ensure, run, runStrategy, replayStrategy, selfTest };

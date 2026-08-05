@@ -9,7 +9,9 @@ window.NT_CHANGELOG = [
   {
     v: "1.019", date: "2026-08-05",
     notes: [
-      "Fixed the Exit Lab Replay so it's stable and matches reality again: each paper strategy's profit is now the deterministic result of its own rules replayed on its own recorded price tapes — so pressing Replay WITHOUT changing anything reproduces the strategy's profit exactly, and changing a setting moves it off that true baseline. (Previously the replay borrowed another strategy's tape and could show a very different number for no reason.) All four paper strategies were recomputed across their full history, and it now re-runs automatically each day so new trades fold in.",
+      "Replay is now a proper what-if sandbox. Press Replay on a paper strategy and a panel opens with that strategy's own settings pre-filled — stop, take-profit, take-half, breakeven, max-hold, exit mode, budget, max contracts. With nothing changed it reproduces the strategy's recorded numbers exactly, trade for trade (the same P&L as the card). Change any field and press \"Run what-if\" to see the impact on every recorded trade — and the strategy and its recorded trades are NEVER touched. So you can test ideas without ever editing (and drifting) the real strategy.",
+      "Fixed the long-standing Replay drift: its baseline is now the strategy's own recorded trades (all of them), so opening Replay always matches the card. Previously it rebuilt the list from scratch and re-sized to the current budget, so it could silently drop trades and show a different total than the card.",
+      "All four paper strategies now carry their full trade history (the \"No Stop with TP\" strategy was only partly filled), each trade's profit computed from that strategy's own settings — and it re-runs automatically every day so new trades fold in on their own.",
     ],
   },
   {

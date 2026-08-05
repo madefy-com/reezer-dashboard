@@ -148,18 +148,51 @@ function StrategyCard({ strat, sources }) {
   };
 
   const [replay, setReplay] = React.useState(null);   // {status} | {result} | {error}
+  const [whatif, setWhatif] = React.useState(null);   // the editable what-if settings (pre-filled from the strategy)
   const canReplay = acct === "fronttest" || acct === "draft";
-  const doReplay = async () => {
+  // pre-fill the what-if panel with the strategy's real settings (percentages shown as whole numbers)
+  const initWhatif = () => ({
+    stop: p.stop_loss_pct == null ? "" : NT_pct(p.stop_loss_pct),
+    be: p.breakeven_at_pct == null ? "" : NT_pct(p.breakeven_at_pct),
+    tp: p.take_profit_pct == null ? "" : NT_pct(p.take_profit_pct),
+    half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
+    maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
+    budget: p.trade_budget_usd == null ? "" : p.trade_budget_usd,
+    maxC: p.max_contracts_per_trade == null ? "" : p.max_contracts_per_trade,
+    exitMode: NT_exitMode(p),
+  });
+  // turn the what-if form into an OVERRIDE object of ONLY the fields the user changed (in DB units).
+  // Empty object => baseline => Replay reproduces the recorded card exactly.
+  const buildOv = (w) => {
+    const num = (v) => (v === "" || v == null ? null : Number(v));
+    const pin = (v) => (num(v) == null ? null : num(v) / 100);
+    const cand = {
+      stop_loss_pct: pin(w.stop), breakeven_at_pct: pin(w.be), take_profit_pct: pin(w.tp),
+      take_half_at_pct: pin(w.half), max_hold_minutes: num(w.maxHold),
+      trade_budget_usd: num(w.budget), max_contracts_per_trade: num(w.maxC), exit_mode: w.exitMode,
+    };
+    const ov = {};
+    Object.keys(cand).forEach((k) => {
+      const bv = p[k], cv = cand[k];
+      const same = (bv == null && cv == null) || Number(bv) === Number(cv) || String(bv) === String(cv);
+      if (!same) ov[k] = cv;
+    });
+    if ("exit_mode" in ov) ov.ignore_exit_alerts = ov.exit_mode !== "alerts";
+    return ov;
+  };
+  const doReplay = async (overrides) => {
     if (!window.Replay) { await window.NT_ALERT("Replay engine not loaded yet — refresh and try again.", { title: "Replay" }); return; }
     setBusy(true);
-    setReplay({ status: "Starting…" });
+    setReplay((r) => ({ ...(r || {}), status: "Starting…" }));
     try {
-      const res = await window.Replay.replayStrategy(strat, window.NT_CLIENT, (m) => setReplay({ status: m }));
-      setReplay({ result: res });
-      await window.NT_REFRESH();   // refresh so replay-aware views pick up the new snapshot
+      const res = await window.Replay.replayStrategy(strat, window.NT_CLIENT, (m) => setReplay((r) => ({ ...(r || {}), status: m })), overrides || {});
+      setReplay({ result: res, dirty: Object.keys(overrides || {}).length > 0 });
     } catch (e) { setReplay({ error: (e && e.message) || String(e) }); }
     setBusy(false);
   };
+  const openReplay = () => { setWhatif(initWhatif()); doReplay({}); };
+  const closeReplay = () => { setReplay(null); setWhatif(null); };
+  const setW = (k, v) => setWhatif((w) => ({ ...w, [k]: v }));
 
   const [viewTrade, setViewTrade] = React.useState(null);   // {loading} | {tr, detail}
   const tFmt = (iso) => { try { const tz = (window.NT_DATA && window.NT_DATA.marketHours && window.NT_DATA.marketHours.display_tz) || "Europe/Amsterdam"; return new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(iso)); } catch (e) { return String(iso || "").slice(11, 19); } };
@@ -247,18 +280,18 @@ function StrategyCard({ strat, sources }) {
       </div>
 
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, paddingTop: 4 }}>
-        {canReplay && <NT.Button variant="ghost" size="sm" disabled={busy} onClick={doReplay} icon={<Ico name="rotate-ccw" size={14} />}>{busy && replay && replay.status ? "Replaying…" : "Replay"}</NT.Button>}
+        {canReplay && <NT.Button variant="ghost" size="sm" disabled={busy} onClick={openReplay} icon={<Ico name="rotate-ccw" size={14} />}>{busy && replay && replay.status ? "Replaying…" : "Replay"}</NT.Button>}
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={del}>Delete</NT.Button>
         <NT.Button variant="ghost" size="sm" disabled={busy} onClick={duplicate}>Duplicate</NT.Button>
         <NT.Button variant="primary" size="md" icon={<Ico name="settings-2" size={15} />} onClick={openEdit}>Edit</NT.Button>
       </div>
 
       {replay && (
-        <div onMouseDown={(e) => { if (e.target === e.currentTarget && !(replay.status)) setReplay(null); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget && !(replay.status)) closeReplay(); }} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(8,8,10,0.55)", display: "grid", placeItems: "center", padding: 20 }}>
           <div style={{ width: 460, maxWidth: "94vw", background: "var(--surface-card)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-pop)", padding: 22, display: "flex", flexDirection: "column", gap: 14, maxHeight: "88vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <span style={{ font: "var(--w-semibold) var(--t-h3)/1 var(--font-sans)" }}>Replay · {strat.name}</span>
-              {!replay.status && <button onClick={() => setReplay(null)} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
+              {!replay.status && <button onClick={closeReplay} aria-label="Close" style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
               </button>}
             </div>
@@ -270,10 +303,39 @@ function StrategyCard({ strat, sources }) {
 
             {replay.error && <div style={{ color: "var(--loss)", font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)" }}>Replay failed: {replay.error}</div>}
 
+            {whatif && !replay.status && (
+              <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 14, display: "flex", flexDirection: "column", gap: 12, background: "var(--surface-inset)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-primary)" }}>What-if settings</span>
+                  <span style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)" }}>sandbox — never saved to the strategy</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <NT_SField label="Stop loss %"><input type="number" value={whatif.stop} onChange={(e) => setW("stop", e.target.value)} placeholder="off" style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Take profit %"><input type="number" value={whatif.tp} onChange={(e) => setW("tp", e.target.value)} placeholder="off" style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Take half at %"><input type="number" value={whatif.half} onChange={(e) => setW("half", e.target.value)} placeholder="off" style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Breakeven at %"><input type="number" value={whatif.be} onChange={(e) => setW("be", e.target.value)} placeholder="off" style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Max hold (min)"><input type="number" value={whatif.maxHold} onChange={(e) => setW("maxHold", e.target.value)} placeholder="none" style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Exit mode">
+                    <select value={whatif.exitMode} onChange={(e) => setW("exitMode", e.target.value)} style={NT_SINPUT}>
+                      {NT_EXIT_MODES.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
+                    </select>
+                  </NT_SField>
+                  <NT_SField label="Trade budget $"><input type="number" value={whatif.budget} onChange={(e) => setW("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Max contracts"><input type="number" value={whatif.maxC} onChange={(e) => setW("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                  <NT.Button variant="ghost" size="sm" disabled={busy} onClick={() => { setWhatif(initWhatif()); doReplay({}); }}>Reset</NT.Button>
+                  <NT.Button variant="primary" size="sm" disabled={busy} onClick={() => doReplay(buildOv(whatif))} icon={<Ico name="rotate-ccw" size={13} />}>Run what-if</NT.Button>
+                </div>
+              </div>
+            )}
+
             {replay.result && (() => { const s = replay.result.summary; const list = replay.result.trades || []; const d = Math.round((s.realized - s.orig_realized) * 100) / 100; return (
               <React.Fragment>
                 <div style={{ font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
-                  Replayed <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> of {s.matched} available alert-trade{s.matched === 1 ? "" : "s"} this strategy matches (allowlist + sources), at its <b style={{ color: "var(--text-primary)" }}>current</b> settings.{s.unaffordable ? " " + s.unaffordable + " didn’t fit the budget." : ""}{s.skipped ? " " + s.skipped + " had no tape." : ""}
+                  {replay.result.dirty
+                    ? <React.Fragment>Replayed all <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> recorded trade{s.trades === 1 ? "" : "s"} with your what-if changes.{s.unaffordable ? " " + s.unaffordable + " no longer fit the budget." : ""}{s.skipped ? " " + s.skipped + " had no tape to replay." : ""}</React.Fragment>
+                    : <React.Fragment>Showing all <b style={{ color: "var(--text-primary)" }}>{s.trades}</b> recorded trade{s.trades === 1 ? "" : "s"} at the strategy’s own settings — the same numbers as the card. Change a setting above and press <b style={{ color: "var(--text-primary)" }}>Run what-if</b> to see the impact.</React.Fragment>}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   {[["Replay P&L", s.realized], ["Recorded P&L", s.orig_realized]].map((x, i) => (
@@ -304,7 +366,7 @@ function StrategyCard({ strat, sources }) {
             ); })()}
 
             {!replay.status && <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 6 }}>
-              <NT.Button variant="primary" size="md" onClick={() => setReplay(null)}>Done</NT.Button>
+              <NT.Button variant="primary" size="md" onClick={closeReplay}>Done</NT.Button>
             </div>}
           </div>
         </div>
