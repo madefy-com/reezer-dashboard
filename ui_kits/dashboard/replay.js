@@ -205,16 +205,22 @@ def _run_row(row_json, entry_json, tape_json, alerts_json):   # row = a strategy
       // clip the tape to THIS trade's own session — guards against old ID-clobbered
       // ticks from other days being stapled onto a reused position_id
       const sessEnd = new Date(new Date(t.entry_ts).getTime() + 8 * 3600 * 1000).toISOString();
-      const tres = await db.from("fronttest_tape").select("ts,price,bid,ask")
-        .eq("position_id", t.position_id).gte("ts", t.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
+      // Replay on the STRATEGY'S OWN recorded tape + entry when it traded this alert, so the
+      // in-browser Replay matches the strategy's stored (replay-consistent) P&L exactly. Fall
+      // back to the shared pool representative's tape only when the strategy has no own tape.
+      const ownRec = ownByKey[keyOf(t)];
+      const tapePid = ownRec ? ownRec.id : t.position_id;
+      const fetchTape = (pid) => db.from("fronttest_tape").select("ts,price,bid,ask")
+        .eq("position_id", pid).gte("ts", t.entry_ts).lt("ts", sessEnd).order("ts").limit(6000);
+      let tres = await fetchTape(tapePid);
       if (tres.error) throw tres.error;
-      const tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
+      let tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]);
+      if (!tape.length && ownRec) { tres = await fetchTape(t.position_id); if (tres.error) throw tres.error; tape = (tres.data || []).map((r) => [r.ts, r.price, r.bid, r.ask]); }
       if (!tape.length) { skipped++; continue; }
       const entry = { ticker: t.ticker, osi_symbol: String(t.ticker || ""), side: t.side, strike: t.strike,
-                      qty: qty, fill_price: t.entry_price, opened_at: t.entry_ts };
+                      qty: qty, fill_price: ownRec ? Number(ownRec.entry_price) : Number(t.entry_price), opened_at: t.entry_ts };
       const r = runStrategy(row, entry, tape, alertsFor(t));
       // A pinned trade is a manual override — keep its recorded result, don't apply the rules replay.
-      const ownRec = ownByKey[keyOf(t)];
       const pinned = !!(ownRec && ownRec.pinned);
       trades.push({ position_id: t.position_id, ticker: t.ticker, side: t.side, strike: t.strike,
                     entry_price: Number(t.entry_price), orig_qty: qty, entry_ts: t.entry_ts,
