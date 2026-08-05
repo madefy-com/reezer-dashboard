@@ -3,15 +3,9 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.019";
+window.NT_VERSION = "1.018";
 
 window.NT_CHANGELOG = [
-  {
-    v: "1.019", date: "2026-08-05",
-    notes: [
-      "Fixed the Exit Lab Replay: replaying a strategy WITHOUT changing its settings now reproduces that strategy's recorded profit exactly again (as it always used to). The replay had been running each trade on a shared 'representative' price tape borrowed from whichever strategy the alert belonged to — so a strategy could show a very different number (e.g. double, or lower) even when nothing was changed. It now replays on the strategy's OWN recorded tape and entry, only falling back to the shared one when the strategy never traded that alert. Change a setting and the profit moves off that true baseline — exactly as intended.",
-    ],
-  },
   {
     v: "1.018", date: "2026-08-03",
     notes: [
