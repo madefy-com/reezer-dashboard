@@ -12,6 +12,7 @@ window.NT_CHANGELOG = [
       "Replay is now a proper what-if sandbox. Press Replay on a paper strategy and a panel opens with that strategy's own settings pre-filled — stop, take-profit, take-half, breakeven, max-hold, exit mode, budget, max contracts. With nothing changed it reproduces the strategy's recorded numbers exactly, trade for trade (the same P&L as the card). Change any field and press \"Run what-if\" to see the impact on every recorded trade — and the strategy and its recorded trades are NEVER touched. So you can test ideas without ever editing (and drifting) the real strategy.",
       "Fixed the long-standing Replay drift: its baseline is now the strategy's own recorded trades (all of them), so opening Replay always matches the card. Previously it rebuilt the list from scratch and re-sized to the current budget, so it could silently drop trades and show a different total than the card.",
       "All four paper strategies now carry their full trade history (the \"No Stop with TP\" strategy was only partly filled), each trade's profit computed from that strategy's own settings — and it re-runs automatically every day so new trades fold in on their own.",
+      "Fixed \"Max trades / day\" showing a confusing \"0\" instead of empty. 0 and empty both mean \"no daily cap\" (and always did — the bot never limited on 0), so the field now shows blank in that case, and saving/duplicating a strategy stores it as empty rather than 0.",
     ],
   },
   {

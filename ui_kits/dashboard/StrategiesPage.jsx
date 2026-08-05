@@ -58,7 +58,7 @@ function StrategyCard({ strat, sources }) {
       trailOn: tiers.length > 0, tierCount: Math.max(1, tiers.length),
       t1at: NT_tierAt(p, 0), t1pct: NT_tierTr(p, 0), t2at: NT_tierAt(p, 1), t2pct: NT_tierTr(p, 1), t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxSlip: p.max_price_slippage_usd == null ? "" : p.max_price_slippage_usd,
-      maxTrades: p.max_trades_per_day == null ? "" : p.max_trades_per_day,
+      maxTrades: !p.max_trades_per_day ? "" : p.max_trades_per_day,   // 0 and null both mean "no cap" -> show empty
       exitMode: (p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts")),
       dayPct: Object.assign({ mon: 100, tue: 100, wed: 100, thu: 100, fri: 100 }, p.budget_day_pct || {}),
       sourceIds: (strat.sourceIds || []).slice(),
@@ -89,7 +89,7 @@ function StrategyCard({ strat, sources }) {
       take_half_at_pct: pctOpt(form.half), trailing_tiers: tiers,
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
       max_price_slippage_usd: opt(form.maxSlip) == null ? null : (Number(form.maxSlip) || 0),
-      max_trades_per_day: opt(form.maxTrades) == null ? null : (Number(form.maxTrades) || 0),
+      max_trades_per_day: Number(form.maxTrades) > 0 ? Number(form.maxTrades) : null,   // empty or 0 -> null (no cap)
       exit_mode: form.exitMode || "rules_close",
       // legacy mirror for any code still reading the boolean: only "alerts" follows partials
       ignore_exit_alerts: (form.exitMode || "rules_close") !== "alerts",
@@ -127,7 +127,7 @@ function StrategyCard({ strat, sources }) {
         trade_budget_usd: p.trade_budget_usd, max_contracts_per_trade: p.max_contracts_per_trade,
         allowlist: p.allowlist, stop_loss_pct: p.stop_loss_pct, breakeven_at_pct: p.breakeven_at_pct,
         take_profit_pct: p.take_profit_pct, take_half_at_pct: p.take_half_at_pct, trailing_tiers: p.trailing_tiers || [],
-        max_hold_minutes: p.max_hold_minutes, max_price_slippage_usd: p.max_price_slippage_usd, max_trades_per_day: p.max_trades_per_day,
+        max_hold_minutes: p.max_hold_minutes, max_price_slippage_usd: p.max_price_slippage_usd, max_trades_per_day: p.max_trades_per_day || null,
         ignore_exit_alerts: !!p.ignore_exit_alerts, exit_mode: p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts"), budget_day_pct: p.budget_day_pct || {},
       });
       if (r.error) throw r.error;
