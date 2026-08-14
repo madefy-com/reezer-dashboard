@@ -232,6 +232,9 @@
         trade_budget_usd: { type: "number" },
         max_contracts: { type: "number" },
         exit_mode: { type: "string", enum: ["rules", "rules_close", "alerts"] },
+        days_back: { type: "number", description: "restrict the backtest to trades from the last N days, e.g. 14 for 'the past 14 days'. Omit for full history." },
+        from_date: { type: "string", description: "ISO date (YYYY-MM-DD) — only trades on/after this. Omit for no lower bound." },
+        to_date: { type: "string", description: "ISO date (YYYY-MM-DD) — only trades on/before this. Omit for no upper bound." },
       },
       required: ["strategy"],
     },
@@ -254,8 +257,8 @@
     "resolution), the trader's own feed messages per day, per-parameter sensitivity sweeps run through the actual " +
     "backtest engine, and a per-weekday performance breakdown. Fractions are decimals (0.20 = 20%; null = off). " +
     "trailing_tiers is a list of [peak_gain, give_back] pairs. budget_day_pct is a % multiplier per weekday " +
-    "(100=full, 0=skip). max contracts is fixed at 1, so trade_budget_usd is a max-premium-per-contract filter (a " +
-    "trade whose price*100 exceeds budget*day% is SKIPPED), not leverage. " +
+    "(100=full, 0=skip). When DESIGNING a brand-new strategy the sweeps use 1 contract, so there trade_budget_usd is a " +
+    "max-premium-per-contract filter (a trade whose price*100 exceeds budget*day% is SKIPPED), not leverage. " +
     "EXIT MODE IS A KEY LEVER — do NOT default to rules-only. exit_mode='rules' ignores the trader's exit alerts; " +
     "'rules_close' applies your rules but ALSO honors the trader's CLOSE alerts; 'alerts' follows the trader's " +
     "partial/close calls. The exit_mode sweep gives the real P&L of each, and every trade carries the trader's " +
@@ -278,7 +281,12 @@
     "asks to compare settings, or asks you to find a better stop/target/exit, CALL run_backtest with the strategy name " +
     "and the changed settings (run it several times to compare if needed), then explain the returned numbers in plain " +
     "spoken language — lead with the total P&L and how it moved versus the baseline. Percentages you pass to the tool " +
-    "are WHOLE NUMBERS (40 means 40%, not 0.40); pass 0 or omit a stop/target to turn it off.";
+    "are WHOLE NUMBERS (40 means 40%, not 0.40); pass 0 or omit a stop/target to turn it off. " +
+    "The backtest CAN scope to a date window — pass `days_back` (e.g. 14 for 'the past 14 days', 7 for 'this week') or " +
+    "`from_date`/`to_date` (YYYY-MM-DD). So NEVER say it only runs full history or fall back to reading the trade log — " +
+    "if the user asks about a period, call run_backtest WITH the window. Real sizing note: run_backtest uses each " +
+    "strategy's ACTUAL sizing — budget × weekday% buys as many contracts as it affords, up to the strategy's max-" +
+    "contracts cap — NOT 1 fixed contract. Describe results in the strategy's real budget + max contracts.";
   function firstName() {
     const n = (window.NT_USER_NAME || "").trim();
     if (n) return n.split(/\s+/)[0];
@@ -652,7 +660,7 @@
         <div>
           <div className="adv-grp-h">Sizing</div>
           {row("Trade budget", "$" + Math.round(p.trade_budget_usd))}
-          {row("Max contracts", "1 (fixed)", true)}
+          {row("Max contracts", p.max_contracts_per_trade ? String(p.max_contracts_per_trade) : "1 (fixed)", !p.max_contracts_per_trade)}
           {row("Budget / weekday", days)}
         </div>
         <div>
@@ -925,10 +933,22 @@
         if (input.exit_mode != null) { overrides.exit_mode = String(input.exit_mode); overrides.ignore_exit_alerts = String(input.exit_mode) !== "alerts"; applied.exit_mode = String(input.exit_mode); }
 
         const res = await window.Replay.replayStrategy(strat, window.NT_CLIENT, (s) => setStatus(s), overrides);
-        const vals = res.trades.map((t) => t.realized);
+        // optional date window (e.g. "past 14 days", or an explicit from/to) — filter the replayed
+        // trades by entry date BEFORE scoring, so Reezer can answer window questions with real numbers.
+        let tr = res.trades, window_ = "full history";
+        const dback = input.days_back != null ? Number(input.days_back) : null;
+        if (dback != null || input.from_date || input.to_date) {
+          const lo = dback != null ? (Date.now() - dback * 86400000)
+            : (input.from_date ? new Date(input.from_date).getTime() : -Infinity);
+          const hi = input.to_date ? new Date(String(input.to_date) + "T23:59:59Z").getTime() : Infinity;
+          tr = res.trades.filter((t) => { const ts = new Date(t.entry_ts).getTime(); return ts >= lo && ts <= hi; });
+          window_ = dback != null ? ("last " + dback + " days")
+            : ((input.from_date || "start") + " to " + (input.to_date || "now"));
+        }
+        const vals = tr.map((t) => t.realized);
         const m = metrics(vals);
-        m.max_drawdown = drawdown(res.trades.map((t) => ({ v: t.realized, ts: t.entry_ts })));
-        const baseline = Math.round(res.trades.reduce((a, t) => a + (t.orig_realized || 0), 0));
+        m.max_drawdown = drawdown(tr.map((t) => ({ v: t.realized, ts: t.entry_ts })));
+        const baseline = Math.round(tr.reduce((a, t) => a + (t.orig_realized || 0), 0));
 
         // Card settings: the strategy's real settings (fractions) with the applied overrides layered on.
         const bd = strat.budget_day_pct || {};
@@ -946,11 +966,13 @@
           take_half_at_pct: pick("take_half_at_pct", null),
           trailing_tiers: strat.trailing_tiers || [],
           max_hold_minutes: pick("max_hold_minutes", null),
+          // real sizing: budget × weekday% per trade, capped at max contracts (NOT the design flow's fixed 1)
+          max_contracts_per_trade: "max_contracts_per_trade" in overrides ? overrides.max_contracts_per_trade : Number(strat.max_contracts_per_trade || 0),
         };
-        push({ role: "ai", kind: "proposal", p: p, m: m, n: res.trades.length });
+        push({ role: "ai", kind: "proposal", p: p, m: m, n: tr.length });
 
         return {
-          strategy: strat.name, trades: res.trades.length, total_pnl: m.total, baseline_pnl: baseline,
+          strategy: strat.name, window: window_, trades: tr.length, total_pnl: m.total, baseline_pnl: baseline,
           delta: m.total - baseline, win_pct: m.win_pct, profit_factor: m.profit_factor,
           avg_per_trade: m.avg, max_drawdown: m.max_drawdown, applied: applied,
         };
