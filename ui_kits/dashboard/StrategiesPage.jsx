@@ -129,6 +129,7 @@ function StrategyCard({ strat, sources }) {
         take_profit_pct: p.take_profit_pct, take_half_at_pct: p.take_half_at_pct, trailing_tiers: p.trailing_tiers || [],
         max_hold_minutes: p.max_hold_minutes, max_price_slippage_usd: p.max_price_slippage_usd, max_trades_per_day: p.max_trades_per_day || null,
         ignore_exit_alerts: !!p.ignore_exit_alerts, exit_mode: p.exit_mode || (p.ignore_exit_alerts ? "rules" : "alerts"), budget_day_pct: p.budget_day_pct || {},
+        start_balance_usd: 2000, backfill_history: true,   // paper copy: default notional + replay all historic trades under its settings
       });
       if (r.error) throw r.error;
       await window.NT_REFRESH();
@@ -530,6 +531,8 @@ function StrategiesPage() {
         name: "New strategy", description: "", account: "draft",
         trade_budget_usd: 400, max_contracts_per_trade: 10, allowlist: "QQQ,NVDA,TSLA",
         stop_loss_pct: 0.2, breakeven_at_pct: 0.2, breakeven_after_partial: true, take_half_at_pct: 0.3, trailing_tiers: [],
+        start_balance_usd: 2000,        // default notional so the account-return card shows from day one
+        backfill_history: true,         // flag: the server job replays ALL historic trades under this strategy's settings
       });
       if (r.error) throw r.error;
       await window.NT_REFRESH();

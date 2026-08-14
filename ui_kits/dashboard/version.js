@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.019";
+window.NT_VERSION = "1.020";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.020", date: "2026-08-14",
+    notes: [
+      "New paper strategies now come fully set up out of the box: they start with a $2,000 notional balance (so the “account return” % shows from day one instead of a blank “—”), and they’re automatically backfilled with your entire trade history — every past alert replayed under that new strategy’s own settings — so a strategy you add today immediately has the full track record to compare against the others. (Your real recorded strategies, Gianni’s and Nitro’s, are left untouched.) The account-return card now also fills in for the existing paper strategies and the live account.",
+    ],
+  },
   {
     v: "1.019", date: "2026-08-05",
     notes: [
