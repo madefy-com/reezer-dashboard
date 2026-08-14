@@ -716,11 +716,15 @@
       return () => clearTimeout(t);
     }, [msgs]);
     useEffect(() => {
-      if (!endRef.current) return;
+      if (!showChat || !msgs.length || !endRef.current) return;   // chat is open (== "started")
       const jump = () => { if (endRef.current) endRef.current.scrollIntoView({ behavior: didInitScroll.current ? "smooth" : "auto", block: "end" }); };
       jump();
-      if (!didInitScroll.current && msgs.length) { didInitScroll.current = true; setTimeout(jump, 80); }  // open: land at the newest, after history lays out
-    }, [msgs, status, prog, scopeMode]);
+      if (!didInitScroll.current) {                               // just opened: land at the newest, instantly, after layout settles
+        requestAnimationFrame(jump); setTimeout(jump, 120); setTimeout(jump, 350);
+        didInitScroll.current = true;
+      }
+    }, [showChat, msgs, status, prog, scopeMode]);
+    useEffect(() => { if (!showChat) didInitScroll.current = false; }, [showChat]);   // re-arm the instant jump for the next open
     // Land ready to type: focus the chat box on open, and again whenever it frees up (after a
     // reply, on the scope prompt, switching home<->chat) so you never have to click it first.
     useEffect(() => {
