@@ -211,6 +211,32 @@
     },
   };
 
+  // Tool Reezer can call to run a REAL backtest of a strategy over its recorded trades.
+  // Percentages here are WHOLE NUMBERS (40 = 40%); the executor converts to fractions.
+  const RUN_BACKTEST_TOOL = {
+    name: "run_backtest",
+    description: "Runs a real backtest of one of the user's strategies over its full recorded trade history on the " +
+      "real 1-second tapes, optionally overriding settings, and returns the resulting metrics. Use it whenever the " +
+      "user asks what a setting change would do, to compare settings, or to find a better stop/target. All override " +
+      "percentages are WHOLE NUMBERS (e.g. 40 means 40%). Omit an override to keep the strategy's real value; pass 0 " +
+      "for a stop/target/breakeven to turn it off.",
+    input_schema: {
+      type: "object",
+      properties: {
+        strategy: { type: "string", description: "strategy name or id, e.g. 'No Stop strategy'" },
+        stop_loss_pct: { type: "number", description: "fixed stop as whole-number %, e.g. 40. 0 or omit = no stop" },
+        take_profit_pct: { type: "number" },
+        take_half_at_pct: { type: "number" },
+        breakeven_at_pct: { type: "number" },
+        max_hold_minutes: { type: "number" },
+        trade_budget_usd: { type: "number" },
+        max_contracts: { type: "number" },
+        exit_mode: { type: "string", enum: ["rules", "rules_close", "alerts"] },
+      },
+      required: ["strategy"],
+    },
+  };
+
   const SYSTEM =
     "You are Reezer, {{NAME}}'s personal options-trading assistant inside the Reezer dashboard. Always speak as " +
     "Reezer — never call yourself Claude, an AI model, or anything else. YOUR OWN name is Reezer; {{NAME}} is the " +
@@ -244,7 +270,15 @@
     "complete strategy justified by the data, and say WHY you chose that exit_mode. " +
     "You are also the user's assistant for questions: alongside any analysis you may be given the user's strategies " +
     "(with settings and P&L), recent trades, and P&L by day and strategy — use that to answer how a day went, how " +
-    "a specific trade or strategy did, or what to change. Be concise, cite the real numbers, and never invent data.";
+    "a specific trade or strategy did, or what to change. Be concise, cite the real numbers, and never invent data. " +
+    "YOU HAVE A REAL BACKTEST TOOL — `run_backtest`. It replays one of the user's strategies over its full recorded " +
+    "trade history on the real 1-second tapes, optionally overriding settings, and returns the true resulting metrics " +
+    "(and renders a card). NEVER say you can't run that, can't pull the paths, or have to guess — you CAN run it. " +
+    "Whenever the user asks what a setting change would do (e.g. 'what does a 40% stop do to the No Stop strategy'), " +
+    "asks to compare settings, or asks you to find a better stop/target/exit, CALL run_backtest with the strategy name " +
+    "and the changed settings (run it several times to compare if needed), then explain the returned numbers in plain " +
+    "spoken language — lead with the total P&L and how it moved versus the baseline. Percentages you pass to the tool " +
+    "are WHOLE NUMBERS (40 means 40%, not 0.40); pass 0 or omit a stop/target to turn it off.";
   function firstName() {
     const n = (window.NT_USER_NAME || "").trim();
     if (n) return n.split(/\s+/)[0];
@@ -337,6 +371,7 @@
       id: s.id, name: s.name, account: s.account, trade_budget_usd: s.trade_budget_usd,
       max_contracts: s.max_contracts_per_trade, stop_loss_pct: s.stop_loss_pct, take_profit_pct: s.take_profit_pct,
       take_half_at_pct: s.take_half_at_pct, breakeven_at_pct: s.breakeven_at_pct, trailing_tiers: s.trailing_tiers,
+      breakeven_after_partial: s.breakeven_after_partial,
       max_hold_minutes: s.max_hold_minutes, exit_mode: s.exit_mode, budget_day_pct: s.budget_day_pct, allowlist: s.allowlist,
     }));
     const nameById = {}; strategies.forEach((s) => { nameById[s.id] = s.name; });
@@ -493,7 +528,7 @@
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j.error) throw new Error(j.error ? (j.detail ? j.error + " — " + j.detail : j.error) : "HTTP " + r.status);
     const text = (j.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
-    return { text: text, usage: j.usage };
+    return { text: text, content: j.content || [], stop_reason: j.stop_reason, usage: j.usage };
   }
   async function checkReady() {
     const SB = window.NT_SUPABASE || {};
@@ -698,6 +733,7 @@
     const priorRef = useRef("");                 // transcript of a resumed conversation
     const inputRef = useRef(null);               // chat box — kept focused so you can just type
     const convo = useRef([]);                    // raw anthropic message history
+    const stratsRef = useRef(null);              // loaded strategies list (for the run_backtest tool)
     const analysisRef = useRef(null);            // {payload, pts}
     const endRef = useRef(null);
     const didInitScroll = useRef(false);   // first paint jumps to the newest message instantly (no smooth-scroll-from-top)
@@ -851,6 +887,76 @@
       analysisRef.current = a; return a;
     }
 
+    // Reezer's run_backtest tool: resolve a strategy by name/id, replay its real recorded
+    // trades on the real tape under any what-if overrides, render the result in the same
+    // "Proposed strategy" card, and return compact metrics for the model to explain.
+    async function runBacktestTool(input) {
+      try {
+        input = input || {};
+        // strategies list (for name/id resolution) — reuse the seeded list, else load it
+        let list = stratsRef.current;
+        if (!list || !list.length) {
+          const r = await window.NT_CLIENT.from("strategies").select("*");
+          list = (r && r.data) || [];
+          stratsRef.current = list;
+        }
+        const q = String(input.strategy || "").trim().toLowerCase();
+        let strat = list.find((s) => String(s.id) === q);
+        if (!strat && q) strat = list.find((s) => String(s.name || "").toLowerCase().indexOf(q) >= 0);
+        if (!strat && q) strat = list.find((s) => q.indexOf(String(s.name || "").toLowerCase()) >= 0);
+        if (!strat) return { error: "no strategy matching '" + (input.strategy || "") + "'" };
+
+        // Build overrides (fraction form) — only the keys the caller actually provided.
+        // Whole-number % -> fraction; 0 on a stop/target/breakeven means "off" -> null.
+        const overrides = {}, applied = {};
+        const pctOv = (key, val) => {
+          if (val == null) return;
+          const n = Number(val);
+          overrides[key] = n <= 0 ? null : n / 100;
+          applied[key] = n <= 0 ? 0 : n;
+        };
+        pctOv("stop_loss_pct", input.stop_loss_pct);
+        pctOv("take_profit_pct", input.take_profit_pct);
+        pctOv("take_half_at_pct", input.take_half_at_pct);
+        pctOv("breakeven_at_pct", input.breakeven_at_pct);
+        if (input.max_hold_minutes != null) { overrides.max_hold_minutes = Number(input.max_hold_minutes); applied.max_hold_minutes = Number(input.max_hold_minutes); }
+        if (input.trade_budget_usd != null) { overrides.trade_budget_usd = Number(input.trade_budget_usd); applied.trade_budget_usd = Number(input.trade_budget_usd); }
+        if (input.max_contracts != null) { overrides.max_contracts_per_trade = Number(input.max_contracts); applied.max_contracts = Number(input.max_contracts); }
+        if (input.exit_mode != null) { overrides.exit_mode = String(input.exit_mode); overrides.ignore_exit_alerts = String(input.exit_mode) !== "alerts"; applied.exit_mode = String(input.exit_mode); }
+
+        const res = await window.Replay.replayStrategy(strat, window.NT_CLIENT, (s) => setStatus(s), overrides);
+        const vals = res.trades.map((t) => t.realized);
+        const m = metrics(vals);
+        m.max_drawdown = drawdown(res.trades.map((t) => ({ v: t.realized, ts: t.entry_ts })));
+        const baseline = Math.round(res.trades.reduce((a, t) => a + (t.orig_realized || 0), 0));
+
+        // Card settings: the strategy's real settings (fractions) with the applied overrides layered on.
+        const bd = strat.budget_day_pct || {};
+        const dayPct = {};
+        ["mon", "tue", "wed", "thu", "fri"].forEach((d) => { dayPct[d] = bd[d] != null ? Number(bd[d]) : 100; });
+        const pick = (key, dflt) => (key in overrides ? overrides[key] : (strat[key] != null ? strat[key] : dflt));
+        const p = {
+          trade_budget_usd: "trade_budget_usd" in overrides ? overrides.trade_budget_usd : Number(strat.trade_budget_usd || 0),
+          budget_day_pct: dayPct,
+          exit_mode: "exit_mode" in overrides ? overrides.exit_mode : (strat.exit_mode || "rules"),
+          stop_loss_pct: pick("stop_loss_pct", null),
+          breakeven_at_pct: pick("breakeven_at_pct", null),
+          breakeven_after_partial: strat.breakeven_after_partial != null ? strat.breakeven_after_partial : true,
+          take_profit_pct: pick("take_profit_pct", null),
+          take_half_at_pct: pick("take_half_at_pct", null),
+          trailing_tiers: strat.trailing_tiers || [],
+          max_hold_minutes: pick("max_hold_minutes", null),
+        };
+        push({ role: "ai", kind: "proposal", p: p, m: m, n: res.trades.length });
+
+        return {
+          strategy: strat.name, trades: res.trades.length, total_pnl: m.total, baseline_pnl: baseline,
+          delta: m.total - baseline, win_pct: m.win_pct, profit_factor: m.profit_factor,
+          avg_per_trade: m.avg, max_drawdown: m.max_drawdown, applied: applied,
+        };
+      } catch (e) { return { error: String(e) }; }
+    }
+
     async function design(range) {
       if (busy) return; setBusy(true); unlockAudio(); setProg({ label: "Starting…", pct: 0.02 });
       const scopeTxt = range && range.label && range.label !== "all trades" ? " · " + range.label : "";
@@ -871,6 +977,7 @@
         const prop = JSON.parse(res.text);
         const m = validate(a.pts, prop);
         const ctx = await loadContext(window.NT_CLIENT);
+        stratsRef.current = ctx.strategies;
         convo.current = [
           { role: "user", content: [
             { type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx) + "\n\nAnd the deep sweep analysis used to design a strategy:\n" + JSON.stringify(a.payload), cache_control: { type: "ephemeral" } },
@@ -917,6 +1024,7 @@
         if (!convo.current.length) {              // first question -> seed with the user's trading data (fast, no full sweep)
           setStatus("Loading your trades & strategies…");
           const ctx = await loadContext(window.NT_CLIENT);
+          stratsRef.current = ctx.strategies;
           const blocks = [{ type: "text", text: "My Reezer trading data (strategies + settings, P&L by strategy and day, recent trades):\n" + JSON.stringify(ctx), cache_control: { type: "ephemeral" } }];
           if (priorRef.current) blocks.push({ type: "text", text: "Earlier in this same conversation:\n" + priorRef.current });
           blocks.push({ type: "text", text: "I'll ask questions about my trading." });
@@ -930,8 +1038,28 @@
         const t0 = Date.now();
         const tick = setInterval(() => setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: Math.round((Date.now() - t0) / 1000) }), 1000);
         setProg({ label: "Reezer is thinking…", pct: 0.95, indet: true, secs: 0 });
+        // Reezer can call the run_backtest tool — loop tool_use turns until it's ready to answer.
+        const callBody = () => ({ system: personalizedSystem(), messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, tools: [RUN_BACKTEST_TOOL] });
         let res;
-        try { res = await callClaude({ system: personalizedSystem(), messages: convo.current, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" } }); }
+        try {
+          res = await callClaude(callBody());
+          let iters = 0;
+          while (res && res.stop_reason === "tool_use" && iters < 6) {
+            iters++;
+            convo.current.push({ role: "assistant", content: res.content });   // keep thinking + tool_use blocks intact
+            const uses = (res.content || []).filter((b) => b.type === "tool_use");
+            const results = [];
+            for (const b of uses) {
+              let out;
+              try { out = (b.name === "run_backtest") ? await runBacktestTool(b.input || {}) : { error: "unknown tool " + b.name }; }
+              catch (e) { out = { error: String(e) }; }
+              results.push({ type: "tool_result", tool_use_id: b.id, content: JSON.stringify(out) });
+            }
+            convo.current.push({ role: "user", content: results });
+            setProg({ label: "Reezer is running a backtest…", pct: 0.95, indet: true, secs: Math.round((Date.now() - t0) / 1000) });
+            res = await callClaude(callBody());
+          }
+        }
         finally { clearInterval(tick); }
         clearTimeout(thinkT);   // reply arrived — cancel the pending "let me think" if it hasn't fired
         convo.current.push({ role: "assistant", content: res.text });

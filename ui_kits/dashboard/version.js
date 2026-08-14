@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.020", date: "2026-08-14",
     notes: [
+      "Ask Reezer can now run REAL backtests. Ask something like “what does a 40% stop do to the No Stop strategy?” and instead of saying it can't, Reezer replays every one of that strategy's recorded trades on the real 1-second tapes with the change applied, answers with the actual numbers, and shows the result in the same strategy overview card (Total P&L · Win Rate · Profit Factor · Avg/Trade · Max Drawdown). It can compare several settings in one go to find the best stop/target.",
       "Ask Reezer now opens scrolled to your most recent message instead of the top — no more scrolling down every time you come back to the chat.",
       "New paper strategies now come fully set up out of the box: they start with a $2,000 notional balance (so the “account return” % shows from day one instead of a blank “—”), and they’re automatically backfilled with your entire trade history — every past alert replayed under that new strategy’s own settings — so a strategy you add today immediately has the full track record to compare against the others. (Your real recorded strategies, Gianni’s and Nitro’s, are left untouched.) The account-return card now also fills in for the existing paper strategies and the live account.",
     ],
