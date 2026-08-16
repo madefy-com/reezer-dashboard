@@ -3,9 +3,15 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.020";
+window.NT_VERSION = "1.021";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.021", date: "2026-08-16",
+    notes: [
+      "New “Portfolio” page — the home for swing / long-term positions, kept completely separate from the 0DTE options bot. It follows the Macrotrends portfolio sheet: it watches both tabs (holdings for buys, the closed-positions tab for sells), shows how fresh the feed is, and lists every change the publisher makes. You create a strategy that decides what a sheet weight is actually worth to you — either a fixed amount (a 3% holding out of $20,000 = $600) or a share of your account — with an optional per-position safety cap and ticker filter. It starts flat: nothing is bought up front, only changes from now on, and it can only ever sell something it bought itself. New strategies start paused and on paper, and nothing is ordered until you activate one and link a broker (Interactive Brokers, since this portfolio holds European and Canadian listings).",
+    ],
+  },
   {
     v: "1.020", date: "2026-08-14",
     notes: [

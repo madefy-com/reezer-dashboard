@@ -118,6 +118,7 @@ function App() {
     if (page === "fronttest") return <FronttestPage />;
     if (page === "updates") return <ChangelogPage />;
     if (page === "strategies") return <StrategiesPage />;
+    if (page === "portfolio") return <PortfolioPage />;
     if (page === "advisor") return <AdvisorPage />;
     if (page === "sources" || page === "settings") return <SourcesPage />;
     return <DashboardPage mode={mode} kill={kill} />;

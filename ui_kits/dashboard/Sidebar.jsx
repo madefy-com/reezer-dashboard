@@ -11,6 +11,7 @@ function Sidebar({ page, onNav }) {
     { id: "log", label: "Alerts", icon: "message-square-dot" },
     { id: "activity", label: "Activity", icon: "activity" },
     { id: "strategies", label: "Strategies", icon: "target" },
+    { id: "portfolio", label: "Portfolio", icon: "briefcase" },
     { id: "fronttest", label: "Exit Lab", icon: "flask-conical" },
   ];
   return (
