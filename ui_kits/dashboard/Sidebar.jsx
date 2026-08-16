@@ -3,17 +3,50 @@ function Ico({ name, size = 20, color = "currentColor", sw = 1.75 }) {
   return <i data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i>;
 }
 
-function Sidebar({ page, onNav }) {
-  const D = window.NT_DATA;
-  const nav = [
+/* Two worlds live side by side: the 0DTE options bot and the swing book. The switcher
+   only appears when BOTH are populated — with one world there is nothing to switch to,
+   so we just show that world's pages. Activity is shared and sits below the divider. */
+const NT_WORLD_NAV = {
+  options: [
     { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
     { id: "trades", label: "Trades", icon: "candlestick-chart" },
     { id: "log", label: "Alerts", icon: "message-square-dot" },
-    { id: "activity", label: "Activity", icon: "activity" },
     { id: "strategies", label: "Strategies", icon: "target" },
-    { id: "portfolio", label: "Portfolio", icon: "briefcase" },
     { id: "fronttest", label: "Exit Lab", icon: "flask-conical" },
-  ];
+  ],
+  swings: [
+    { id: "swings-dashboard", label: "Dashboard", icon: "layout-dashboard" },
+    { id: "swings-trades", label: "Trades", icon: "candlestick-chart" },
+    { id: "swings-alerts", label: "Alerts", icon: "message-square-dot" },
+    { id: "swings-strategies", label: "Strategies", icon: "target" },
+  ],
+};
+
+function Sidebar({ page, onNav, world, onWorld }) {
+  const D = window.NT_DATA;
+  const hasOptions = ((D && D.strategies) || []).length > 0;
+  const hasSwings = window.NT_HAS_SWINGS === true;
+  const both = hasOptions && hasSwings;
+  // With only one world populated the switcher is noise — pin to whichever world exists.
+  const w = both ? (world === "swings" ? "swings" : "options") : (hasSwings && !hasOptions ? "swings" : "options");
+  const nav = NT_WORLD_NAV[w];
+
+  const navBtn = (n) => {
+    const on = page === n.id;
+    return (
+      <button key={n.id} onClick={() => onNav(n.id)} className="nt-nav" data-on={on ? "" : undefined}
+        style={{
+          display: "flex", alignItems: "center", gap: 11, height: 38, padding: "0 10px",
+          borderRadius: "var(--radius-md)", cursor: "pointer", textAlign: "left",
+          fontFamily: "var(--font-sans)", fontSize: "var(--t-sm)",
+          transition: "background var(--dur), color var(--dur)",
+        }}>
+        <Ico name={n.icon} size={18} />
+        {n.label}
+      </button>
+    );
+  };
+
   return (
     <aside style={{
       width: 218, flex: "none", background: "var(--ink-0)", borderRight: "1px solid var(--border)",
@@ -26,22 +59,29 @@ function Sidebar({ page, onNav }) {
       </div>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+        {both && (
+          <div style={{ display: "flex", gap: 3, padding: 3, marginBottom: 6, background: "var(--surface-inset)", borderRadius: "var(--radius-sm)" }}>
+            {[["options", "Options"], ["swings", "Swings"]].map((o) => {
+              const on = w === o[0];
+              return (
+                <button key={o[0]} type="button" onClick={() => { if (onWorld) onWorld(o[0]); }}
+                  style={{
+                    flex: 1, height: 30, border: "1px solid transparent", borderRadius: "var(--radius-sm)", cursor: "pointer",
+                    background: on ? "var(--accent)" : "transparent", color: on ? "#fff" : "var(--text-tertiary)",
+                    font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)",
+                    transition: "background var(--dur), color var(--dur)",
+                  }}>{o[1]}</button>
+              );
+            })}
+          </div>
+        )}
         <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "6px 8px 8px" }}>Workspace</span>
-        {nav.map((n) => {
-          const on = page === n.id;
-          return (
-            <button key={n.id} onClick={() => onNav(n.id)} className="nt-nav" data-on={on ? "" : undefined}
-              style={{
-                display: "flex", alignItems: "center", gap: 11, height: 38, padding: "0 10px",
-                borderRadius: "var(--radius-md)", cursor: "pointer", textAlign: "left",
-                fontFamily: "var(--font-sans)", fontSize: "var(--t-sm)",
-                transition: "background var(--dur), color var(--dur)",
-              }}>
-              <Ico name={n.icon} size={18} />
-              {n.label}
-            </button>
-          );
-        })}
+        {nav.map(navBtn)}
+
+        {/* shared by both worlds */}
+        <div style={{ height: 1, background: "var(--border)", margin: "10px 4px 7px" }} />
+        {navBtn({ id: "activity", label: "Activity", icon: "activity" })}
+
         {/* standout "Ask Reezer" pill — separate from the nav, one blank row above */}
         <button className="nt-askai" data-on={page === "advisor" ? "" : undefined} onClick={() => onNav("advisor")}
           style={{ display: "flex", alignItems: "center", gap: 11, height: 40, marginTop: 34, padding: "0 11px",

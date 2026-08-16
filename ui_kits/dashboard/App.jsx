@@ -83,6 +83,7 @@ function WatchdogBanner() {
 /* App — Reezer operator dashboard shell with page routing. */
 function App() {
   const [page, setPage] = React.useState("dashboard");
+  const [world, setWorld] = React.useState("options");
   const [mode, setMode] = React.useState(window.NT_DATA.session.mode);
   const _anyKill = () => (window.NT_DATA.strategies || []).some((s) => s.params && s.params.kill_switch);
   const [kill, setKill] = React.useState(() => (_anyKill() ? "TRIPPED" : "ARMED"));
@@ -110,7 +111,27 @@ function App() {
   });
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
 
+  // Probe the swing world once so the sidebar's world switcher can appear before any
+  // swing page has ever been opened (SwingsPage keeps the flag fresh from then on).
+  React.useEffect(() => {
+    const db = window.NT_CLIENT;
+    if (!db) return;
+    db.from("equity_strategies").select("id").limit(1).then(function (r) {
+      const has = !!(r && r.data && r.data.length);
+      if (has !== (window.NT_HAS_SWINGS === true)) {
+        window.NT_HAS_SWINGS = has;
+        window.dispatchEvent(new Event("nt-data"));
+      }
+    }, function () { /* offline/demo — no swing world */ });
+  }, []);
+
+  const goWorld = (w) => {
+    setWorld(w);
+    setPage(w === "swings" ? "swings-dashboard" : "dashboard");
+  };
+
   const renderPage = () => {
+    if (page.indexOf("swings-") === 0) return <SwingsPage page={page} />;
     if (page === "trades") return <TradesPage />;
     if (page === "activity") return <ActivityPage />;
     if (page === "log") return <LogPage />;
@@ -118,7 +139,6 @@ function App() {
     if (page === "fronttest") return <FronttestPage />;
     if (page === "updates") return <ChangelogPage />;
     if (page === "strategies") return <StrategiesPage />;
-    if (page === "portfolio") return <PortfolioPage />;
     if (page === "advisor") return <AdvisorPage />;
     if (page === "sources" || page === "settings") return <SourcesPage />;
     return <DashboardPage mode={mode} kill={kill} />;
@@ -126,7 +146,7 @@ function App() {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-app)" }}>
-      <Sidebar page={page} onNav={setPage} />
+      <Sidebar page={page} onNav={setPage} world={world} onWorld={goWorld} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage} strategies={strategies} />
         <FlagBanner />

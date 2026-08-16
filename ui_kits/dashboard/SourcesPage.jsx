@@ -67,6 +67,85 @@ function SchwabReauth() {
   );
 }
 
+/* Swing trading setup — lives in Settings because Settings is where you connect things, and
+   because the sidebar's Options/Swings switch only appears once a swing strategy exists. This
+   is therefore the entry point into the second world. Shows the shared signal source (the
+   published portfolio sheet, uniform for every user) and creates the first strategy. */
+function SwingSetupCard() {
+  const NT = window.NitroTraderDesignSystem_95e598;
+  const db = window.NT_CLIENT;
+  const [snap, setSnap] = React.useState(null);
+  const [n, setN] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    if (!db) return;
+    const [s, st] = await Promise.all([
+      db.from("sheet_snapshots").select("tab,row_count,fetched_at").eq("tab", "portfolio")
+        .order("fetched_at", { ascending: false }).limit(1),
+      db.from("equity_strategies").select("id"),
+    ]);
+    setSnap(((s && s.data) || [])[0] || null);
+    setN(((st && st.data) || []).length);
+  }, [db]);
+  React.useEffect(() => { load(); }, [load]);
+
+  const create = async () => {
+    setBusy(true);
+    try {
+      const r = await db.from("equity_strategies").insert({
+        name: "Macrotrends follow", account: "paper", paused: true,
+        sizing_mode: "fixed_usd", sizing_base: 20000, source: "macrotrends_sheet",
+      });
+      if (r.error) throw r.error;
+      window.NT_HAS_SWINGS = true;                       // reveal the Options/Swings switch
+      window.dispatchEvent(new Event("nt-data"));
+      await load();
+      await window.NT_ALERT("Created. Use the Options / Swings switch at the top of the menu to open it — "
+        + "it starts paused and on paper, so nothing is ordered yet.", { title: "Swing trading" });
+    } catch (e) { await window.NT_ALERT("Couldn’t create: " + (e.message || e), { title: "Swing trading" }); }
+    setBusy(false);
+  };
+
+  const ago = (iso) => {
+    if (!iso) return "never";
+    const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 90) return Math.round(s) + "s ago";
+    if (s < 5400) return Math.round(s / 60) + "m ago";
+    if (s < 172800) return Math.round(s / 3600) + "h ago";
+    return Math.round(s / 86400) + "d ago";
+  };
+
+  return (
+    <NT.Card title="Swing trading" padding={20}
+      action={n === 0 ? <NT.Button variant="primary" size="sm" disabled={busy} onClick={create}>{busy ? "Creating…" : "Get started"}</NT.Button> : null}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)", color: "var(--text-secondary)" }}>
+          Long-term positions that follow the Macrotrends portfolio sheet — a separate world from the
+          0DTE options bot, with its own strategies and trades. It starts flat and only acts when the
+          publisher changes something.
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 22, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+          {[["Signal source", "Macrotrends sheet"],
+            ["Checked", ago(snap && snap.fetched_at)],
+            ["Holdings tracked", snap ? snap.row_count : "—"],
+            ["Schedule", "every 5 minutes"],
+            ["Strategies", n == null ? "—" : n]].map((r, i) => (
+            <div key={i}>
+              <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{r[0]}</div>
+              <div style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", marginTop: 6 }}>{r[1]}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+          This source is the same for everyone and needs no setup. Buys come from the holdings tab,
+          sells from the closed-positions tab; physical metal is tracked but never ordered.
+        </div>
+      </div>
+    </NT.Card>
+  );
+}
+
 function SourcesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
@@ -303,6 +382,10 @@ function SourcesPage() {
           Changes take effect at the next session. A Discord source needs its own browser login.
         </div>
       </NT.Card>
+
+      {/* ---- Swing trading (the second world; also the ONLY way in before it has a strategy,
+             since the sidebar's Options/Swings switch stays hidden until one exists) ---- */}
+      <SwingSetupCard />
 
       {/* ---- Broker accounts ---- */}
       <NT.Card title="Broker accounts" padding={20} bodyStyle={{ padding: 0 }}>
