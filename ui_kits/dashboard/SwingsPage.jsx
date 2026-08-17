@@ -213,7 +213,6 @@ function SwingsPage({ page }) {
         name: row.name, sizing_mode: row.sizing_mode || "tiers_usd",
         account: row.account === "live" ? "live" : "paper",
         max_chase_pct: row.max_chase_pct === "" || row.max_chase_pct == null ? null : Number(row.max_chase_pct),
-        limit_buffer_pct: row.limit_buffer_pct === "" || row.limit_buffer_pct == null ? null : Number(row.limit_buffer_pct),
         sizing_tiers: (function () {                  // keep only filled-in tiers, as numbers
           const t = row.sizing_tiers || {}, out = {};
           ["1", "2", "3", "3plus"].forEach(function (k) {
@@ -595,16 +594,10 @@ function SwingsPage({ page }) {
               )}
             </div>
 
-            <SW_Field label="Don't chase above (%)"
-              hint="Skip the buy if the price has already run this far past the sheet's price — the trade the publisher recommended is gone. Empty = 5%.">
+            <SW_Field label="Skip the buy if the price already rose (%)"
+              hint="Compared to the price on the sheet when the alert appeared. Above this, you'd be buying a more expensive trade than the one recommended, so nothing is ordered. Empty = 5%.">
               <input type="number" value={edit.max_chase_pct == null ? "" : edit.max_chase_pct}
                 onChange={(e) => setEdit({ ...edit, max_chase_pct: e.target.value })} placeholder="5" style={SW_INPUT} />
-            </SW_Field>
-
-            <SW_Field label="Fill buffer (%)"
-              hint="How far through the spread the limit is priced so it fills straight away. 2% suits delayed prices; lower it only with real-time data. Empty = 2%.">
-              <input type="number" value={edit.limit_buffer_pct == null ? "" : edit.limit_buffer_pct}
-                onChange={(e) => setEdit({ ...edit, limit_buffer_pct: e.target.value })} placeholder="2" style={SW_INPUT} />
             </SW_Field>
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
