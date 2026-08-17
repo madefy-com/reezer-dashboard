@@ -116,6 +116,11 @@ function App() {
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
+    if (window.NT_USER_EMAIL) {                       // per-user home pages, across machines
+      db.from("user_prefs").select("prefs").eq("user_email", window.NT_USER_EMAIL).maybeSingle()
+        .then(function (r) { window.NT_HOME = ((r && r.data && r.data.prefs) || {}).home || {}; },
+              function () { /* offline — fall back to each world's dashboard */ });
+    }
     db.from("equity_strategies").select("id").limit(1).then(function (r) {
       const has = !!(r && r.data && r.data.length);
       if (has !== (window.NT_HAS_SWINGS === true)) {
@@ -125,9 +130,12 @@ function App() {
     }, function () { /* offline/demo — no swing world */ });
   }, []);
 
+  // Switching worlds lands on the user's chosen home for that world (Settings -> Dashboard ->
+  // "Default page per category"), falling back to that world's dashboard.
   const goWorld = (w) => {
     setWorld(w);
-    setPage(w === "swings" ? "swings-dashboard" : "dashboard");
+    const home = (window.NT_HOME || {})[w];
+    setPage(home || (w === "swings" ? "swings-dashboard" : "dashboard"));
   };
 
   const renderPage = () => {
