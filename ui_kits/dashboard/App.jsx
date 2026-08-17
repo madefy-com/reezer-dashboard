@@ -116,10 +116,17 @@ function App() {
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
-    if (window.NT_USER_EMAIL) {                       // per-user home pages, across machines
+    // Which world to open on. Per-user (user_prefs), so it follows you between machines.
+    if (window.NT_USER_EMAIL) {
       db.from("user_prefs").select("prefs").eq("user_email", window.NT_USER_EMAIL).maybeSingle()
-        .then(function (r) { window.NT_HOME = ((r && r.data && r.data.prefs) || {}).home || {}; },
-              function () { /* offline — fall back to each world's dashboard */ });
+        .then(function (r) {
+          const c = ((r && r.data && r.data.prefs) || {}).home_category;
+          if (c && c !== "options") {                  // options is already the initial state
+            window.NT_HOME_CATEGORY = c;
+            setWorld(c);
+            setPage(c === "swings" ? "swings-dashboard" : "dashboard");
+          }
+        }, function () { /* offline — stay on options */ });
     }
     db.from("equity_strategies").select("id").limit(1).then(function (r) {
       const has = !!(r && r.data && r.data.length);
@@ -130,12 +137,10 @@ function App() {
     }, function () { /* offline/demo — no swing world */ });
   }, []);
 
-  // Switching worlds lands on the user's chosen home for that world (Settings -> Dashboard ->
-  // "Default page per category"), falling back to that world's dashboard.
+  // Switching worlds always lands on that world's dashboard.
   const goWorld = (w) => {
     setWorld(w);
-    const home = (window.NT_HOME || {})[w];
-    setPage(home || (w === "swings" ? "swings-dashboard" : "dashboard"));
+    setPage(w === "swings" ? "swings-dashboard" : "dashboard");
   };
 
   const renderPage = () => {

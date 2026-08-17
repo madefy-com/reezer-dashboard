@@ -73,11 +73,14 @@ function SourcesPage() {
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   React.useEffect(() => { const id = setInterval(() => force((x) => x + 1), 15000); return () => clearInterval(id); }, []);  // re-tick so a finished-command badge ages out on its own
   const brokers = window.NT_DATA.brokerAccounts || [];
+  // Schwab is the only broker wired up today; IBKR is listed as a not-yet row until one exists.
+  const hasIbkr = brokers.some((b) => /ibkr|interactive/i.test(String(b.broker || b.provider || b.label || "")));
   const strategies = window.NT_DATA.strategies || [];
   const machines = window.NT_DATA.machines || [];
   const cmds = window.NT_DATA.machineCommands || [];   // newest first (id desc)
+  // With more than one world, a bare strategy name is ambiguous — say which category it is.
   const viewOptions = [{ value: "all", label: "All strategies" }]
-    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
+    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name + " · Options" })));
   const view = String(window.NT_DATA.viewStrategy || "all");
   const range = String(window.NT_DATA.dateRange || "week");
   const defaultRange = String(window.NT_DATA.dateRangeDefault || "week");
@@ -131,59 +134,46 @@ function SourcesPage() {
     setCreatingSwing(false);
   };
 
-  // ---- default page per category (localStorage, same pattern as the default date range) ----
-  const HOME_PAGES = {
-    options: [["dashboard", "Dashboard"], ["trades", "Trades"], ["log", "Alerts"], ["strategies", "Strategies"], ["fronttest", "Exit Lab"]],
-    swings: [["swings-dashboard", "Dashboard"], ["swings-trades", "Trades"], ["swings-alerts", "Alerts"], ["swings-strategies", "Strategies"]],
-  };
-  // Stored PER USER in `user_prefs`, not in the browser: this must follow the person across
-  // machines (unlike the default date range, which is deliberately device-local).
-  const [homes, setHomes] = React.useState(null);
+  // ---- default page per category ----
+  // Which world's dashboard opens on sign-in. Stored PER USER in `user_prefs` so it follows
+  // the person across machines (unlike the default date range, which is device-local).
+  const [homeCat, setHomeCatState] = React.useState("options");
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db || !window.NT_USER_EMAIL) return;
     db.from("user_prefs").select("prefs").eq("user_email", window.NT_USER_EMAIL).maybeSingle()
-      .then(function (r) { setHomes(((r && r.data && r.data.prefs) || {}).home || {}); },
-            function () { setHomes({}); });
+      .then(function (r) {
+        const v = ((r && r.data && r.data.prefs) || {}).home_category;
+        if (v) { setHomeCatState(v); window.NT_HOME_CATEGORY = v; }
+      }, function () { /* offline — default to options */ });
   }, []);
-  const homeOf = (c) => {
-    const list = HOME_PAGES[c] || [];
-    const v = (homes || {})[c];
-    if (v && list.some((o) => o[0] === v)) return v;
-    return list.length ? list[0][0] : "";
-  };
-  const setHome = async (c, v) => {
-    const next = Object.assign({}, homes || {}, { [c]: v });
-    setHomes(next);                                    // optimistic; the select is instant
-    window.NT_HOME = next;                             // App reads this when switching worlds
+  const setHomeCat = async (v) => {
+    setHomeCatState(v);                                 // optimistic; the select is instant
+    window.NT_HOME_CATEGORY = v;
     const db = window.NT_CLIENT;
     if (!db || !window.NT_USER_EMAIL) return;
     try {
       const cur = await db.from("user_prefs").select("prefs").eq("user_email", window.NT_USER_EMAIL).maybeSingle();
-      const prefs = Object.assign({}, (cur && cur.data && cur.data.prefs) || {}, { home: next });
+      const prefs = Object.assign({}, (cur && cur.data && cur.data.prefs) || {}, { home_category: v });
       await db.from("user_prefs").upsert({ user_email: window.NT_USER_EMAIL, prefs: prefs,
                                            updated_at: new Date().toISOString() },
                                          { onConflict: "user_email" });
-    } catch (e) { await window.NT_ALERT("Couldn't save that: " + (e.message || e), { title: "Default page" }); }
+    } catch (e) { await window.NT_ALERT("Couldn't save that: " + (e.message || e), { title: "Default view" }); }
   };
-  React.useEffect(() => { if (homes) window.NT_HOME = homes; }, [homes]);
 
-  // ---- streaming window (session_config) ----
-  const SC0 = window.NT_DATA.sessionConfig || {};
-  const MH = window.NT_DATA.marketHours || { market_tz: "America/New_York", display_tz: "Europe/Amsterdam" };
-  const [win, setWin] = React.useState({ start: SC0.streaming_start_et || "09:30", end: SC0.streaming_end_et || "12:00", lead: SC0.scan_lead_min != null ? SC0.scan_lead_min : 30 });
-  const [savingWin, setSavingWin] = React.useState(false);
-  const dispOf = (hhmm) => { try { const a = String(hhmm).split(":"); const inst = window.ntTzInstant(new Date(), MH.market_tz, Number(a[0]), Number(a[1])); return window.ntFmtTz(inst, MH.display_tz); } catch (e) { return ""; } };
-  const dispZone = (MH.display_tz || "Europe/Amsterdam").split("/")[1].replace("_", " ");
-  const saveWin = async () => {
-    setSavingWin(true);
-    try {
-      const r = await window.NT_CLIENT.from("session_config").update({ streaming_start_et: win.start, streaming_end_et: win.end, scan_lead_min: Number(win.lead) || 30, updated_at: new Date().toISOString() }).eq("id", 1);
-      if (r.error) throw r.error;
-      await window.NT_REFRESH();
-    } catch (e) { await window.NT_ALERT("Save failed: " + (e.message || e), { title: "Streaming window" }); }
-    setSavingWin(false);
-  };
+  // ---- sheet freshness (for a sheet source's "checked …" line) ----
+  // Newest portfolio snapshot = the last time the poller actually pulled the sheet.
+  const [sheetSeen, setSheetSeen] = React.useState(null);
+  React.useEffect(() => {
+    const db = window.NT_CLIENT;
+    if (!db) return;
+    db.from("sheet_snapshots").select("fetched_at").eq("tab", "portfolio").order("fetched_at", { ascending: false }).limit(1)
+      .then(function (r) {
+        const rows = (r && r.data) || [];
+        if (rows.length && rows[0].fetched_at) setSheetSeen(rows[0].fetched_at);
+      }, function () { /* offline — just show no stamp */ });
+  }, []);
+
   const INP = { height: 38, padding: "0 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-strong)", background: "var(--surface-inset)", color: "var(--text-primary)", colorScheme: "dark", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", width: "100%", boxSizing: "border-box" };
 
   // ---- shared table styles (match TradesPage) ----
@@ -192,24 +182,71 @@ function SourcesPage() {
   const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", padding: "13px 16px", borderTop: "1px solid var(--border)", textAlign: "left", color: "var(--text-primary)", verticalAlign: "middle" };
   const tdR = { ...td, textAlign: "right" };
   const ICON = { width: 32, height: 32, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" };
-  const typeChip = (t) => (
-    <span style={{ display: "inline-flex", alignItems: "center", height: 18, padding: "0 7px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-secondary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase" }}>{t}</span>
+
+  // ---- one item = one row (shared by the sources list and the broker list, so both
+  //      cards read the same way instead of being two different tables) ----
+  const catLabel = (text, gi, right) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 18px 6px", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", borderTop: gi ? "1px solid var(--border)" : "none" }}>
+      <span>{text}</span>
+      {right ? <span style={{ textTransform: "none", letterSpacing: "var(--ls-snug)" }}>{right}</span> : null}
+    </div>
+  );
+  const mutedRow = (text) => (
+    <div style={{ padding: "12px 18px", font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-tertiary)" }}>{text}</div>
+  );
+  const itemRow = (key, o) => (
+    <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 18px", borderTop: o.first ? "none" : "1px solid var(--border)", opacity: o.dim ? 0.75 : 1 }}>
+      <span style={{ flex: "none", display: "inline-flex" }}><Ico name={o.icon || "rss"} size={19} color="var(--text-tertiary)" /></span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ font: "var(--w-medium) var(--t-sm)/1.25 var(--font-sans)", color: "var(--text-primary)" }}>{o.name || "—"}</div>
+        <div title={o.sub || ""} style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.sub || "—"}</div>
+      </div>
+      {(o.meta || o.meta2) ? (
+        <div style={{ textAlign: "right", flex: "none" }}>
+          <div style={{ font: "var(--w-regular) var(--t-xs)/1.25 var(--font-sans)", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{o.meta || "—"}</div>
+          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3, whiteSpace: "nowrap" }}>{o.meta2 || "—"}</div>
+        </div>
+      ) : null}
+      {o.pill ? <span style={{ flex: "none", display: "inline-flex" }}>{o.pill}</span> : null}
+      {o.actions ? <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>{o.actions}</span> : null}
+    </div>
   );
 
-  const openNew = (c) => setForm({ id: null, name: "", type: c === "swings" ? "sheet" : "discord", category: c || "options", channel_url: "", enabled: true, window_start_et: "", window_end_et: "" });
-  const openEdit = (s) => setForm({ id: s.id, name: s.name || "", type: s.type || "discord", category: catOf(s), channel_url: s.channel_url || "", enabled: !!s.enabled, window_start_et: s.window_start_et || "", window_end_et: s.window_end_et || "" });
+  // `w0` remembers the window the editor opened with, so save() can tell whether the
+  // user actually changed it (see the session_config mirror in save()).
+  const winKey = (a, b) => (a || "") + "→" + (b || "");
+  const openNew = (c) => setForm({ id: null, name: "", type: c === "swings" ? "sheet" : "discord", category: c || "options", channel_url: "", enabled: true, window_start_et: "", window_end_et: "", w0: winKey("", "") });
+  const openEdit = (s) => setForm({ id: s.id, name: s.name || "", type: s.type || "discord", category: catOf(s), channel_url: s.channel_url || "", enabled: !!s.enabled, window_start_et: s.window_start_et || "", window_end_et: s.window_end_et || "", w0: winKey(s.window_start_et, s.window_end_et) });
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const typeOf = (s) => s.type || "discord";              // missing => the original kind
+  const iconOf = (s) => { const t = typeOf(s); return t === "discord" ? "message-square-dot" : t === "sheet" ? "table-2" : "rss"; };
+  // The URL is context, not the headline — drop the scheme so the readable part fits.
+  const urlOf = (s) => { const u = s.channel_url || ""; return u ? u.replace(/^https:\/\//, "") : "—"; };
   // A sheet source is polled on its own schedule; a discord source is watched inside a window.
   const schedOf = (s) => {
     const a = s.window_start_et || "", b = s.window_end_et || "";
-    if (!a && !b) return "always on";
-    return (a || "—") + " – " + (b || "—") + " ET";
+    if (a && b) return a + " – " + b + " ET";
+    return typeOf(s) === "sheet" ? "every 5 min" : "always on";
+  };
+  const freshOf = (s) => {
+    const t = typeOf(s);
+    if (t === "sheet") return sheetSeen ? "checked " + ago(sheetSeen) : "—";
+    return t === "discord" ? "weekdays" : "—";
   };
   const typeOptions = (t) => {
     const base = ["discord", "sheet"];
     return t && base.indexOf(t) < 0 ? base.concat([t]) : base;   // never silently retype a legacy row
   };
   const catOptions = (c) => (c && cats.indexOf(c) < 0 ? cats.concat([c]) : cats);
+  // Helper line under the window inputs — an empty window means something different for a
+  // sheet (it just keeps polling) than for a watched Discord channel.
+  const winHint = (f) => {
+    if (!f) return { text: "", tone: "var(--text-tertiary)" };
+    if (f.type === "sheet" && !f.window_start_et && !f.window_end_et) {
+      return { text: "Empty — polls all day, every 5 minutes.", tone: "var(--profit)" };
+    }
+    return { text: "Entries are only taken inside this window. Leave empty for a source that runs all day.", tone: "var(--text-tertiary)" };
+  };
 
   const save = async () => {
     if (!form.name.trim()) { await window.NT_ALERT("Give the source a name.", { title: "Source" }); return; }
@@ -222,6 +259,18 @@ function SourcesPage() {
       const r = form.id ? await window.NT_CLIENT.from("sources").update(payload).eq("id", form.id)
                         : await window.NT_CLIENT.from("sources").insert(payload);
       if (r.error) throw r.error;
+      // TEMPORARY: the engine still reads its Discord schedule from the single global
+      // session_config row (streaming_start_et / streaming_end_et), not from a source's
+      // own window — so mirror a changed discord window there or the bot ignores it.
+      // Remove this block once the engine reads window_start_et / window_end_et per source.
+      const wNow = winKey(form.window_start_et, form.window_end_et);
+      if (form.type === "discord" && wNow !== form.w0 && form.window_start_et && form.window_end_et) {
+        const sc = await window.NT_CLIENT.from("session_config").update({
+          streaming_start_et: form.window_start_et, streaming_end_et: form.window_end_et,
+          updated_at: new Date().toISOString(),
+        }).eq("id", 1);
+        if (sc.error) throw sc.error;
+      }
       await window.NT_REFRESH(); loadSources(); setForm(null);
     } catch (e) { await window.NT_ALERT("Save failed: " + (e.message || e), { title: "Source" }); }
     setSaving(false);
@@ -236,11 +285,13 @@ function SourcesPage() {
     catch (e) { await window.NT_ALERT("Delete failed: " + (e.message || e), { title: "Source" }); }
   };
 
-  const statusPill = (on) => (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", background: on ? "var(--profit-bg)" : "var(--surface-inset)", color: on ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: on ? "var(--profit)" : "var(--text-tertiary)" }}></span>{on ? "ON" : "OFF"}
-    </span>
-  );
+  // Green = live, muted = off. Pass onClick to make it the toggle itself.
+  const pill = (text, on, onClick) => {
+    const st = { display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", border: "1px solid transparent", background: on ? "var(--profit-bg)" : "var(--surface-inset)", color: on ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" };
+    const dot = <span style={{ width: 6, height: 6, borderRadius: "50%", background: on ? "var(--profit)" : "var(--text-tertiary)" }}></span>;
+    if (!onClick) return <span style={st}>{dot}{text}</span>;
+    return <button type="button" onClick={onClick} title={on ? "Turn this source off" : "Turn this source on"} style={{ ...st, cursor: "pointer" }}>{dot}{text}</button>;
+  };
 
   // ---- machines helpers ----
   const ago = (ts) => { if (!ts) return "never"; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago"; };
@@ -304,10 +355,6 @@ function SourcesPage() {
     );
   };
 
-  const emptyRow = (cols, text) => (
-    <tr><td colSpan={cols} style={{ ...td, textAlign: "center", color: "var(--text-tertiary)", padding: "26px 16px" }}>{text}</td></tr>
-  );
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
@@ -329,146 +376,82 @@ function SourcesPage() {
           <DateFilter value={defaultRange} onChange={(v, b) => window.NT_SET_DEFAULT_RANGE(v, b)} />
         </div>
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default page per category</div>
-          <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which page opens when you switch to that world.</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
-            {cats.map((c) => (
-              <div key={c} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>{cap(c)}</span>
-                {HOME_PAGES[c] ? (
-                  <select value={homeOf(c)} onChange={(e) => setHome(c, e.target.value)} style={{ ...INP, width: 240 }}>
-                    {HOME_PAGES[c].map((o) => <option key={o[0]} value={o[0]}>{o[1]}</option>)}
-                  </select>
-                ) : (
-                  <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>no pages yet</span>
-                )}
-              </div>
-            ))}
+          <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
+          <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 14 }}>
+            <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Open on</span>
+            <select value={homeCat} onChange={(e) => setHomeCat(e.target.value)} style={{ ...INP, width: 240 }}>
+              {cats.map((c) => <option key={c} value={c}>{cap(c)} dashboard</option>)}
+            </select>
           </div>
         </div>
       </NT.Card>
 
-      {/* ---- Alert sources — every world in one list, grouped by category. Per-world settings
-             (the options session window, the swing bootstrap) live inside their own group. ---- */}
+      {/* ---- Alert sources — every world in one list, one row per source, grouped under a
+             category label. A source's own schedule now lives in its editor. ---- */}
       <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
         action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={() => openNew()}>New source</NT.Button>}>
-        {cats.map((c) => {
+        {cats.map((c, gi) => {
           const rows = sources.filter((s) => catOf(s) === c);
           return (
             <div key={c}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 16px", background: "var(--surface-inset)", borderTop: "1px solid var(--border)" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
-                  <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-secondary)" }}>{c}</span>
-                  <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{rows.length} source{rows.length === 1 ? "" : "s"}</span>
-                </span>
-                {c === "swings" && nSwing === 0 ? (
-                  <NT.Button variant="primary" size="sm" disabled={creatingSwing} onClick={createSwing}>{creatingSwing ? "Creating…" : "Get started"}</NT.Button>
-                ) : null}
-              </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
-                  <thead><tr><th style={th}>Source</th><th style={th}>URL</th><th style={th}>Schedule</th><th style={th}>Status</th><th style={thR}>Actions</th></tr></thead>
-                  <tbody>
-                    {rows.map((s) => (
-                      <tr key={s.id} style={{ opacity: s.enabled ? 1 : 0.72 }}>
-                        <td style={td}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
-                            <span style={ICON}><Ico name={s.type === "discord" ? "message-square-dot" : s.type === "sheet" ? "table" : s.type === "webhook" ? "webhook" : "inbox"} size={16} /></span>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{s.name}</div>
-                              <div style={{ marginTop: 3 }}>{typeChip(s.type || "—")}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ ...td, color: "var(--text-secondary)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                          title={s.channel_url || "uses the bot's default channel"}>{s.channel_url || "—"}</td>
-                        <td style={{ ...td, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{schedOf(s)}</td>
-                        <td style={td}>{statusPill(s.enabled)}</td>
-                        <td style={tdR}>
-                          <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
-                            {iconBtn(s.enabled ? "Disable" : "Enable", s.enabled ? "eye-off" : "eye", () => toggle(s), false)}
-                            {iconBtn("Delete", "trash-2", () => del(s), false)}
-                            <NT.Button variant="secondary" size="sm" icon={<Ico name="settings-2" size={13} />} onClick={() => openEdit(s)}>Edit</NT.Button>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {!rows.length && emptyRow(5, "No " + cap(c) + " sources yet — click “New source”.")}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* ---- Options session window (session_config) — a per-world setting, so it sits
-                     inside the options group instead of pretending to be global. ---- */}
-              {c === "options" ? (
-                <div style={{ padding: "16px", borderTop: "1px solid var(--border)" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <span style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Options session window</span>
-                    <NT.Button variant="primary" size="sm" onClick={saveWin} disabled={savingWin}>{savingWin ? "Saving…" : "Save"}</NT.Button>
-                  </div>
-                  <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 4 }}>
-                    When the Discord watcher runs. Swing sources poll on their own schedule.
-                  </div>
-                  <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)", margin: "12px 0 14px" }}>
-                    The bot wakes <b style={{ color: "var(--text-primary)" }}>{win.lead} min before</b> the start and stops at the end — not the whole market day. Times in US&nbsp;Eastern ({dispZone} shown below each).
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 22, alignItems: "flex-end" }}>
-                    {[["Start (ET)", "start"], ["End (ET)", "end"]].map(([lbl, key]) => (
-                      <label key={key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{lbl}</span>
-                        <input type="time" value={win[key]} onChange={(e) => setWin((w) => ({ ...w, [key]: e.target.value }))} style={{ ...INP, width: 150 }} />
-                        <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>= {dispOf(win[key])} {dispZone}</span>
-                      </label>
-                    ))}
-                    <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Scan lead</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                        <input type="number" min={0} max={120} value={win.lead} onChange={(e) => setWin((w) => ({ ...w, lead: e.target.value }))} style={{ ...INP, width: 90 }} />
-                        <span style={{ font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>min early</span>
-                      </span>
-                      <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>start scanning before the open</span>
-                    </label>
-                  </div>
-                </div>
-              ) : null}
+              {catLabel(c, gi, c === "swings" && nSwing === 0 ? (
+                <NT.Button variant="ghost" size="sm" disabled={creatingSwing} onClick={createSwing}>{creatingSwing ? "Creating…" : "Get started"}</NT.Button>
+              ) : null)}
+              {rows.map((s, i) => itemRow(s.id, {
+                first: i === 0,
+                dim: !s.enabled,
+                icon: iconOf(s),
+                name: s.name,
+                sub: urlOf(s),
+                meta: schedOf(s),
+                meta2: freshOf(s),
+                pill: pill(s.enabled ? "ON" : "OFF", !!s.enabled, () => toggle(s)),
+                actions: (
+                  <React.Fragment>
+                    <NT.Button variant="ghost" size="sm" onClick={() => openEdit(s)}>Edit</NT.Button>
+                    {iconBtn("Delete", "trash-2", () => del(s), false)}
+                  </React.Fragment>
+                ),
+              }))}
+              {!rows.length && mutedRow("No source yet.")}
             </div>
           );
         })}
-        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+        <div style={{ padding: "12px 18px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
           Changes take effect at the next session. A Discord source needs its own browser login.
         </div>
       </NT.Card>
 
-      {/* ---- Broker accounts (shared) ---- */}
-      <NT.Card title="Broker accounts" padding={20} bodyStyle={{ padding: 0 }}>
-        <div style={{ padding: "12px 16px 0", font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-          Shared across categories — connect a broker once and any strategy can use it.
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
-            <thead><tr><th style={th}>Account</th><th style={th}>Broker</th><th style={th}>Reference</th><th style={thR}>Credentials</th></tr></thead>
-            <tbody>
-              {brokers.map((b) => (
-                <tr key={b.id}>
-                  <td style={td}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                      <span style={ICON}><Ico name="landmark" size={16} /></span>
-                      <span style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{b.label || "Broker account"}</span>
-                    </div>
-                  </td>
-                  <td style={{ ...td, color: "var(--text-secondary)" }}>Charles Schwab</td>
-                  <td style={{ ...td, font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", color: "var(--text-secondary)" }}>{b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "—"}</td>
-                  <td style={tdR}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--profit)", font: "var(--w-medium) var(--t-2xs)/1.4 var(--font-sans)" }}>
-                      <Ico name="shield-check" size={13} /> on the bot's server only
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {!brokers.length && emptyRow(4, "No broker accounts yet.")}
-            </tbody>
-          </table>
-        </div>
+      {/* ---- Brokers (shared) — same one-row-per-item layout as the sources list. ---- */}
+      <NT.Card padding={20} bodyStyle={{ padding: 0 }}
+        title={(
+          <span style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
+            Brokers
+            <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", letterSpacing: "var(--ls-normal)", color: "var(--text-tertiary)" }}>Connect once — any strategy can use it.</span>
+          </span>
+        )}>
+        {brokers.map((b, i) => itemRow(b.id, {
+          first: i === 0,
+          icon: "landmark",
+          name: b.label || "Broker account",
+          sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · options",
+          meta: "Charles Schwab",
+          meta2: "keys on the bot's server only",
+          pill: pill("LINKED", true),
+        }))}
+        {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
+            row so the gap is visible before it exists. */}
+        {!hasIbkr ? itemRow("ibkr", {
+          first: !brokers.length,
+          dim: true,
+          icon: "landmark",
+          name: "Interactive Brokers",
+          sub: "needed for swings — European & Canadian listings",
+          actions: (
+            <NT.Button variant="ghost" size="sm" onClick={() => window.NT_ALERT("Coming next — IBKR setup runs on your own machine and needs a weekly sign-in.", { title: "Interactive Brokers" })}>Connect</NT.Button>
+          ),
+        }) : null}
         <SchwabReauth />
       </NT.Card>
 
@@ -557,15 +540,16 @@ function SourcesPage() {
                 </select></label>
             </div>
             <label style={{ display: "flex", flexDirection: "column", gap: 6 }}><span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{form.type === "sheet" ? "CSV URL" : "Discord channel URL"}</span><input value={form.channel_url} onChange={(e) => setF("channel_url", e.target.value)} placeholder={form.type === "sheet" ? "Published CSV link" : "Empty = use the bot's default DISCORD_CHANNEL_URL"} style={INP} /></label>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {[["Window start (ET)", "window_start_et"], ["Window end (ET)", "window_end_et"]].map(([lbl, key]) => (
-                <label key={key} style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 160 }}>
-                  <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{lbl}</span>
-                  <input type="time" value={form[key]} onChange={(e) => setF(key, e.target.value)} style={INP} />
-                </label>
-              ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 2, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>When it runs</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input type="time" value={form.window_start_et} onChange={(e) => setF("window_start_et", e.target.value)} style={{ ...INP, width: 92 }} />
+                <span style={{ font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>to</span>
+                <input type="time" value={form.window_end_et} onChange={(e) => setF("window_end_et", e.target.value)} style={{ ...INP, width: 92 }} />
+                <span style={{ font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>ET</span>
+              </div>
+              <span style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: winHint(form).tone }}>{winHint(form).text}</span>
             </div>
-            <span style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -6 }}>Empty = always on.</span>
             <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}><input type="checkbox" checked={form.enabled} onChange={(e) => setF("enabled", e.target.checked)} /><span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Enabled (watched while the bot runs)</span></label>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
               <NT.Button variant="ghost" size="md" onClick={() => setForm(null)}>Cancel</NT.Button>
