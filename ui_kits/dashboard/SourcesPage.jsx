@@ -72,18 +72,23 @@ function SourcesPage() {
   const [, force] = React.useState(0);
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   React.useEffect(() => { const id = setInterval(() => force((x) => x + 1), 15000); return () => clearInterval(id); }, []);  // re-tick so a finished-command badge ages out on its own
-  const brokers = window.NT_DATA.brokerAccounts || [];
-  // Swing brokers live in their OWN table (equity_broker_accounts) — the cached
-  // NT_DATA list only carries the options brokers, which is why a connected IBKR
-  // still looked unconnected: the card was checking the wrong world's table.
+  // Brokers live in two tables — broker_accounts (options/Schwab) and
+  // equity_broker_accounts (swings/IBKR) — but both now carry the same stored shape
+  // (account_ref + settings{account_value, synced_at}), so both are fetched fresh here and
+  // rendered by ONE shared row builder. The cached NT_DATA list predates the new columns.
+  const [optBrokers, setOptBrokers] = React.useState(null);
   const [eqBrokers, setEqBrokers] = React.useState(null);
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
+    db.from("broker_accounts").select("*").order("id").then(function (r) {
+      if (r && !r.error && r.data) setOptBrokers(r.data);
+    }, function () { /* offline — fall back to the cached list */ });
     db.from("equity_broker_accounts").select("*").order("id").then(function (r) {
       if (r && !r.error && r.data) setEqBrokers(r.data);
     }, function () { /* offline — keep the placeholder row */ });
   }, []);
+  const brokers = optBrokers || window.NT_DATA.brokerAccounts || [];
   const hasIbkr = (eqBrokers || []).some((b) => /ibkr|interactive/i.test(String(b.broker || b.label || "")))
     || brokers.some((b) => /ibkr|interactive/i.test(String(b.broker || b.provider || b.label || "")));
   const strategies = window.NT_DATA.strategies || [];
@@ -420,33 +425,30 @@ function SourcesPage() {
               <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", letterSpacing: "var(--ls-normal)", color: "var(--text-tertiary)" }}>Connect once — any strategy can use it.</span>
             </span>
           )}>
-          {brokers.map((b, i) => itemRow(b.id, {
-            first: i === 0,
-            icon: "landmark",
-            name: b.label || "Broker account",
-            sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · options",
-            meta: "Charles Schwab",
-            meta2: "keys on the bot's server only",
-            pill: pill("LINKED", true),
-          }))}
-          {(eqBrokers || []).map((b) => {
-            const s = b.settings || {};
-            const sym = { EUR: "€", GBP: "£", USD: "$", CAD: "C$" }[s.currency] || "";
-            const val = s.account_value != null ? sym + Math.round(s.account_value).toLocaleString() : null;
-            // "connected" must mean CHECKED RECENTLY, not "was fine once" — figures come
-            // from the daily sync, so anything under ~26h old counts as live.
-            const ageH = s.synced_at ? (Date.now() - new Date(s.synced_at).getTime()) / 36e5 : null;
-            const fresh = ageH != null && ageH < 26;
-            return itemRow("eq" + b.id, {
-              first: !brokers.length,
-              icon: "landmark",
-              name: b.label || "Interactive Brokers",
-              sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · swings",
-              meta: val ? val + " account value" : "Interactive Brokers",
-              meta2: fresh ? "checked " + ago(s.synced_at) : "not checked in over a day",
-              pill: pill(fresh ? "LINKED" : "STALE", fresh),
-            });
-          })}
+          {/* ONE builder for every broker row, whichever world it belongs to. LINKED must
+              mean CHECKED RECENTLY (a daily sync stamps synced_at) — a broker that stopped
+              reporting says STALE rather than pretending. */}
+          {(function () {
+            const row = (key, b, world, brand, first) => {
+              const s = b.settings || {};
+              const sym = { EUR: "€", GBP: "£", USD: "$", CAD: "C$" }[s.currency] || "$";
+              const val = s.account_value != null ? sym + Math.round(s.account_value).toLocaleString() : null;
+              const ageH = s.synced_at ? (Date.now() - new Date(s.synced_at).getTime()) / 36e5 : null;
+              const fresh = ageH != null && ageH < 26;
+              return itemRow(key, {
+                first,
+                icon: "landmark",
+                name: b.label || brand,
+                sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · " + world,
+                meta: val ? val + " account value" : brand,
+                meta2: s.synced_at ? (fresh ? "checked " + ago(s.synced_at) : "not checked in over a day")
+                                   : "not checked yet",
+                pill: pill(fresh ? "LINKED" : "STALE", fresh),
+              });
+            };
+            return brokers.map((b, i) => row(b.id, b, "options", "Charles Schwab", i === 0))
+              .concat((eqBrokers || []).map((b) => row("eq" + b.id, b, "swings", "Interactive Brokers", !brokers.length)));
+          })()}
           {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
               row so the gap is visible before it exists. */}
           {!hasIbkr ? itemRow("ibkr", {
