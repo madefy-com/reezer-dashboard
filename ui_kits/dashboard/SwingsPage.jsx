@@ -138,9 +138,20 @@ function SwingsPage({ page }) {
   const holds = closedPos.map((p) => SW_days(p.opened_at, p.closed_at)).filter((v) => v != null);
   const avgHold = holds.length ? holds.reduce((a, v) => a + v, 0) / holds.length : null;
 
-  const bFirst = d.bench.length ? SW_n(d.bench[0].close) : null;
-  const bLast = d.bench.length ? SW_n(d.bench[d.bench.length - 1].close) : null;
-  const spyYtd = (d.bench.length >= 2 && bFirst != null && bFirst > 0 && bLast != null) ? ((bLast / bFirst) - 1) * 100 : null;
+  // The benchmark window. In the FIRST year the strategy is measured from its first buy, not
+  // from 1 January — a strategy that started in August has no business being compared with the
+  // index's whole year. Once it has run through a new year start, it becomes an ordinary
+  // year-to-date comparison (the first buy is then in an earlier year).
+  const entryDates = (d.pos || []).map((p) => p.opened_at).filter(Boolean).sort();
+  const firstEntry = entryDates.length ? entryDates[0] : null;
+  const firstYear = firstEntry ? new Date(firstEntry).getFullYear() : null;
+  const sinceInception = firstEntry != null && firstYear === year;
+  const benchFrom = sinceInception ? String(firstEntry).slice(0, 10) : (year + "-01-01");
+  const bench = d.bench.filter((b) => String(b.d) >= benchFrom);
+  const bFirst = bench.length ? SW_n(bench[0].close) : null;
+  const bLast = bench.length ? SW_n(bench[bench.length - 1].close) : null;
+  const spyYtd = (bench.length >= 2 && bFirst != null && bFirst > 0 && bLast != null) ? ((bLast / bFirst) - 1) * 100 : null;
+  const benchLabel = sinceInception ? ("since " + SW_date(firstEntry)) : "YTD";
   // Compare MONEY AT WORK, not the whole account. The strategy starts flat and stays mostly
   // cash for months, so measuring an account that is 0-25% invested against a fully-invested
   // index would report a big negative before a single trade is placed — "you can't be down if
@@ -241,8 +252,8 @@ function SwingsPage({ page }) {
         visual={<Ico name="clock" size={17} color="var(--text-tertiary)" />} />
       <Kard label="vs S&P 500" value={traded ? SW_pct(edge) : "—"} tone={traded ? tone(edge) : null}
         sub={traded
-          ? ("your positions " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " YTD")
-          : ("nothing bought yet · S&P " + SW_pct(spyYtd) + " YTD")} />
+          ? ("your positions " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
+          : "nothing bought yet · starts at your first buy"} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
         @media (max-width: 1240px){ .nt-kpi-row{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
