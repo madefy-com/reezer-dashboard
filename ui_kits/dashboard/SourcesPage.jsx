@@ -449,7 +449,7 @@ function SourcesPage() {
                 dim: !s.enabled,
                 icon: iconOf(s),
                 name: s.name,
-                sub: typeLabel(x),
+                sub: typeLabel(s),
                 meta: schedOf(s),
                 meta2: freshOf(s),
                 pill: pill(s.enabled ? "ON" : "OFF", !!s.enabled, () => toggle(s)),
