@@ -212,6 +212,7 @@ function SwingsPage({ page }) {
       const payload = {
         name: row.name, sizing_mode: row.sizing_mode || "tiers_usd",
         account: row.account === "live" ? "live" : "paper",
+        limit_buffer_pct: row.limit_buffer_pct === "" || row.limit_buffer_pct == null ? null : Number(row.limit_buffer_pct),
         sizing_tiers: (function () {                  // keep only filled-in tiers, as numbers
           const t = row.sizing_tiers || {}, out = {};
           ["1", "2", "3", "3plus"].forEach(function (k) {
@@ -592,6 +593,15 @@ function SwingsPage({ page }) {
                 </span>
               )}
             </div>
+
+            {/* Not a price opinion — it trades certainty of filling against how bad the worst
+                case can be on a thin book. 2% suits the free delayed quotes; lower it only
+                with real-time data, raise it for illiquid names that don't fill. */}
+            <SW_Field label="Bid above the offer (%)"
+              hint="How far through the current offer the limit is placed so it fills straight away. You normally pay the offer, not this — it's the ceiling. Empty = 2%.">
+              <input type="number" step="0.1" value={edit.limit_buffer_pct == null ? "" : edit.limit_buffer_pct}
+                onChange={(e) => setEdit({ ...edit, limit_buffer_pct: e.target.value })} placeholder="2" style={SW_INPUT} />
+            </SW_Field>
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
