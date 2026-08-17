@@ -211,6 +211,9 @@ function SwingsPage({ page }) {
     try {
       const payload = {
         name: row.name, sizing_mode: row.sizing_mode || "tiers_usd",
+        account: row.account === "live" ? "live" : "paper",
+        max_chase_pct: row.max_chase_pct === "" || row.max_chase_pct == null ? null : Number(row.max_chase_pct),
+        limit_buffer_pct: row.limit_buffer_pct === "" || row.limit_buffer_pct == null ? null : Number(row.limit_buffer_pct),
         sizing_tiers: (function () {                  // keep only filled-in tiers, as numbers
           const t = row.sizing_tiers || {}, out = {};
           ["1", "2", "3", "3plus"].forEach(function (k) {
@@ -283,9 +286,6 @@ function SwingsPage({ page }) {
         sub={acctValue == null ? "needs a linked broker"
           : (buyingPower == null ? "at your broker"
              : SW_cur(buyingPower, acctCcy) + " buying power")} />
-      <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
-        sub={year + " · " + closedThisYear.length + " closed"}
-        visual={<Ico name="calendar" size={17} />} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
@@ -567,6 +567,45 @@ function SwingsPage({ page }) {
                 </div>
               );
             })()}
+
+            {/* Paper vs live. Deliberately a two-button choice with a spelled-out warning
+                rather than a quiet toggle — this is the switch that starts spending money. */}
+            <div>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Mode</span>
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                {[["paper", "Paper"], ["live", "Live"]].map((o) => {
+                  const on = (edit.account || "paper") === o[0];
+                  const isLive = o[0] === "live";
+                  return (
+                    <button key={o[0]} type="button" onClick={() => setEdit({ ...edit, account: o[0] })}
+                      style={{ flex: 1, height: 40, borderRadius: "var(--radius-sm)", cursor: "pointer",
+                        border: "1px solid " + (on ? (isLive ? "var(--loss)" : "var(--accent)") : "var(--border-strong)"),
+                        background: on ? "var(--surface-hover)" : "transparent",
+                        color: on ? (isLive ? "var(--loss)" : "var(--text-primary)") : "var(--text-tertiary)",
+                        font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>{o[1]}</button>
+                  );
+                })}
+              </div>
+              {edit.account === "live" && (
+                <span style={{ display: "block", marginTop: 8, font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--loss)" }}>
+                  Live places REAL orders with your own money as soon as the strategy is un-paused
+                  and the publisher changes something. It needs a linked broker; nothing is ordered
+                  while it stays paused.
+                </span>
+              )}
+            </div>
+
+            <SW_Field label="Don't chase above (%)"
+              hint="Skip the buy if the price has already run this far past the sheet's price — the trade the publisher recommended is gone. Empty = 5%.">
+              <input type="number" value={edit.max_chase_pct == null ? "" : edit.max_chase_pct}
+                onChange={(e) => setEdit({ ...edit, max_chase_pct: e.target.value })} placeholder="5" style={SW_INPUT} />
+            </SW_Field>
+
+            <SW_Field label="Fill buffer (%)"
+              hint="How far through the spread the limit is priced so it fills straight away. 2% suits delayed prices; lower it only with real-time data. Empty = 2%.">
+              <input type="number" value={edit.limit_buffer_pct == null ? "" : edit.limit_buffer_pct}
+                onChange={(e) => setEdit({ ...edit, limit_buffer_pct: e.target.value })} placeholder="2" style={SW_INPUT} />
+            </SW_Field>
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
