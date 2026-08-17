@@ -73,8 +73,19 @@ function SourcesPage() {
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
   React.useEffect(() => { const id = setInterval(() => force((x) => x + 1), 15000); return () => clearInterval(id); }, []);  // re-tick so a finished-command badge ages out on its own
   const brokers = window.NT_DATA.brokerAccounts || [];
-  // Schwab is the only broker wired up today; IBKR is listed as a not-yet row until one exists.
-  const hasIbkr = brokers.some((b) => /ibkr|interactive/i.test(String(b.broker || b.provider || b.label || "")));
+  // Swing brokers live in their OWN table (equity_broker_accounts) — the cached
+  // NT_DATA list only carries the options brokers, which is why a connected IBKR
+  // still looked unconnected: the card was checking the wrong world's table.
+  const [eqBrokers, setEqBrokers] = React.useState(null);
+  React.useEffect(() => {
+    const db = window.NT_CLIENT;
+    if (!db) return;
+    db.from("equity_broker_accounts").select("*").order("id").then(function (r) {
+      if (r && !r.error && r.data) setEqBrokers(r.data);
+    }, function () { /* offline — keep the placeholder row */ });
+  }, []);
+  const hasIbkr = (eqBrokers || []).some((b) => /ibkr|interactive/i.test(String(b.broker || b.label || "")))
+    || brokers.some((b) => /ibkr|interactive/i.test(String(b.broker || b.provider || b.label || "")));
   const strategies = window.NT_DATA.strategies || [];
   const machines = window.NT_DATA.machines || [];
   const cmds = window.NT_DATA.machineCommands || [];   // newest first (id desc)
@@ -418,6 +429,24 @@ function SourcesPage() {
             meta2: "keys on the bot's server only",
             pill: pill("LINKED", true),
           }))}
+          {(eqBrokers || []).map((b) => {
+            const s = b.settings || {};
+            const sym = { EUR: "€", GBP: "£", USD: "$", CAD: "C$" }[s.currency] || "";
+            const val = s.account_value != null ? sym + Math.round(s.account_value).toLocaleString() : null;
+            // "connected" must mean CHECKED RECENTLY, not "was fine once" — figures come
+            // from the daily sync, so anything under ~26h old counts as live.
+            const ageH = s.synced_at ? (Date.now() - new Date(s.synced_at).getTime()) / 36e5 : null;
+            const fresh = ageH != null && ageH < 26;
+            return itemRow("eq" + b.id, {
+              first: !brokers.length,
+              icon: "landmark",
+              name: b.label || "Interactive Brokers",
+              sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · swings",
+              meta: val ? val + " account value" : "Interactive Brokers",
+              meta2: fresh ? "checked " + ago(s.synced_at) : "not checked in over a day",
+              pill: pill(fresh ? "LINKED" : "STALE", fresh),
+            });
+          })}
           {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
               row so the gap is visible before it exists. */}
           {!hasIbkr ? itemRow("ibkr", {
