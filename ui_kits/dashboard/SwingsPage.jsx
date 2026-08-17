@@ -198,8 +198,15 @@ function SwingsPage({ page }) {
     setBusy(true);
     try {
       const payload = {
-        name: row.name, sizing_mode: row.sizing_mode || null,
-        sizing_base: row.sizing_base === "" || row.sizing_base == null ? null : Number(row.sizing_base),
+        name: row.name, sizing_mode: row.sizing_mode || "tiers_usd",
+        sizing_tiers: (function () {                  // keep only filled-in tiers, as numbers
+          const t = row.sizing_tiers || {}, out = {};
+          ["1", "2", "3", "3plus"].forEach(function (k) {
+            const v = Number(t[k]);
+            if (t[k] !== "" && t[k] != null && !isNaN(v) && v > 0) out[k] = v;
+          });
+          return Object.keys(out).length ? out : null;
+        })(),
         start_balance_usd: row.start_balance_usd === "" || row.start_balance_usd == null ? null : Number(row.start_balance_usd),
         max_position_usd: row.max_position_usd === "" || row.max_position_usd == null ? null : Number(row.max_position_usd),
         allowlist: (row.allowlist || "").trim() || null,
@@ -418,7 +425,7 @@ function SwingsPage({ page }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <PageHead title="Strategies" subtitle="How much of your money each sheet weight is worth"
         right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />}
-          onClick={() => setEdit({ name: "Macrotrends follow", sizing_mode: "fixed_usd", sizing_base: 20000, max_position_usd: "", allowlist: "" })}>New strategy</NT.Button>} />
+          onClick={() => setEdit({ name: "Macrotrends follow", sizing_mode: "tiers_usd", sizing_tiers: {}, max_position_usd: "", allowlist: "" })}>New strategy</NT.Button>} />
 
       {d.strats.length === 0 ? (
         <NT.Card padding={20}>
@@ -431,12 +438,16 @@ function SwingsPage({ page }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(430px,1fr))", gap: "var(--gap-grid)" }}>
           {d.strats.map((s) => {
             const st = statsFor(s.id);
-            const notional = s.sizing_mode === "fixed_usd" ? (SW_n(s.sizing_base) || 0) : null;
+            const T = s.sizing_tiers || {};
+            const isPct = s.sizing_mode === "tiers_pct";
+            const tierTxt = ["1", "2", "3", "3plus"].map(function (k) {
+              const v = SW_n(T[k]);
+              return v == null ? null : (k === "3plus" ? "3%+" : k + "%") + " " + (isPct ? SW_dec(v) + "%" : SW_money(v));
+            }).filter(Boolean).join("  ·  ");
             const rows = [
-              ["Sizing", s.sizing_mode === "fixed_usd" ? "each sheet % of " + SW_money(s.sizing_base)
-                : s.sizing_mode === "pct_of_account" ? "each sheet % of " + SW_dec(s.sizing_base) + "% of the account" : "not set"],
+              ["Sizing", isPct ? "% of your account, by their weight" : "a set amount per weight"],
+              ["Per position", tierTxt || "not set"],
             ];
-            if (s.sizing_mode === "fixed_usd") rows.push(["A 3% holding", SW_money(notional * 0.03)]);
             rows.push(["Max per position", s.max_position_usd == null ? "no cap" : SW_money(s.max_position_usd)]);
             rows.push(["Only these tickers", s.allowlist || "all from the sheet"]);
             rows.push(["Broker", s.broker_account_id == null ? "not linked" : "linked in Settings"]);
@@ -490,23 +501,63 @@ function SwingsPage({ page }) {
 
             <SW_Field label="Name"><input value={edit.name || ""} onChange={(e) => setEdit({ ...edit, name: e.target.value })} style={SW_INPUT} /></SW_Field>
 
-            <div>
-              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>How much is a sheet % worth?</span>
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                {[["fixed_usd", "A fixed amount"], ["pct_of_account", "A share of my account"]].map((o) => {
-                  const on = edit.sizing_mode === o[0];
-                  return <button key={o[0]} type="button" onClick={() => setEdit({ ...edit, sizing_mode: o[0] })}
-                    style={{ flex: 1, height: 40, borderRadius: "var(--radius-sm)", cursor: "pointer", border: "1px solid " + (on ? "var(--accent)" : "var(--border-strong)"), background: on ? "var(--surface-hover)" : "transparent", color: on ? "var(--text-primary)" : "var(--text-tertiary)", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>{o[1]}</button>;
-                })}
-              </div>
-            </div>
-
-            <SW_Field label={edit.sizing_mode === "pct_of_account" ? "Share of account (%)" : "Amount (USD)"}
-              hint={edit.sizing_mode === "pct_of_account"
-                ? "The sheet's weights apply to this share of your account. 60 → a 3% holding is 3% of 60% of your account."
-                : "The sheet's weights apply to this amount. $20,000 → a 3% holding is $600."}>
-              <input type="number" value={edit.sizing_base == null ? "" : edit.sizing_base} onChange={(e) => setEdit({ ...edit, sizing_base: e.target.value })} style={SW_INPUT} />
-            </SW_Field>
+            {/* Sizing by CONVICTION TIER. The publisher grades every holding 1% / 2% / 3%, so
+                each weight gets its own row and you set the curve by hand — a multiplier would
+                force a 3% holding to be exactly 3x a 1% one. */}
+            {(() => {
+              const pctMode = edit.sizing_mode === "tiers_pct";
+              const tiers = edit.sizing_tiers || {};
+              const setTier = (k, v) => setEdit({ ...edit, sizing_tiers: { ...tiers, [k]: v } });
+              const linked = !!edit.broker_account_id;
+              const ROWS = [["1", "their 1%"], ["2", "their 2%"], ["3", "their 3%"], ["3plus", "above 3%"]];
+              // What a fully-invested book costs under these numbers — four small inputs can
+              // quietly add up to far more than intended, so show the consequence.
+              const counts = { "1": 6, "2": 11, "3": 4, "3plus": 0 };   // today's sheet
+              const total = ROWS.reduce((a, r) => a + (SW_n(tiers[r[0]]) || 0) * counts[r[0]], 0);
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Position size per conviction</span>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[["tiers_usd", "A fixed amount", true], ["tiers_pct", "% of my account", linked]].map((o) => {
+                      const on = (edit.sizing_mode || "tiers_usd") === o[0];
+                      return (
+                        <button key={o[0]} type="button" disabled={!o[2]}
+                          title={o[2] ? "" : "Needs a linked broker — your account value comes from there"}
+                          onClick={() => o[2] && setEdit({ ...edit, sizing_mode: o[0] })}
+                          style={{ flex: 1, height: 40, borderRadius: "var(--radius-sm)", cursor: o[2] ? "pointer" : "not-allowed",
+                            border: "1px solid " + (on ? "var(--accent)" : "var(--border-strong)"),
+                            background: on ? "var(--surface-hover)" : "transparent",
+                            color: on ? "var(--text-primary)" : "var(--text-tertiary)", opacity: o[2] ? 1 : 0.45,
+                            font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>{o[1]}</button>
+                      );
+                    })}
+                  </div>
+                  {!linked && <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                    “% of my account” needs a linked broker — your account value comes from there, never typed in.
+                  </span>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, background: "var(--surface-inset)", borderRadius: "var(--radius-sm)" }}>
+                    {ROWS.map((r) => (
+                      <div key={r[0]} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ width: 88, flex: "none", font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>{r[1]}</span>
+                        <span style={{ color: "var(--text-tertiary)" }}>→</span>
+                        <input type="number" value={tiers[r[0]] == null ? "" : tiers[r[0]]}
+                          onChange={(e) => setTier(r[0], e.target.value)}
+                          placeholder={pctMode ? "%" : "USD"}
+                          style={{ ...SW_INPUT, height: 34, width: 120, flex: "none" }} />
+                        <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                          {pctMode ? "% of account" : "per position"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {!pctMode && total > 0 && (
+                    <span style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                      Fully invested on today’s sheet (6 × 1%, 11 × 2%, 4 × 3%): <b style={{ color: "var(--text-primary)" }}>{SW_money(total)}</b>
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
