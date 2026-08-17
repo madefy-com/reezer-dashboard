@@ -82,19 +82,24 @@ function SwingsPage({ page }) {
   const load = React.useCallback(async () => {
     if (!db) return;
     const y = new Date().getFullYear();
-    const [strats, pos, sigs, snaps, bench] = await Promise.all([
+    const [strats, pos, sigs, snaps, bench, fx, brokers] = await Promise.all([
       db.from("equity_strategies").select("*").order("id"),
       db.from("equity_positions").select("*").order("id", { ascending: false }),
       db.from("sheet_signals").select("*").order("detected_at", { ascending: false }).limit(60),
       db.from("sheet_snapshots").select("*").order("fetched_at", { ascending: false }).limit(10),
       db.from("benchmark_prices").select("d,close").eq("symbol", "SPY").gte("d", y + "-01-01").order("d", { ascending: true }),
+      // the sheet quotes in $/€/£/C$ but everything here is reported in USD
+      db.from("benchmark_prices").select("symbol,close,d").in("symbol", ["EURUSD", "GBPUSD", "CADUSD"]).order("d", { ascending: false }).limit(30),
+      db.from("equity_broker_accounts").select("*"),
     ]);
     const strategies = strats.data || [];
     window.NT_HAS_SWINGS = strategies.length > 0;
     // one nudge so the sidebar re-renders and can show the world switcher
     if (!announced.current) { announced.current = true; window.dispatchEvent(new Event("nt-data")); }
+    const rates = { USD: 1 };            // newest row per currency wins (list is date-desc)
+    (fx.data || []).forEach((r) => { const c = String(r.symbol).slice(0, 3); if (rates[c] == null) rates[c] = Number(r.close); });
     setD({ strats: strategies, pos: pos.data || [], sigs: sigs.data || [],
-           snaps: snaps.data || [], bench: bench.data || [] });
+           snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [] });
   }, [db]);
   React.useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -105,21 +110,37 @@ function SwingsPage({ page }) {
   const year = new Date().getFullYear();
   const openPos = d.pos.filter((p) => p.status === "open");
   const closedPos = d.pos.filter((p) => p.status === "closed");
-  const costOf = (p) => (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
+  // Everything is reported in USD. The sheet quotes each holding in its own market's currency
+  // (C$ / € / £ / $), so a price is only meaningful together with its unit.
+  const fx = d.fx || { USD: 1 };
+  const usd = (v, ccy) => { const r = fx[ccy || "USD"]; return (v == null || r == null) ? null : v * r; };
+  // Current marks come from the sheet's own price column, stored parsed on the newest snapshot.
+  const markSnap = d.snaps.filter((s) => s.tab === "portfolio" && s.prices)[0] || null;
+  const marks = (markSnap && markSnap.prices) || {};
+  const markOf = (p) => marks[String(p.symbol || "").toUpperCase()] || null;
+
+  const costOf = (p) => usd((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0), (markOf(p) || {}).ccy) || 0;
   const openValue = openPos.reduce((a, p) => a + costOf(p), 0);
   const realized = closedPos.reduce((a, p) => a + (SW_n(p.realized_pnl) || 0), 0);
-  // There is no live equity quote feed yet, so open positions carry no mark — unrealized
-  // P&L stays 0 here and renders as "—" per holding rather than a made-up number.
-  const unrealized = 0;
+  // Swing positions are held for MONTHS, so realized-only P&L would read zero for most of the
+  // year — the unrealized move is the number that actually matters. Marked off the sheet's own
+  // price column (the same source the entry was sized on, so entry and mark share a currency).
+  const unrealOf = (p) => {
+    const m = markOf(p);
+    const e = SW_n(p.avg_price), q = SW_n(p.qty);
+    if (!m || e == null || q == null) return null;
+    return usd((SW_n(m.px) - e) * q, m.ccy);
+  };
+  const unrealized = openPos.reduce((a, p) => a + (unrealOf(p) || 0), 0);
   const totalPnl = realized + unrealized;
 
-  // The pot the account return is measured against. A `pct_of_account` sizing_base is a
-  // percentage, not money, so it can never stand in for a starting balance.
-  // ONLY the explicit account size. Never fall back to sizing_base — that's the notional the
-  // sheet's weights apply to, not the account, and using it reported a return against a number
-  // the user never set as their balance.
-  const baseOf = (s) => SW_n(s.start_balance_usd) || 0;
-  const startBal = d.strats.reduce((a, s) => a + baseOf(s), 0);
+  // Account return comes from the LINKED BROKER's real account value — never a number typed in
+  // by hand, and never the sizing amount (that's the notional the sheet's weights apply to, not
+  // the account). With nothing linked there is no honest denominator, so the card shows nothing.
+  const linkedIds = d.strats.map((s) => s.broker_account_id).filter(Boolean);
+  const linked = (d.brokers || []).filter((b) => linkedIds.indexOf(b.id) >= 0);
+  const acctValue = linked.reduce((a, b) => a + (SW_n((b.settings || {}).account_value) || 0), 0);
+  const startBal = acctValue > 0 ? acctValue - totalPnl : 0;   // value today, less what we made
   const acctRet = startBal > 0 ? (totalPnl / startBal) * 100 : null;
 
   const closedThisYear = closedPos.filter((p) => p.closed_at && new Date(p.closed_at).getFullYear() === year);
@@ -238,7 +259,7 @@ function SwingsPage({ page }) {
   const kpiRow = (
     <div className="nt-kpi-row">
       <Kard label="account return" value={SW_pct(acctRet)} tone={tone(acctRet)}
-        sub={startBal > 0 ? SW_money(startBal) + " → " + SW_money(startBal + totalPnl) : "set your account size to see this"} />
+        sub={startBal > 0 ? SW_money(startBal) + " → " + SW_money(acctValue) : "needs a linked broker"} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
@@ -489,11 +510,6 @@ function SwingsPage({ page }) {
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
-            </SW_Field>
-
-            <SW_Field label="Account size (USD)"
-              hint="Only used to show your account return %. This is your actual account, not the sizing amount above.">
-              <input type="number" value={edit.start_balance_usd == null ? "" : edit.start_balance_usd} onChange={(e) => setEdit({ ...edit, start_balance_usd: e.target.value })} style={SW_INPUT} />
             </SW_Field>
 
             <SW_Field label="Only these tickers" hint="Comma separated. Empty = follow every tradeable holding on the sheet.">
