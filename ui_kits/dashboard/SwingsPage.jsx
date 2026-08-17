@@ -510,10 +510,6 @@ function SwingsPage({ page }) {
               const setTier = (k, v) => setEdit({ ...edit, sizing_tiers: { ...tiers, [k]: v } });
               const linked = !!edit.broker_account_id;
               const ROWS = [["1", "their 1%"], ["2", "their 2%"], ["3", "their 3%"], ["3plus", "above 3%"]];
-              // What a fully-invested book costs under these numbers — four small inputs can
-              // quietly add up to far more than intended, so show the consequence.
-              const counts = { "1": 6, "2": 11, "3": 4, "3plus": 0 };   // today's sheet
-              const total = ROWS.reduce((a, r) => a + (SW_n(tiers[r[0]]) || 0) * counts[r[0]], 0);
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Position size per conviction</span>
@@ -549,11 +545,6 @@ function SwingsPage({ page }) {
                       </div>
                     ))}
                   </div>
-                  {!pctMode && total > 0 && (
-                    <span style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                      Fully invested on today’s sheet (6 × 1%, 11 × 2%, 4 × 3%): <b style={{ color: "var(--text-primary)" }}>{SW_money(total)}</b>
-                    </span>
-                  )}
                 </div>
               );
             })()}
