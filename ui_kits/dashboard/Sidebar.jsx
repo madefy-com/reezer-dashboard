@@ -75,7 +75,6 @@ function Sidebar({ page, onNav, world, onWorld }) {
             })}
           </div>
         )}
-        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "6px 8px 8px" }}>Workspace</span>
         {nav.map(navBtn)}
 
         {/* shared by both worlds */}

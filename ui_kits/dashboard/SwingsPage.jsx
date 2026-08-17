@@ -115,11 +115,10 @@ function SwingsPage({ page }) {
 
   // The pot the account return is measured against. A `pct_of_account` sizing_base is a
   // percentage, not money, so it can never stand in for a starting balance.
-  const baseOf = (s) => {
-    const sb = SW_n(s.start_balance_usd);
-    if (sb != null) return sb;
-    return s.sizing_mode === "fixed_usd" ? (SW_n(s.sizing_base) || 0) : 0;
-  };
+  // ONLY the explicit account size. Never fall back to sizing_base — that's the notional the
+  // sheet's weights apply to, not the account, and using it reported a return against a number
+  // the user never set as their balance.
+  const baseOf = (s) => SW_n(s.start_balance_usd) || 0;
   const startBal = d.strats.reduce((a, s) => a + baseOf(s), 0);
   const acctRet = startBal > 0 ? (totalPnl / startBal) * 100 : null;
 
@@ -169,6 +168,7 @@ function SwingsPage({ page }) {
       const payload = {
         name: row.name, sizing_mode: row.sizing_mode || null,
         sizing_base: row.sizing_base === "" || row.sizing_base == null ? null : Number(row.sizing_base),
+        start_balance_usd: row.start_balance_usd === "" || row.start_balance_usd == null ? null : Number(row.start_balance_usd),
         max_position_usd: row.max_position_usd === "" || row.max_position_usd == null ? null : Number(row.max_position_usd),
         allowlist: (row.allowlist || "").trim() || null,
         updated_at: new Date().toISOString(),
@@ -227,7 +227,7 @@ function SwingsPage({ page }) {
   const kpiRow = (
     <div className="nt-kpi-row">
       <Kard label="account return" value={SW_pct(acctRet)} tone={tone(acctRet)}
-        sub={startBal > 0 ? SW_money(startBal) + " → " + SW_money(startBal + totalPnl) : "set a sizing amount"} />
+        sub={startBal > 0 ? SW_money(startBal) + " → " + SW_money(startBal + totalPnl) : "set your account size to see this"} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
@@ -478,6 +478,11 @@ function SwingsPage({ page }) {
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
+            </SW_Field>
+
+            <SW_Field label="Account size (USD)"
+              hint="Only used to show your account return %. This is your actual account, not the sizing amount above.">
+              <input type="number" value={edit.start_balance_usd == null ? "" : edit.start_balance_usd} onChange={(e) => setEdit({ ...edit, start_balance_usd: e.target.value })} style={SW_INPUT} />
             </SW_Field>
 
             <SW_Field label="Only these tickers" hint="Comma separated. Empty = follow every tradeable holding on the sheet.">
