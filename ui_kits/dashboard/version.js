@@ -3,9 +3,19 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.021";
+window.NT_VERSION = "1.022";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.022", date: "2026-08-17",
+    notes: [
+      "Swing positions are now sized by conviction. The sheet grades every holding 1%, 2% or 3%, and you decide what each of those is worth to you — either a fixed amount per position, or a percentage of your account. Four rows (1%, 2%, 3%, above 3%) and nothing else: no notional, no pot, and no account size to type in, because your account value comes from your broker. Setting it lives on the strategy itself, where it belongs.",
+      "Your swing profit now includes positions you're still holding. Before, only closed trades counted — so a holding could be up 40% and the dashboard would show nothing until you sold, which for positions held over months meant an empty page most of the year. Open positions are now valued against the sheet's own prices. Everything is shown in US dollars: the portfolio holds euro, pound and Canadian listings, and the exchange rates refresh by themselves every day.",
+      "The S&P 500 comparison only counts once you've actually bought something, and in your first year it measures from your first purchase rather than from January — comparing a strategy that started in August against the index's whole year would have shown a large loss you never took. From next year it becomes a normal year-to-date comparison on its own.",
+      "The Activity page now shows what the swing side is doing (it was silent before) and you can filter by category — Options or Swings, with the buttons appearing on their own as new categories are added. Every entry is tagged so you can tell at a glance which world it came from.",
+      "Settings is reorganised around the same idea. Alert sources are now one list grouped by category instead of separate places, each with its own schedule; the trading window moved in with Options and is named for it, since it only ever described the Discord session. Brokers and machines stay shared — you connect a broker once and any strategy can use it. And you can now choose which page each world opens on, saved to your account so it follows you between computers.",
+    ],
+  },
   {
     v: "1.021", date: "2026-08-16",
     notes: [
