@@ -356,14 +356,14 @@ function SourcesPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1080 }}>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
 
       {/* ---- Dashboard defaults (shared) ---- */}
       <NT.Card title="Dashboard" padding={20}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap" }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
+            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default strategy</div>
             <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which strategy the dashboard shows when it first opens.</div>
           </div>
           <NT_Select value={view} options={viewOptions} icon="filter" minWidth={240} onChange={(v) => window.NT_SET_VIEW(v)} />
@@ -380,9 +380,9 @@ function SourcesPage() {
           <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 14 }}>
             <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Open on</span>
-            <select value={homeCat} onChange={(e) => setHomeCat(e.target.value)} style={{ ...INP, width: 240 }}>
-              {cats.map((c) => <option key={c} value={c}>{cap(c)} dashboard</option>)}
-            </select>
+            <NT_Select value={homeCat} icon="layout-dashboard" minWidth={240}
+              options={cats.map((c) => ({ value: c, label: cap(c) + " dashboard" }))}
+              onChange={(v) => setHomeCat(v)} />
           </div>
         </div>
       </NT.Card>
