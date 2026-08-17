@@ -23,6 +23,12 @@ const SW_n = (v) => {
   const x = Number(v);
   return isNaN(x) ? null : x;
 };
+const SW_cur = (v, ccy) => {
+  const x = SW_n(v);
+  if (x == null) return "\u2014";
+  const sym = { EUR: "\u20ac", GBP: "\u00a3", USD: "$", CAD: "C$" }[ccy] || "$";
+  return (x < 0 ? "\u2212" : "") + sym + Math.abs(Math.round(x)).toLocaleString();
+};
 const SW_money = (v) => {
   const x = SW_n(v);
   if (x == null) return "—";
@@ -137,10 +143,16 @@ function SwingsPage({ page }) {
   // Account return comes from the LINKED BROKER's real account value — never a number typed in
   // by hand, and never the sizing amount (that's the notional the sheet's weights apply to, not
   // the account). With nothing linked there is no honest denominator, so the card shows nothing.
+  // Straight from the broker — the dashboard never invents an account figure. src/ibkr_broker
+  // sync_account() is the only writer; if it hasn't run, these stay null and the cards say so.
   const linkedIds = d.strats.map((s) => s.broker_account_id).filter(Boolean);
   const linked = (d.brokers || []).filter((b) => linkedIds.indexOf(b.id) >= 0);
-  const acctValue = linked.reduce((a, b) => a + (SW_n((b.settings || {}).account_value) || 0), 0);
-  const startBal = acctValue > 0 ? acctValue - totalPnl : 0;   // value today, less what we made
+  const bset = (linked[0] || {}).settings || {};
+  const acctValue = SW_n(bset.account_value);
+  const buyingPower = SW_n(bset.buying_power);
+  const acctCcy = bset.currency || "USD";
+  const syncedAt = bset.synced_at || (linked[0] || {}).last_check_at || null;
+  const startBal = acctValue != null ? acctValue - totalPnl : 0;   // value today, less what we made
   const acctRet = startBal > 0 ? (totalPnl / startBal) * 100 : null;
 
   const closedThisYear = closedPos.filter((p) => p.closed_at && new Date(p.closed_at).getFullYear() === year);
@@ -265,8 +277,15 @@ function SwingsPage({ page }) {
 
   const kpiRow = (
     <div className="nt-kpi-row">
-      <Kard label="account return" value={SW_pct(acctRet)} tone={tone(acctRet)}
-        sub={startBal > 0 ? SW_money(startBal) + " → " + SW_money(acctValue) : "needs a linked broker"} />
+      {/* Straight from the broker so you never have to log in there to see it. Buying power
+          rides underneath as the small line — it's the number that decides what you can act on. */}
+      <Kard label="account value" value={acctValue == null ? "—" : SW_cur(acctValue, acctCcy)}
+        sub={acctValue == null ? "needs a linked broker"
+          : (buyingPower == null ? "at your broker"
+             : SW_cur(buyingPower, acctCcy) + " buying power")} />
+      <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
+        sub={year + " · " + closedThisYear.length + " closed"}
+        visual={<Ico name="calendar" size={17} />} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
