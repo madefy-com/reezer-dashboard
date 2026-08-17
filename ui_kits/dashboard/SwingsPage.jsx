@@ -518,22 +518,21 @@ function SwingsPage({ page }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>Position size per conviction</span>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {[["tiers_usd", "A fixed amount", true], ["tiers_pct", "% of my account", linked]].map((o) => {
+                    {[["tiers_usd", "A fixed amount"], ["tiers_pct", "% of my account"]].map((o) => {
                       const on = (edit.sizing_mode || "tiers_usd") === o[0];
                       return (
-                        <button key={o[0]} type="button" disabled={!o[2]}
-                          title={o[2] ? "" : "Needs a linked broker — your account value comes from there"}
-                          onClick={() => o[2] && setEdit({ ...edit, sizing_mode: o[0] })}
-                          style={{ flex: 1, height: 40, borderRadius: "var(--radius-sm)", cursor: o[2] ? "pointer" : "not-allowed",
+                        <button key={o[0]} type="button"
+                          onClick={() => setEdit({ ...edit, sizing_mode: o[0] })}
+                          style={{ flex: 1, height: 40, borderRadius: "var(--radius-sm)", cursor: "pointer",
                             border: "1px solid " + (on ? "var(--accent)" : "var(--border-strong)"),
                             background: on ? "var(--surface-hover)" : "transparent",
-                            color: on ? "var(--text-primary)" : "var(--text-tertiary)", opacity: o[2] ? 1 : 0.45,
+                            color: on ? "var(--text-primary)" : "var(--text-tertiary)",
                             font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>{o[1]}</button>
                       );
                     })}
                   </div>
-                  {!linked && <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                    “% of my account” needs a linked broker — your account value comes from there, never typed in.
+                  {pctMode && !linked && <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--dryrun)" }}>
+                    Set this up now if you like, but it can only size once a broker is linked — your account value comes from there, never typed in. Until then nothing will be bought.
                   </span>}
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, background: "var(--surface-inset)", borderRadius: "var(--radius-sm)" }}>
                     {ROWS.map((r) => (
