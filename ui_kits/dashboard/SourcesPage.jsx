@@ -98,6 +98,14 @@ function SourcesPage() {
   }, []);
   React.useEffect(() => { loadSources(); }, [loadSources]);
   const sources = srcRows || (window.NT_DATA.sources || []);
+  // What the row says under the name. The URL is long and noisy — it belongs in the
+  // editor, not in a list you scan.
+  const typeLabel = (x) => {
+    const t = (x.type || "discord").toLowerCase();
+    if (t === "discord") return "Discord channel";
+    if (t === "sheet") return "Published sheet (CSV)";
+    return t;
+  };
   const catOf = (s) => s.category || "options";           // missing => the original world
   const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
   // The worlds come from the rows themselves, so a future 'futures' category groups itself
@@ -356,39 +364,77 @@ function SourcesPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1080 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1180 }}>
+      <style>{`
+        .nt-set2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--gap-grid); align-items:start; }
+        @media (max-width: 900px){ .nt-set2{ grid-template-columns: 1fr; } }
+      `}</style>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
 
       {/* ---- Dashboard defaults (shared) ---- */}
-      <NT.Card title="Dashboard" padding={20}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap" }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default strategy</div>
-            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which strategy the dashboard shows when it first opens.</div>
+      <div className="nt-set2">
+        <NT.Card title="Dashboard" padding={20}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default strategy</div>
+              <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which strategy the dashboard shows when it first opens.</div>
+            </div>
+            <NT_Select value={view} options={viewOptions} icon="filter" minWidth={240} onChange={(v) => window.NT_SET_VIEW(v)} />
           </div>
-          <NT_Select value={view} options={viewOptions} icon="filter" minWidth={240} onChange={(v) => window.NT_SET_VIEW(v)} />
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap", marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default date range</div>
-            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>The range the dashboard opens on each time. The date pickers on the pages change your current view for the session — they don’t change this default.</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap", marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default date range</div>
+              <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>The range the dashboard opens on each time. The date pickers on the pages change your current view for the session — they don’t change this default.</div>
+            </div>
+            <DateFilter value={defaultRange} onChange={(v, b) => window.NT_SET_DEFAULT_RANGE(v, b)} />
           </div>
-          <DateFilter value={defaultRange} onChange={(v, b) => window.NT_SET_DEFAULT_RANGE(v, b)} />
-        </div>
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-          <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
-          <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 14 }}>
-            <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Open on</span>
-            <NT_Select value={homeCat} icon="layout-dashboard" minWidth={240}
-              options={cats.map((c) => ({ value: c, label: cap(c) + " dashboard" }))}
-              onChange={(v) => setHomeCat(v)} />
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
+            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 14 }}>
+              <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Open on</span>
+              <NT_Select value={homeCat} icon="layout-dashboard" minWidth={240}
+                options={cats.map((c) => ({ value: c, label: cap(c) + " dashboard" }))}
+                onChange={(v) => setHomeCat(v)} />
+            </div>
           </div>
-        </div>
-      </NT.Card>
-
-      {/* ---- Alert sources — every world in one list, one row per source, grouped under a
-             category label. A source's own schedule now lives in its editor. ---- */}
+        </NT.Card>
+  
+        {/* ---- Alert sources — every world in one list, one row per source, grouped under a
+               category label. A source's own schedule now lives in its editor. ---- */}
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }}
+          title={(
+            <span style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
+              Brokers
+              <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", letterSpacing: "var(--ls-normal)", color: "var(--text-tertiary)" }}>Connect once — any strategy can use it.</span>
+            </span>
+          )}>
+          {brokers.map((b, i) => itemRow(b.id, {
+            first: i === 0,
+            icon: "landmark",
+            name: b.label || "Broker account",
+            sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · options",
+            meta: "Charles Schwab",
+            meta2: "keys on the bot's server only",
+            pill: pill("LINKED", true),
+          }))}
+          {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
+              row so the gap is visible before it exists. */}
+          {!hasIbkr ? itemRow("ibkr", {
+            first: !brokers.length,
+            dim: true,
+            icon: "landmark",
+            name: "Interactive Brokers",
+            sub: "needed for swings — European & Canadian listings",
+            actions: (
+              <NT.Button variant="ghost" size="sm" onClick={() => window.NT_ALERT("Coming next — IBKR setup runs on your own machine and needs a weekly sign-in.", { title: "Interactive Brokers" })}>Connect</NT.Button>
+            ),
+          }) : null}
+          <SchwabReauth />
+        </NT.Card>
+  
+        {/* ---- Machines (failover boxes, shared) ---- */}
+      </div>
       <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
         action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={() => openNew()}>New source</NT.Button>}>
         {cats.map((c, gi) => {
@@ -403,7 +449,7 @@ function SourcesPage() {
                 dim: !s.enabled,
                 icon: iconOf(s),
                 name: s.name,
-                sub: urlOf(s),
+                sub: typeLabel(x),
                 meta: schedOf(s),
                 meta2: freshOf(s),
                 pill: pill(s.enabled ? "ON" : "OFF", !!s.enabled, () => toggle(s)),
@@ -424,38 +470,6 @@ function SourcesPage() {
       </NT.Card>
 
       {/* ---- Brokers (shared) — same one-row-per-item layout as the sources list. ---- */}
-      <NT.Card padding={20} bodyStyle={{ padding: 0 }}
-        title={(
-          <span style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
-            Brokers
-            <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", letterSpacing: "var(--ls-normal)", color: "var(--text-tertiary)" }}>Connect once — any strategy can use it.</span>
-          </span>
-        )}>
-        {brokers.map((b, i) => itemRow(b.id, {
-          first: i === 0,
-          icon: "landmark",
-          name: b.label || "Broker account",
-          sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · options",
-          meta: "Charles Schwab",
-          meta2: "keys on the bot's server only",
-          pill: pill("LINKED", true),
-        }))}
-        {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
-            row so the gap is visible before it exists. */}
-        {!hasIbkr ? itemRow("ibkr", {
-          first: !brokers.length,
-          dim: true,
-          icon: "landmark",
-          name: "Interactive Brokers",
-          sub: "needed for swings — European & Canadian listings",
-          actions: (
-            <NT.Button variant="ghost" size="sm" onClick={() => window.NT_ALERT("Coming next — IBKR setup runs on your own machine and needs a weekly sign-in.", { title: "Interactive Brokers" })}>Connect</NT.Button>
-          ),
-        }) : null}
-        <SchwabReauth />
-      </NT.Card>
-
-      {/* ---- Machines (failover boxes, shared) ---- */}
       <NT.Card title="Machines" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}
         action={machines.length ? <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{machines.length} box{machines.length === 1 ? "" : "es"}</span> : null}>
         {machines.length ? (
