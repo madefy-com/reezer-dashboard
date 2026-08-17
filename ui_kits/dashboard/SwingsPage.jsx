@@ -212,7 +212,6 @@ function SwingsPage({ page }) {
       const payload = {
         name: row.name, sizing_mode: row.sizing_mode || "tiers_usd",
         account: row.account === "live" ? "live" : "paper",
-        max_chase_pct: row.max_chase_pct === "" || row.max_chase_pct == null ? null : Number(row.max_chase_pct),
         sizing_tiers: (function () {                  // keep only filled-in tiers, as numbers
           const t = row.sizing_tiers || {}, out = {};
           ["1", "2", "3", "3plus"].forEach(function (k) {
@@ -593,12 +592,6 @@ function SwingsPage({ page }) {
                 </span>
               )}
             </div>
-
-            <SW_Field label="Skip the buy if the price already rose (%)"
-              hint="Compared to the price on the sheet when the alert appeared. Above this, you'd be buying a more expensive trade than the one recommended, so nothing is ordered. Empty = 5%.">
-              <input type="number" value={edit.max_chase_pct == null ? "" : edit.max_chase_pct}
-                onChange={(e) => setEdit({ ...edit, max_chase_pct: e.target.value })} placeholder="5" style={SW_INPUT} />
-            </SW_Field>
 
             <SW_Field label="Max per position (USD)" hint="Safety cap — no single holding may exceed this. Empty = no cap.">
               <input type="number" value={edit.max_position_usd == null ? "" : edit.max_position_usd} onChange={(e) => setEdit({ ...edit, max_position_usd: e.target.value })} style={SW_INPUT} />
