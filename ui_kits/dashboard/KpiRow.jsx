@@ -8,7 +8,7 @@
 function KpiRow() {
   const k = window.NT_DATA.kpis || {};
   const toneCol = (t) => (t === "profit" ? "var(--profit)" : t === "loss" ? "var(--loss)" : "var(--text-primary)");
-  const dol = (n) => "$" + Math.round(Math.abs(n || 0)).toLocaleString();
+  const dol = (n) => "$" + String(Math.round(Math.abs(n || 0)));
 
   // shared card styling (mirrors the design-system KpiCard)
   const cardStyle = { display: "flex", flexDirection: "column", gap: 10, padding: "18px 18px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)", minWidth: 0 };

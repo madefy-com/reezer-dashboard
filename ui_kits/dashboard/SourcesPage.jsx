@@ -380,15 +380,19 @@ function SourcesPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1180 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1760 }}>
       <style>{`
-        .nt-set2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--gap-grid); align-items:start; }
-        @media (max-width: 900px){ .nt-set2{ grid-template-columns: 1fr; } }
+        /* Three config cards side by side once there is room for them (Dashboard,
+           Brokers, Alert sources), two on a laptop, one on a narrow window. The cap
+           keeps a card from stretching to an unreadable width on a very wide display. */
+        .nt-set3{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--gap-grid); align-items:start; }
+        @media (max-width: 1500px){ .nt-set3{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (max-width: 900px){ .nt-set3{ grid-template-columns: 1fr; } }
       `}</style>
       <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
 
-      {/* ---- Dashboard defaults (shared) ---- */}
-      <div className="nt-set2">
+      {/* ---- Dashboard defaults + brokers + alert sources, side by side ---- */}
+      <div className="nt-set3">
         <NT.Card title="Dashboard" padding={20}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap" }}>
             <div style={{ minWidth: 0 }}>
@@ -432,7 +436,7 @@ function SourcesPage() {
             const row = (key, b, world, brand, first) => {
               const s = b.settings || {};
               const sym = { EUR: "€", GBP: "£", USD: "$", CAD: "C$" }[s.currency] || "$";
-              const val = s.account_value != null ? sym + Math.round(s.account_value).toLocaleString() : null;
+              const val = s.account_value != null ? sym + String(Math.round(s.account_value)) : null;
               const ageH = s.synced_at ? (Date.now() - new Date(s.synced_at).getTime()) / 36e5 : null;
               const fresh = ageH != null && ageH < 26;
               return itemRow(key, {
@@ -464,8 +468,6 @@ function SourcesPage() {
           <SchwabReauth />
         </NT.Card>
   
-        {/* ---- Machines (failover boxes, shared) ---- */}
-      </div>
       <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
         action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={() => openNew()}>New source</NT.Button>}>
         {cats.map((c, gi) => {
@@ -499,6 +501,9 @@ function SourcesPage() {
           Changes take effect at the next session. A Discord source needs its own browser login.
         </div>
       </NT.Card>
+      </div>
+
+      {/* ---- Machines (failover boxes, shared) — full width: it is a real table ---- */}
 
       {/* ---- Brokers (shared) — same one-row-per-item layout as the sources list. ---- */}
       <NT.Card title="Machines" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}

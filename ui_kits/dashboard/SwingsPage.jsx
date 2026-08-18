@@ -27,12 +27,12 @@ const SW_cur = (v, ccy) => {
   const x = SW_n(v);
   if (x == null) return "\u2014";
   const sym = { EUR: "\u20ac", GBP: "\u00a3", USD: "$", CAD: "C$" }[ccy] || "$";
-  return (x < 0 ? "\u2212" : "") + sym + Math.abs(Math.round(x)).toLocaleString();
+  return (x < 0 ? "\u2212" : "") + sym + String(Math.abs(Math.round(x)));
 };
 const SW_money = (v) => {
   const x = SW_n(v);
   if (x == null) return "—";
-  return (x < 0 ? "−$" : "$") + Math.abs(Math.round(x)).toLocaleString();
+  return (x < 0 ? "−$" : "$") + String(Math.abs(Math.round(x)));
 };
 const SW_pct = (v) => {
   const x = SW_n(v);
@@ -46,7 +46,7 @@ const SW_dec = (v) => {
 };
 const SW_price = (v) => {
   const x = SW_n(v);
-  return x == null ? "—" : (Math.round(x * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return x == null ? "—" : (Math.round(x * 100) / 100).toFixed(2);
 };
 const SW_ago = (iso) => {
   if (!iso) return "never";
@@ -75,6 +75,24 @@ function SW_Pill({ tone, children }) {
   const c = { ok: ["var(--profit)", "rgba(52,199,123,.12)"], warn: ["var(--dryrun)", "var(--dryrun-bg)"],
               bad: ["var(--loss)", "rgba(255,90,90,.12)"], mute: ["var(--text-tertiary)", "var(--surface-inset)"] }[tone || "mute"];
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: 999, background: c[1], color: c[0], font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase" }}>{children}</span>;
+}
+
+/* The account badge, identical to the options Strategies page (NT_ACCT there): LIVE is
+   green with a pulsing dot — it means armed and working, not broken. A red pill on a
+   healthy live strategy reads as an alarm, which is why this is shared styling now. */
+const SW_ACCT = {
+  live: { label: "LIVE", c: "var(--live)", bg: "var(--live-bg)" },
+  paper: { label: "PAPER", c: "var(--dryrun)", bg: "var(--dryrun-bg)" },
+  draft: { label: "DRAFT", c: "var(--text-tertiary)", bg: "var(--surface-inset)" },
+};
+function SW_AcctBadge({ account }) {
+  const a = account || "draft";
+  const b = SW_ACCT[a] || SW_ACCT.draft;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 24, padding: "0 10px", borderRadius: "var(--radius-sm)", background: b.bg, color: b.c, font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", flex: "none" }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: b.c, animation: a === "live" ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }}></span>{b.label}
+    </span>
+  );
 }
 
 function SwingsPage({ page }) {
@@ -421,7 +439,7 @@ function SwingsPage({ page }) {
                         <span style={{ fontWeight: 500 }}>{p.symbol}</span>
                         {p.name ? <span style={{ color: "var(--text-tertiary)" }}>{" " + p.name}</span> : null}
                       </td>
-                      <td style={{ ...tdR, ...mono }}>{SW_n(p.qty) == null ? "—" : Math.round(SW_n(p.qty)).toLocaleString()}</td>
+                      <td style={{ ...tdR, ...mono }}>{SW_n(p.qty) == null ? "—" : String(Math.round(SW_n(p.qty)))}</td>
                       <td style={{ ...tdR, ...mono }}>{SW_price(p.avg_price)}</td>
                       <td style={{ ...tdR, ...mono }}>{SW_price(p.exit_price)}</td>
                       <td style={{ ...tdR, ...mono, color: pnlColor(SW_n(p.realized_pnl)) }}>{p.realized_pnl == null ? "—" : SW_money(p.realized_pnl)}</td>
@@ -479,7 +497,7 @@ function SwingsPage({ page }) {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <SW_Pill tone={s.account === "live" ? "bad" : "warn"}>{s.account}</SW_Pill>
+                    <SW_AcctBadge account={s.account} />
                     <SW_Pill tone={s.paused ? "mute" : "ok"}>{s.paused ? "paused" : "active"}</SW_Pill>
                   </div>
                 </div>

@@ -3,9 +3,18 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.022";
+window.NT_VERSION = "1.023";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.023", date: "2026-08-18",
+    notes: [
+      "Swings now uses the same LIVE badge as Options — green with a pulsing dot. It was red before, which read as an error when the strategy was simply armed and working.",
+      "Large numbers no longer use a thousands separator anywhere, so $1100 reads as $1100 instead of $1.100 (which looked like a decimal).",
+      "Settings fills the page properly on a wide screen: Dashboard, Brokers and Alert sources now sit side by side, with Machines full width beneath since it is a real table. Two columns on a laptop, one on a narrow window.",
+      "Both broker accounts refresh themselves every 15 minutes between 10:00 and 22:00, so the account value on the dashboard matches what your broker shows instead of being yesterday's figure. Outside those hours nothing changes at a broker, so it does not poll.",
+    ],
+  },
   {
     v: "1.022", date: "2026-08-17",
     notes: [
