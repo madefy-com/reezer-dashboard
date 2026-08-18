@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.023", date: "2026-08-18",
     notes: [
+      "Fixed: futures alerts were appearing in the options alert list. All alerts share one table, and the feed was not filtered by world — so each world now shows only its own, including the fired/filtered counts.",
       "Futures is now a third world in Reezer, reading the futures Discord channel. Only PT | Nitro Trades is recorded — the other people posting in that channel are never stored at all, so the alert feed is his calls and nothing else. Each alert shows the instrument (MNQ, MES, MGC…) and, for an entry, the direction, plus a plain-language note when a message was read but deliberately not acted on. Nothing is traded yet: this reads and records only.",
       "Because there are now three worlds, the Options / Swings switch became a picker at the top of the menu. Each world shows its own state next to its name — how many strategies are live, how many alerts came in — so the menu tells you where to look, not just where you are. With only one world it stays hidden, exactly as before.",
       "Swings now uses the same LIVE badge as Options — green with a pulsing dot. It was red before, which read as an error when the strategy was simply armed and working.",

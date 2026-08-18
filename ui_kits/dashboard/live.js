@@ -148,8 +148,8 @@
   function typeLabel(t) {
     return String(t || "").toUpperCase() === "UNKNOWN" ? "noise" : t;
   }
-  function buildDiscord(alerts, srcName, srcType) {
-    srcName = srcName || {}; srcType = srcType || {};
+  function buildDiscord(alerts, srcName, srcType, srcCat) {
+    srcName = srcName || {}; srcType = srcType || {}; srcCat = srcCat || {};
     var cap = function (s) { s = String(s || ""); return s ? s.charAt(0).toUpperCase() + s.slice(1) : "—"; };
     return alerts.map(function (a) {
       // discord_ts = when the trader posted; ts = when the bot received/acted.
@@ -164,6 +164,10 @@
         src: (a.source_id != null && cap(srcType[a.source_id])) || "Discord",
         ch: (a.source_id != null && srcName[a.source_id]) || "alerts", srcId: a.source_id,
         symbol: a.ticker || "—", msg: cleanMsg(a.raw), fired: !!a.fired,
+        // Which world this alert belongs to. All alerts share one table, so without this
+        // the options feed would show futures calls and vice versa.
+        cat: (a.source_id != null && srcCat[a.source_id]) || "options",
+        author: a.author || "", direction: a.direction || "",
         reason: a.reason || "", latency: lat == null ? "" : lat + "s",
         action: (a.fired && ACT[String(a.type).toUpperCase()]) || "" };
     });
@@ -232,8 +236,8 @@
     var trades = positions.length ? buildTrades(positions, sName, stratNameById) : null;
 
     // source id -> name/type (for the alerts feed); strategy id -> [source_id]
-    var srcName = {}, srcType = {};
-    (RAW.sources || []).forEach(function (s) { srcName[s.id] = s.name; srcType[s.id] = s.type; });
+    var srcName = {}, srcType = {}, srcCat = {};
+    (RAW.sources || []).forEach(function (s) { srcName[s.id] = s.name; srcType[s.id] = s.type; srcCat[s.id] = s.category || "options"; });
     var subById = {};
     (RAW.strategySources || []).forEach(function (r) { (subById[r.strategy_id] = subById[r.strategy_id] || []).push(r.source_id); });
 
@@ -285,8 +289,18 @@
       trades: trades ? vTrades : base.trades,
       kpis: trades ? buildKpis(vTrades, RAW.strategies, sTrades) : base.kpis,
       daily: positions.length ? buildDaily(vPositions, acctStartBal) : base.daily,
-      discord: alerts.length ? buildDiscord(alerts, srcName, srcType) : base.discord,
+      discord: alerts.length ? buildDiscord(alerts, srcName, srcType, srcCat) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
+      // per-world counts for the alert page headers (one table, several worlds)
+      summaryByCat: (function () {
+        var m = {};
+        (alerts || []).forEach(function (a) {
+          var c = (a.source_id != null && srcCat[a.source_id]) || "options";
+          if (!m[c]) m[c] = { fired: 0, filtered: 0 };
+          if (a.fired) m[c].fired++; else m[c].filtered++;
+        });
+        return m;
+      })(),
       // streaming window is the single source of truth (session_config); ntSession + the
       // bot both read it. Inject the ET start/end into marketHours so the helpers see them.
       marketHours: Object.assign({}, base.marketHours, sc ? { streaming_start_et: sc.streaming_start_et, streaming_end_et: sc.streaming_end_et } : {}),

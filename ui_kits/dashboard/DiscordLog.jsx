@@ -1,8 +1,10 @@
 /* DiscordLog — enriched firing feed (compact, for the Trades page). */
-function DiscordLog({ maxHeight = 320, fill = false }) {
+function DiscordLog({ maxHeight = 320, fill = false, category = "options" }) {
   const NT = window.NitroTraderDesignSystem_95e598;
-  const feed = window.NT_DATA.discord;
-  const sum = window.NT_DATA.summary14d;
+  // Scoped to one world: all alerts share a table, so an unfiltered feed would mix
+  // futures calls into the options dashboard.
+  const feed = (window.NT_DATA.discord || []).filter((m) => (m.cat || "options") === category);
+  const sum = ((window.NT_DATA.summaryByCat || {})[category]) || window.NT_DATA.summary14d;
 
   // streaming dot next to the title: green+blinking inside the streaming window,
   // red outside. (Moved here from the Trades card — streaming = live alert flow.)

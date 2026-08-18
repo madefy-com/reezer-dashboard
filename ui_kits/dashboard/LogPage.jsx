@@ -1,9 +1,15 @@
-/* LogPage — full Discord firing log: all columns + filter tabs. */
-function LogPage() {
+/* LogPage — full Discord firing log: all columns + filter tabs.
+
+   Shared by every world. All alerts live in ONE table, so the page is scoped by category:
+   the options world must not show futures calls, and vice versa. Futures adds two columns
+   that options has no use for (who posted, and the direction) — options alerts encode
+   direction in their type, and only one person posts in that channel. */
+function LogPage({ category = "options", title, subtitle }) {
   const NT = window.NitroTraderDesignSystem_95e598;
-  const all = window.NT_DATA.discord;
-  const sum = window.NT_DATA.summary14d;
-  const sources = window.NT_DATA.sources || [];
+  const all = (window.NT_DATA.discord || []).filter((m) => (m.cat || "options") === category);
+  const sum = ((window.NT_DATA.summaryByCat || {})[category]) || window.NT_DATA.summary14d;
+  const sources = (window.NT_DATA.sources || []).filter((s) => (s.category || "options") === category);
+  const isFutures = category === "futures";
   const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [filter, setFilter] = React.useState("all");
   const [src, setSrc] = React.useState("all");
@@ -29,7 +35,9 @@ function LogPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Alerts" subtitle="Every Discord message the bot evaluated this session" right={<DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} />} />
+      <PageHead title={title || "Alerts"}
+        subtitle={subtitle || "Every Discord message the bot evaluated this session"}
+        right={<DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} />} />
       <NT.Card padding={20}
         title={<div style={{ display: "flex", alignItems: "center", gap: 4 }}><Tab id="all" label="All" count={all.length} /><Tab id="fired" label="Fired" count={all.filter(m=>m.fired).length} /><Tab id="filtered" label="Filtered" count={all.filter(m=>!m.fired).length} /></div>}
         action={<span style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
@@ -42,7 +50,10 @@ function LogPage() {
         <div style={{ overflowX: "auto", padding: "0 20px 16px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 940 }}>
             <thead><tr>
-              <th style={th}>date</th><th style={th}>alert</th><th style={th}>received</th><th style={th}>delay</th><th style={th}>type</th><th style={th}>source</th><th style={th}>channel</th><th style={th}>symbol</th>
+              <th style={th}>date</th><th style={th}>alert</th><th style={th}>received</th><th style={th}>delay</th><th style={th}>type</th>
+              {isFutures ? <th style={th}>trader</th> : null}
+              <th style={th}>source</th><th style={th}>channel</th><th style={th}>symbol</th>
+              {isFutures ? <th style={th}>side</th> : null}
               <th style={{ ...th, width: "40%" }}>message</th><th style={th}>action</th><th style={{ ...th, paddingRight: 0 }}>result</th>
             </tr></thead>
             <tbody>
@@ -53,9 +64,14 @@ function LogPage() {
                   <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{m.t.slice(0, 8)}</td>
                   <td style={{ ...td, ...mono, color: m.latency ? "var(--text-primary)" : "var(--text-tertiary)", fontWeight: m.latency ? "var(--w-medium)" : "var(--w-regular)" }}>{m.latency || "—"}</td>
                   <td style={td}><NT_TypeChip type={m.type} /></td>
+                  {isFutures ? <td style={{ ...td, color: "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", whiteSpace: "nowrap" }}>{m.author || "—"}</td> : null}
                   <td style={{ ...td, color: "var(--text-secondary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{m.src || "—"}</td>
                   <td style={td}><span style={{ display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", border: "1px solid var(--border)", color: "var(--text-tertiary)", font: "var(--w-medium) var(--t-2xs)/1 var(--font-mono)" }}>#{m.ch}</span></td>
                   <td style={{ ...td, ...mono, color: m.symbol === "—" ? "var(--text-tertiary)" : "var(--text-secondary)", fontWeight: "var(--w-medium)" }}>{m.symbol}</td>
+                  {isFutures ? (
+                    <td style={{ ...td, font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)",
+                      color: m.direction === "LONG" ? "var(--profit)" : m.direction === "SHORT" ? "var(--loss)" : "var(--text-tertiary)" }}>{m.direction || "—"}</td>
+                  ) : null}
                   <td style={{ ...td, color: m.fired ? "var(--text-primary)" : "var(--text-tertiary)" }}>{m.msg}</td>
                   <td style={{ ...td, ...mono, color: m.fired ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{m.fired ? m.action : "—"}</td>
                   <td style={{ ...td, paddingRight: 0 }}><NT.FiredBadge fired={m.fired} /></td>
