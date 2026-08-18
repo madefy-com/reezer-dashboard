@@ -6,7 +6,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const D = window.NT_DATA;
   const [hover, setHover] = React.useState(-1);
-  const [rangeI, setRangeI] = React.useState("1D");
+  const [rangeI, setRangeI] = React.useState("ALL");
   const range = rangeProp || rangeI;
   const setRange = onRange || setRangeI;
   const [mode, setMode] = React.useState("combo");   // combo | wfall
@@ -23,7 +23,8 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
       return D.trades.filter((t) => t.status !== "live").slice().reverse()
         .map((tr) => ({ label: tr.tk, $: tr.pnl, pct: tr.pct, tr }));
     }
-    const n = range === "1W" ? 5 : 22;
+    // ALL = every session inside the page's date filter (the KPI cards' exact window).
+    const n = range === "1W" ? 5 : range === "1M" ? 22 : D.daily.length;
     const slice = D.daily.slice(-n);
     const dates = tradingDates(n);
     return slice.map((d, i) => {
@@ -96,7 +97,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
       action={<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <Seg value={mode} set={setMode} opts={[{ id: "combo", label: "Trades" }, { id: "wfall", label: "Waterfall" }]} />
         <Seg value={unit} set={setUnit} opts={[{ id: "$", label: "$" }, { id: "%", label: "%" }]} />
-        <Seg value={range} set={setRange} opts={[{ id: "1D", label: "1D" }, { id: "1W", label: "1W" }, { id: "1M", label: "1M" }]} />
+        <Seg value={range} set={setRange} opts={[{ id: "ALL", label: "Range" }, { id: "1D", label: "1D" }, { id: "1W", label: "1W" }, { id: "1M", label: "1M" }]} />
       </div>}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10 }}>
         <span className="num" style={{ font: "var(--w-light) 34px/1 var(--font-mono)", letterSpacing: "var(--ls-tight)", color: cumColor }}>{fmt(net)}{unit === "$" ? ".00" : ""}</span>
@@ -133,7 +134,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
                  onClick={() => it.tr && onSelect && onSelect(it.tr)} style={{ cursor: it.tr && onSelect ? "pointer" : "default" }}>
                 <rect x={cx(i) - slot / 2} y={mT} width={slot} height={plotH} fill="transparent" />
                 <rect x={cx(i) - bw / 2} y={top} width={bw} height={h} rx={3} fill={bc} opacity={on ? 1 : 0.82} style={{ transition: "opacity var(--dur)" }} />
-                {(range !== "1M" || i % 4 === 0) && (
+                {(i % Math.max(1, Math.ceil(series.length / 12)) === 0) && (
                   <text x={cx(i)} y={H - 9} textAnchor="middle" fill={on ? "var(--text-secondary)" : "var(--text-tertiary)"} style={{ font: "var(--w-medium) 10px/1 var(--font-sans)" }}>
                     {range === "1W" ? it.shortLabel : it.label}
                   </text>
