@@ -1,3 +1,5 @@
+const NT_HOME_PAGE = { options: "dashboard", swings: "swings-dashboard", futures: "futures-dashboard" };
+
 /* Operator-attention banner: surfaces unseen operator_flags (e.g. an ambiguous
    alert the bot had to guess on). Red strip under the status bar; Dismiss sets
    seen=1 in Supabase so it stays cleared across reloads. */
@@ -124,7 +126,7 @@ function App() {
           if (c && c !== "options") {                  // options is already the initial state
             window.NT_HOME_CATEGORY = c;
             setWorld(c);
-            setPage(c === "swings" ? "swings-dashboard" : "dashboard");
+            setPage(NT_HOME_PAGE[c] || "dashboard");
           }
         }, function () { /* offline — stay on options */ });
     }
@@ -135,16 +137,26 @@ function App() {
         window.dispatchEvent(new Event("nt-data"));
       }
     }, function () { /* offline/demo — no swing world */ });
+    // Same probe for futures: the world exists as soon as its alert source does, so the
+    // picker can show it before any futures page has been opened.
+    db.from("sources").select("id").eq("category", "futures").limit(1).then(function (r) {
+      const has = !!(r && r.data && r.data.length);
+      if (has !== (window.NT_HAS_FUTURES === true)) {
+        window.NT_HAS_FUTURES = has;
+        window.dispatchEvent(new Event("nt-data"));
+      }
+    }, function () { /* offline — no futures world */ });
   }, []);
 
   // Switching worlds always lands on that world's dashboard.
   const goWorld = (w) => {
     setWorld(w);
-    setPage(w === "swings" ? "swings-dashboard" : "dashboard");
+    setPage(NT_HOME_PAGE[w] || "dashboard");
   };
 
   const renderPage = () => {
     if (page.indexOf("swings-") === 0) return <SwingsPage page={page} />;
+    if (page.indexOf("futures-") === 0) return <FuturesPage page={page} />;
     if (page === "trades") return <TradesPage />;
     if (page === "activity") return <ActivityPage />;
     if (page === "log") return <LogPage />;

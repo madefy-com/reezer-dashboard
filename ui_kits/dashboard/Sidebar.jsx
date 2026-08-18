@@ -3,9 +3,11 @@ function Ico({ name, size = 20, color = "currentColor", sw = 1.75 }) {
   return <i data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i>;
 }
 
-/* Two worlds live side by side: the 0DTE options bot and the swing book. The switcher
-   only appears when BOTH are populated — with one world there is nothing to switch to,
-   so we just show that world's pages. Activity is shared and sits below the divider. */
+/* Several worlds live side by side: the 0DTE options bot, the swing book, and futures.
+   They are picked from a dropdown rather than a segmented switch — three labels do not fit
+   a 218px rail, and each world can then carry its own status line ("1 live · 4 paper").
+   The picker only appears when more than one world exists. Activity and Settings are shared
+   and sit below the divider. */
 const NT_WORLD_NAV = {
   options: [
     { id: "dashboard", label: "Dashboard", icon: "layout-dashboard" },
@@ -20,16 +22,91 @@ const NT_WORLD_NAV = {
     { id: "swings-alerts", label: "Alerts", icon: "message-square-dot" },
     { id: "swings-strategies", label: "Strategies", icon: "target" },
   ],
+  futures: [
+    { id: "futures-dashboard", label: "Dashboard", icon: "layout-dashboard" },
+    { id: "futures-trades", label: "Trades", icon: "candlestick-chart" },
+    { id: "futures-alerts", label: "Alerts", icon: "message-square-dot" },
+    { id: "futures-strategies", label: "Strategies", icon: "target" },
+  ],
 };
+
+const NT_WORLD_META = {
+  options: { label: "Options", icon: "candlestick-chart" },
+  swings: { label: "Swings", icon: "trending-up" },
+  futures: { label: "Futures", icon: "activity-square" },
+};
+
+/* The world picker. Closed it shows the current world + a one-line state; open it lists every
+   world with its own state, so the rail answers "where should I be looking?" not just
+   "where am I?". */
+function WorldPicker({ worlds, current, onPick, state }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const k = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", h); document.addEventListener("keydown", k);
+    return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
+  }, [open]);
+  const meta = NT_WORLD_META[current] || NT_WORLD_META.options;
+  const st = state[current] || {};
+  const row = (id, label, s, on) => (
+    <button key={id} type="button" onClick={() => { onPick(id); setOpen(false); }}
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+        width: "100%", padding: "7px 9px", border: "none", cursor: "pointer", textAlign: "left",
+        borderRadius: "var(--radius-xs)", background: on ? "var(--violet-soft)" : "transparent",
+        color: on ? "var(--text-primary)" : "var(--text-secondary)",
+        font: (on ? "var(--w-medium)" : "var(--w-regular)") + " var(--t-xs)/1.2 var(--font-sans)" }}>
+      <span>{label}</span>
+      {s ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: s.tone || "var(--text-tertiary)" }}>{s.text}</span> : null}
+    </button>
+  );
+  return (
+    <div ref={ref} style={{ position: "relative", marginBottom: 10 }}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          width: "100%", padding: "8px 10px", cursor: "pointer", textAlign: "left",
+          background: "var(--surface-inset)", border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)", color: "var(--text-primary)" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <Ico name={meta.icon} size={15} color="var(--text-secondary)" />
+          <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.label}</span>
+        </span>
+        <Ico name="chevrons-up-down" size={14} color="var(--text-tertiary)" />
+      </button>
+      {st.text ? (
+        <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", padding: "6px 10px 0" }}>{st.text}</div>
+      ) : null}
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, right: 0, zIndex: 40,
+          background: "var(--surface-card)", border: "1px solid var(--violet-line)",
+          borderRadius: "var(--radius-sm)", padding: 4, boxShadow: "var(--shadow-pop)" }}>
+          {worlds.map((id) => row(id, (NT_WORLD_META[id] || {}).label || id, state[id], id === current))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Sidebar({ page, onNav, world, onWorld }) {
   const D = window.NT_DATA;
   const hasOptions = ((D && D.strategies) || []).length > 0;
   const hasSwings = window.NT_HAS_SWINGS === true;
-  const both = hasOptions && hasSwings;
-  // With only one world populated the switcher is noise — pin to whichever world exists.
-  const w = both ? (world === "swings" ? "swings" : "options") : (hasSwings && !hasOptions ? "swings" : "options");
-  const nav = NT_WORLD_NAV[w];
+  const hasFutures = window.NT_HAS_FUTURES === true;
+  const worlds = [hasOptions && "options", hasSwings && "swings", hasFutures && "futures"].filter(Boolean);
+  // With only one world there is nothing to pick — show that world's pages and no picker.
+  const w = worlds.includes(world) ? world : (worlds[0] || "options");
+  const nav = NT_WORLD_NAV[w] || NT_WORLD_NAV.options;
+
+  // A one-line state per world, so the picker says where to look, not just where you are.
+  const strat = (D && D.strategies) || [];
+  const nLive = strat.filter((x) => x.account === "live").length;
+  const worldState = {
+    options: { text: strat.length ? (nLive ? nLive + " live · " + (strat.length - nLive) + " paper" : strat.length + " paper") : "", tone: nLive ? "var(--profit)" : null },
+    swings: { text: window.NT_SWINGS_STATE || "", tone: window.NT_SWINGS_LIVE ? "var(--profit)" : null },
+    futures: { text: window.NT_FUTURES_STATE || "", tone: window.NT_FUTURES_LIVE ? "var(--profit)" : null },
+  };
 
   const navBtn = (n) => {
     const on = page === n.id;
@@ -59,21 +136,9 @@ function Sidebar({ page, onNav, world, onWorld }) {
       </div>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
-        {both && (
-          <div style={{ display: "flex", gap: 3, padding: 3, marginBottom: 6, background: "var(--surface-inset)", borderRadius: "var(--radius-sm)" }}>
-            {[["options", "Options"], ["swings", "Swings"]].map((o) => {
-              const on = w === o[0];
-              return (
-                <button key={o[0]} type="button" onClick={() => { if (onWorld) onWorld(o[0]); }}
-                  style={{
-                    flex: 1, height: 30, border: "1px solid transparent", borderRadius: "var(--radius-sm)", cursor: "pointer",
-                    background: on ? "var(--accent)" : "transparent", color: on ? "#fff" : "var(--text-tertiary)",
-                    font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)",
-                    transition: "background var(--dur), color var(--dur)",
-                  }}>{o[1]}</button>
-              );
-            })}
-          </div>
+        {worlds.length > 1 && (
+          <WorldPicker worlds={worlds} current={w} state={worldState}
+            onPick={(id) => { if (onWorld) onWorld(id); }} />
         )}
         {nav.map(navBtn)}
 
