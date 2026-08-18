@@ -1,10 +1,13 @@
 /* TradesLog — live trades table / log. Fillable with internal scroll + sticky header. */
-function TradesLog({ onSelect, fill = false }) {
+function TradesLog({ onSelect, fill = false, category = "options" }) {
   const NT = window.NitroTraderDesignSystem_95e598;
+  // Trades are per-world; only options records them today, so another world renders the
+  // same table with its empty state instead of borrowing options' rows.
+  const scoped = category === "options";
   // Stable order: newest entry first, tie-broken by id — so a live (open) trade's row
   // never jumps around as its mark-to-market P&L ticks or the 10s poll refreshes, and
   // near-simultaneous entries (several strategies on the same alert) stay put.
-  const rows = (window.NT_DATA.trades || []).slice().sort(function (a, b) {
+  const rows = (scoped ? (window.NT_DATA.trades || []) : []).slice().sort(function (a, b) {
     var ta = a.entryTs || "", tb = b.entryTs || "";
     if (ta !== tb) return ta < tb ? 1 : -1;
     return (b.id || 0) - (a.id || 0);

@@ -30,37 +30,10 @@ function FuturesPage({ page }) {
       subtitle="Every message from the trader we follow — other posters in the channel are never recorded" />;
   }
 
-  if (page === "futures-dashboard") {
-    const card = (label, value, sub, tone) => (
-      <NT.Card padding={18}>
-        <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</div>
-        <div className="num" style={{ font: "var(--w-semibold) var(--t-h2)/1 var(--font-sans)", color: tone || "var(--text-primary)", marginTop: 8 }}>{value}</div>
-        <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}>{sub}</div>
-      </NT.Card>
-    );
-    return (
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title={greeting(window.NT_USER_NAME || "")} subtitle="Futures · following one trader on MNQ · Schwab" />
-        <div className="nt-kpi-row">
-          {card("alerts read", String(rows.length), "from the futures channel")}
-          {card("tradeable", String(acted.length), entries.length + " entries · " + exits.length + " exits")}
-          {card("entries", String(entries.length), "his fills, taken at market")}
-          {card("trading", "reading only", "no orders until a strategy is on", "var(--dryrun)")}
-        </div>
-        <div className="nt-body" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gridTemplateRows: "minmax(0,1fr)", gap: "var(--gap-grid)", alignItems: "stretch" }}>
-          <NT.Card title="Trades" padding={20}>
-            <div style={{ font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)", color: "var(--text-tertiary)", maxWidth: 460 }}>
-              No futures trades yet. Every alert is being read and recorded, but nothing is
-              ordered until a futures strategy exists and is switched on.
-            </div>
-          </NT.Card>
-          <div style={{ position: "relative", display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <DiscordLog fill category="futures" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // The dashboard is the SAME component the options world uses — same cards, same layout,
+  // same feed — just scoped to this category. Most of it is empty until futures trades, and
+  // that is the point: the page does not change shape when data arrives.
+  if (page === "futures-dashboard") return <DashboardPage category="futures" />;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>

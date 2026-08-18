@@ -5,8 +5,12 @@
      avg win/loss  -> ratio headline + green/red magnitude bar + the two $ figures
      profit factor -> green/red split bar (profit vs loss share)
      expectancy    -> centered meter (green right / red left of 0, by sign & size) */
-function KpiRow() {
-  const k = window.NT_DATA.kpis || {};
+function KpiRow({ category = "options" }) {
+  // A world with no trades yet shows the same six cards with empty values, rather than a
+  // different layout — the shape of the page should not change as data arrives.
+  const EMPTY = { accountReturn: { value: "—" }, netPnl: { value: "—" }, winRate: { value: "—", sub: "no closed trades" },
+                  avgWinLoss: { value: "—" }, profitFactor: { value: "—" }, expectancy: { value: "—", sub: "per trade" } };
+  const k = category === "options" ? (window.NT_DATA.kpis || {}) : EMPTY;
   const toneCol = (t) => (t === "profit" ? "var(--profit)" : t === "loss" ? "var(--loss)" : "var(--text-primary)");
   const dol = (n) => "$" + String(Math.round(Math.abs(n || 0)));
 

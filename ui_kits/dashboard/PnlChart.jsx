@@ -2,7 +2,7 @@
    - "combo": per-item diverging bars (win/loss) + a cumulative equity line.
    - "wfall": waterfall — each item steps the running total from $0 to net.
    Range 1D = today's closed trades; 1W/1M = daily roll-up. Unit $ or %. */
-function PnlChart({ onSelect, range: rangeProp, onRange }) {
+function PnlChart({ onSelect, range: rangeProp, onRange, category = "options" }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const D = window.NT_DATA;
   const [hover, setHover] = React.useState(-1);
@@ -19,6 +19,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
     return out;
   };
   const series = React.useMemo(() => {
+    if (category !== "options") return [];          // no trades in this world yet
     if (range === "1D") {
       return D.trades.filter((t) => t.status !== "live").slice().reverse()
         .map((tr) => ({ label: tr.tk, $: tr.pnl, pct: tr.pct, tr }));
@@ -37,7 +38,7 @@ function PnlChart({ onSelect, range: rangeProp, onRange }) {
         $: d.pnl, pct: d.pct,
       };
     });
-  }, [range, D]);   // D (window.NT_DATA) is a fresh object each rebuild — recompute when the date filter changes the data
+  }, [range, D, category]);   // D (window.NT_DATA) is a fresh object each rebuild — recompute when the date filter changes the data
 
   const val = (it) => (unit === "$" ? it.$ : it.pct);
   const cum = []; series.reduce((a, it, i) => (cum[i] = a + val(it)), 0);

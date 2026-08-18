@@ -50,7 +50,6 @@ function WorldPicker({ worlds, current, onPick, state }) {
     return () => { document.removeEventListener("mousedown", h); document.removeEventListener("keydown", k); };
   }, [open]);
   const meta = NT_WORLD_META[current] || NT_WORLD_META.options;
-  const st = state[current] || {};
   const row = (id, label, s, on) => (
     <button key={id} type="button" onClick={() => { onPick(id); setOpen(false); }}
       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
@@ -75,9 +74,6 @@ function WorldPicker({ worlds, current, onPick, state }) {
         </span>
         <Ico name="chevrons-up-down" size={14} color="var(--text-tertiary)" />
       </button>
-      {st.text ? (
-        <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", padding: "6px 10px 0" }}>{st.text}</div>
-      ) : null}
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 5px)", left: 0, right: 0, zIndex: 40,
           background: "var(--surface-card)", border: "1px solid var(--violet-line)",
