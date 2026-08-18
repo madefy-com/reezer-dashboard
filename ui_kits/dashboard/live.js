@@ -33,7 +33,9 @@
     var x = Number(p.realized_pnl || 0);
     return x > 0 ? "WIN" : x < 0 ? "LOSS" : "BE";
   }
-  var money = function (v) { return (v >= 0 ? "+" : "−") + "$" + Math.abs(Math.round(v)).toLocaleString(); };
+  // No thousands separator: under a Dutch browser locale toLocaleString() renders 1100 as
+  // "1.100", which reads as a decimal on a money figure.
+  var money = function (v) { return (v >= 0 ? "+" : "−") + "$" + String(Math.abs(Math.round(v))); };
   var pctS = function (v) { return (v >= 0 ? "+" : "−") + Math.abs(v) + "%"; };
 
   function buildTrades(positions, stratName, nameById) {
