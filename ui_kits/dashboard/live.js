@@ -297,8 +297,14 @@
     (RAW.strategies || []).forEach(function (st) {
       if ((st.category || "options") !== "options") nonOptionIds[st.id] = true;
     });
+    // The stored selection is GLOBAL but the picker is per-world. Selecting a futures
+    // strategy must not filter the options totals down to nothing (it matched no options
+    // strategy, so the whole options world went empty). A selection that belongs to another
+    // world is simply ignored here — each world's own pages scope it via ntTradesFor.
+    var viewForeign = view !== "all" && view !== "live" && !!nonOptionIds[view];
     var inView = function (sid) {
       if (nonOptionIds[sid]) return true;
+      if (viewForeign) return true;
       if (view === "all") return true;
       if (view === "live") return !!liveIds[sid];
       return String(sid) === String(view);

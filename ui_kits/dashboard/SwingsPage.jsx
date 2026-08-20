@@ -446,9 +446,34 @@ function SwingsPage({ page }) {
       }));
     })();
 
+    // His whole portfolio, straight off the newest snapshot. A change-only feed is empty on
+    // most days — this is the context that makes the page worth opening even when nothing
+    // changed, and it is the same data the changes refer to.
+    const holdings = Object.keys(marks).map((sym) => ({ sym: sym, ...(marks[sym] || {}) }))
+      .filter((h) => h.name || h.px != null)
+      .sort((a, b) => (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9));
+    const buys = holdings.filter((h) => en(h.advies) === "buy").length;
+    const held = d.pos.filter((p) => p.status === "open").length;
+
+    const stat = (label, value, tone) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</span>
+        <span style={{ font: "var(--w-light) var(--t-h2)/1 var(--font-mono)", color: tone || "var(--text-primary)" }}>{value}</span>
+      </div>
+    );
+
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1180 }}>
         <PageHead title="Alerts" subtitle="Every change the publisher makes to the portfolio sheet" />
+
+        <NT.Card padding={20}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 20 }}>
+            {stat("holdings", String(holdings.length))}
+            {stat("on his buy list", String(buys), buys ? "var(--profit)" : null)}
+            {stat("changes today", String(dayGroups.length && dayGroups[0].label.indexOf("Today") === 0 ? dayGroups[0].rows.length : 0))}
+            {stat("you hold", String(held), held ? "var(--profit)" : "var(--text-tertiary)")}
+          </div>
+        </NT.Card>
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
           <span>Macrotrends sheet · checked {SW_ago(portfolioSnap && portfolioSnap.fetched_at)}</span>
           <SW_Pill tone={feedTone}>{feedLabel}</SW_Pill>
@@ -513,6 +538,43 @@ function SwingsPage({ page }) {
               })}
             </div>
           ))}
+
+        <NT.Card title={"His portfolio · " + holdings.length + " holdings"} padding={20} bodyStyle={{ padding: 0 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+              <thead><tr>
+                <th style={th}>holding</th>
+                <th style={th}>theme</th>
+                <th style={th}>advice</th>
+                <th style={thR}>weight</th>
+                <th style={thR}>price</th>
+                <th style={thR}>his result</th>
+                <th style={thR}>you</th>
+              </tr></thead>
+              <tbody>
+                {holdings.map((h) => {
+                  const adv = en(h.advies);
+                  const mine = posOf(h.sym);
+                  const hp = SW_n(h.his_pct);
+                  return (
+                    <tr key={h.sym} className="nt-trow">
+                      <td style={td}>
+                        <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: "var(--text-primary)" }}>{h.sym}</span>
+                        <span style={{ color: "var(--text-tertiary)", marginLeft: 8 }}>{h.name || ""}</span>
+                      </td>
+                      <td style={td}>{h.theme ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", padding: "3px 8px", borderRadius: 999, background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{h.theme}</span> : "—"}</td>
+                      <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
+                      <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_price(h.px)}</td>
+                      <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
+                      <td style={{ ...tdR, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: mine ? "var(--profit)" : "var(--text-tertiary)" }}>{mine ? (mine.status === "open" ? "holding" : "sold") : "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </NT.Card>
       </div>
     );
   }
