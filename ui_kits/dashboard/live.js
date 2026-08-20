@@ -186,6 +186,8 @@
       allowlist: sp.allowlist || "",
       // futures: sized in contracts, and how much of his exit we follow
       contracts_per_trade: sp.contracts_per_trade == null ? null : Number(sp.contracts_per_trade),
+      stop_loss_ticks: sp.stop_loss_ticks == null ? null : Number(sp.stop_loss_ticks),
+      take_profit_ticks: sp.take_profit_ticks == null ? null : Number(sp.take_profit_ticks),
       exit_mode: sp.exit_mode || null,
       broker: sp.broker || null,
       stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),

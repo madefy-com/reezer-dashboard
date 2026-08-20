@@ -43,6 +43,9 @@ function StrategyCard({ strat, sources }) {
   const p = strat.params || {};
   const acct = strat.account || "draft";
   const badge = NT_ACCT[acct] || NT_ACCT.draft;
+  // Futures are sized and risked differently from options: contracts rather than a dollar
+  // budget, ticks rather than percentages. Same editor, different units where it matters.
+  const isFut = (strat.category || "options") === "futures";
 
   const openEdit = () => {
     const tiers = Array.isArray(p.trailing_tiers) ? p.trailing_tiers : [];
@@ -55,6 +58,9 @@ function StrategyCard({ strat, sources }) {
       tp: p.take_profit_pct == null ? "" : NT_pct(p.take_profit_pct),
       half: p.take_half_at_pct == null ? "" : NT_pct(p.take_half_at_pct),
       maxHold: p.max_hold_minutes == null ? "" : p.max_hold_minutes,
+      contracts: p.contracts_per_trade == null ? 1 : p.contracts_per_trade,
+      stopTicks: p.stop_loss_ticks == null ? "" : p.stop_loss_ticks,
+      tpTicks: p.take_profit_ticks == null ? "" : p.take_profit_ticks,
       trailOn: tiers.length > 0, tierCount: Math.max(1, tiers.length),
       t1at: NT_tierAt(p, 0), t1pct: NT_tierTr(p, 0), t2at: NT_tierAt(p, 1), t2pct: NT_tierTr(p, 1), t3at: NT_tierAt(p, 2), t3pct: NT_tierTr(p, 2),
       maxSlip: p.max_price_slippage_usd == null ? "" : p.max_price_slippage_usd,
@@ -88,6 +94,9 @@ function StrategyCard({ strat, sources }) {
       breakeven_after_partial: !!form.beAfter,
       take_half_at_pct: pctOpt(form.half), trailing_tiers: tiers,
       max_hold_minutes: opt(form.maxHold) == null ? null : (Number(form.maxHold) || 0),
+      contracts_per_trade: isFut ? (Number(form.contracts) || 1) : null,
+      stop_loss_ticks: isFut ? (opt(form.stopTicks) == null ? null : (Number(form.stopTicks) || 0)) : null,
+      take_profit_ticks: isFut ? (opt(form.tpTicks) == null ? null : (Number(form.tpTicks) || 0)) : null,
       max_price_slippage_usd: opt(form.maxSlip) == null ? null : (Number(form.maxSlip) || 0),
       max_trades_per_day: Number(form.maxTrades) > 0 ? Number(form.maxTrades) : null,   // empty or 0 -> null (no cap)
       exit_mode: form.exitMode || "rules_close",
@@ -234,7 +243,8 @@ function StrategyCard({ strat, sources }) {
   const groups = [
     { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)],
       ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
-    { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)], ["Stop loss", pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+    { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)],
+      ["Stop loss", isFut ? (p.stop_loss_ticks ? p.stop_loss_ticks + " ticks" : "off") : pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", isFut ? (p.take_profit_ticks ? p.take_profit_ticks + " ticks" : "off") : pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? "Yes" : "No"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
@@ -413,10 +423,20 @@ function StrategyCard({ strat, sources }) {
             <span style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>Live = real orders · Paper = records on live prices, sends nothing · Draft = not running.</span>
 
             <NT_SSection>Sizing</NT_SSection>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <NT_SField label="Trade budget ($)"><input type="number" value={form.budget} onChange={(e) => setF("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
-              <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
-            </div>
+            {isFut ? (
+              // A dollar budget is meaningless for futures: one MNQ controls ~$59,000 of
+              // index on a few hundred of margin, so size is a contract count and nothing else.
+              <NT_SField label="Contracts per trade"
+                hint="How many contracts each of his entries takes. 1 MNQ = $2 per point.">
+                <input type="number" min="1" value={form.contracts}
+                  onChange={(e) => setF("contracts", e.target.value)} style={NT_SINPUT} />
+              </NT_SField>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <NT_SField label="Trade budget ($)"><input type="number" value={form.budget} onChange={(e) => setF("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              </div>
+            )}
             <NT_SField label="Allowlist" hint="Comma-separated tickers the bot may trade."><input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} /></NT_SField>
             <NT_SField label="Budget by weekday (%)" hint="Trade this % of the budget on each day. 100 = full size; e.g. Mon 50% halves it.">
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
@@ -450,9 +470,15 @@ function StrategyCard({ strat, sources }) {
             </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -4 }}>Leave any field empty to skip that rule and follow the alerts.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <NT_SField label="Stop loss (%)" hint="Empty = no auto stop"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              {isFut
+                ? <NT_SField label="Stop loss (ticks)" hint="MNQ: 1 tick = 0.25 pt = $0.50. Empty = no stop.">
+                    <input type="number" value={form.stopTicks} onChange={(e) => setF("stopTicks", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                : <NT_SField label="Stop loss (%)" hint="Empty = no auto stop"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>}
               <NT_SField label="Breakeven (%)" hint="Empty = off"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
-              <NT_SField label="Take profit (%)" hint="Empty = off"><input type="number" value={form.tp} onChange={(e) => setF("tp", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              {isFut
+                ? <NT_SField label="Take profit (ticks)" hint="Distance from entry, in ticks. Empty = off.">
+                    <input type="number" value={form.tpTicks} onChange={(e) => setF("tpTicks", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                : <NT_SField label="Take profit (%)" hint="Empty = off"><input type="number" value={form.tp} onChange={(e) => setF("tp", e.target.value)} style={NT_SINPUT} /></NT_SField>}
               <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
               <NT_SField label="Max hold (min)" hint="Empty = off"><input type="number" value={form.maxHold} onChange={(e) => setF("maxHold", e.target.value)} style={NT_SINPUT} /></NT_SField>
             </div>
@@ -529,7 +555,10 @@ function StrategiesPage({ category }) {
   const world = category || "options";
   const strategies = ((window.NT_DATA.strategies) || [])
     .filter((s) => (s.category || "options") === world);
-  const sources = (window.NT_DATA.sources) || [];
+  // Only this world's channels: a futures strategy cannot listen to the options Discord,
+  // so offering it is just a way to misconfigure the thing.
+  const sources = ((window.NT_DATA.sources) || [])
+    .filter((x) => (x.category || "options") === world);
 
   const createStrategy = async () => {
     try {
