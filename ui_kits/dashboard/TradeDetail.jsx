@@ -4,6 +4,10 @@ function TradeDetail({ trade, onClose, detailOverride }) {
   const [shown, setShown] = React.useState(false);
   const [detail, setDetail] = React.useState(null);   // { samples, events } — lazy-loaded
   const [full, setFull] = React.useState(false);       // chart: during-trade (default) vs full tape (past close)
+  // Futures record a tape only while the position is open — there is no post-close replay to
+  // show, so the toggle is hidden rather than offering an empty view.
+  const isFut = String((trade && trade.tk) || "").toUpperCase() in
+                { MNQ: 1, MES: 1, MGC: 1, M2K: 1, MYM: 1, NQ: 1, ES: 1, GC: 1, RTY: 1 };
   const [fullSamples, setFullSamples] = React.useState(null);  // lazy-loaded only when "full tape" is clicked
   const [hover, setHover] = React.useState(null);      // { idx, w } for the chart crosshair/tooltip
   const panelRef = React.useRef(null);
@@ -170,7 +174,7 @@ function TradeDetail({ trade, onClose, detailOverride }) {
             <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)" }}>CONTRACT PRICE</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               {!detailOverride && tradeId != null && (
-                <button onClick={() => setFull((f) => !f)} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: full ? "var(--accent)" : "var(--text-tertiary)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", padding: "2px 7px", cursor: "pointer" }}>{full ? "during trade" : "full tape"}</button>
+                {!isFut && <button onClick={() => setFull((f) => !f)} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: full ? "var(--accent)" : "var(--text-tertiary)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", padding: "2px 7px", cursor: "pointer" }}>{full ? "during trade" : "full tape"}</button>}
               )}
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
             </span>

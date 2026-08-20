@@ -338,12 +338,12 @@ function SwingsPage({ page }) {
 
   // ---------------------------------------------------------------- dashboard
   if (page === "swings-dashboard") {
-    const tracked = portfolioSnap && portfolioSnap.row_count != null ? portfolioSnap.row_count : "—";
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Dashboard" subtitle="Swing positions from the Macrotrends portfolio sheet" />
         {kpiRow}
-        <NT.Card title={"Holdings · " + openPos.length + " of " + tracked + " tracked"} padding={20} bodyStyle={{ padding: 0 }}>
+        <NT.Card title={openPos.length ? "Holdings · " + openPos.length : "Holdings"} padding={20} bodyStyle={{ padding: 0 }}>
           {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -363,7 +363,9 @@ function SwingsPage({ page }) {
                       </td>
                       <td style={{ ...tdR, ...mono }}>{p.target_pct == null ? "—" : SW_dec(p.target_pct) + "%"}</td>
                       <td style={{ ...tdR, ...mono, color: "var(--text-primary)" }}>{SW_money(costOf(p))}</td>
-                      <td style={{ ...tdR, ...mono }}>—</td>
+                      <td style={{ ...tdR, ...mono, color: unrealOf(p) == null ? "var(--text-tertiary)"
+                            : unrealOf(p) > 0 ? "var(--profit)" : unrealOf(p) < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
+                        {unrealOf(p) == null ? "—" : SW_money(unrealOf(p))}</td>
                       <td style={{ ...tdR, ...mono }}>{SW_days(p.opened_at, null) == null ? "—" : SW_days(p.opened_at, null) + "d"}</td>
                     </tr>
                   ))}

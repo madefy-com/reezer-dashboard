@@ -66,7 +66,9 @@
       var exitShown = closed ? Math.round((entry + (realized / (mult * total)) * dir) * 100 + 1e-6) / 100
                              : last;
       var stop = p.stop_price == null ? null : Number(p.stop_price);
-      var label = strikeOf(p.strike) + (p.side || "");
+      var isFutRow = !!futuresIds[p.strategy_id];
+      var label = isFutRow ? String(p.direction || "").toUpperCase()
+                           : (strikeOf(p.strike) + (p.side || ""));
       return {
         id: p.id, runId: p.run_id, strategyId: p.strategy_id, entryTs: p.entry_ts, exitTs: p.exit_ts,  // detail chart + grouping
         t: tOf(p.entry_ts), close: p.exit_ts ? tOf(p.exit_ts) : "—",
@@ -76,7 +78,7 @@
         result: resultOf(p), status: closed ? "done" : "live",
         partial: !closed && !!p.half_sold,  // ½ sold, still open
         strat: (nameById && nameById[p.strategy_id]) || stratName, hold: holdOf(p), stopped: false,
-        trigger: { type: "ENTRY", user: "alerts", msg: p.ticker + " " + label },
+        trigger: { type: "ENTRY", user: "alerts", msg: (p.ticker + " " + label).trim() },
       };
     });
   }
