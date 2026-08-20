@@ -51,12 +51,12 @@ function TradesPage({ category }) {
               <th style={thL}>opened</th>
               <th style={thL}>closed</th>
               <th style={thL}>contract</th>
-              <th style={thL}>side</th>
+              <th style={thL}>{isFut ? "direction" : "side"}</th>
               <th style={th}>qty</th>
               <th style={th}>entry</th>
               <th style={th}>exit</th>
               <th style={th}>stop</th>
-              <th style={th}>capital</th>
+              <th style={th}>{isFut ? "size" : "capital"}</th>
               <th style={th}>p&l $</th>
               {!isFut && <th style={th}>p&l %</th>}
               <th style={th}>hold</th>
@@ -65,6 +65,9 @@ function TradesPage({ category }) {
             </tr></thead>
             <tbody>
               {rows.map((r, i) => {
+                // One options contract controls 100 shares; a futures contract controls its
+                // own dollars per point, so "capital" is margin, not price x 100. We do not
+                // track margin, so futures shows the contract count instead of a wrong number.
                 const capital = (r.entry * r.qty * 100).toFixed(0);
                 return (
                   <tr key={i} onClick={() => setSel(r)} className="nt-trow" style={{ cursor: "pointer" }}>
@@ -74,19 +77,20 @@ function TradesPage({ category }) {
                     <td style={{ ...tdL, color: r.close === "\u2014" ? "var(--text-tertiary)" : "var(--text-secondary)" }}>{r.close}</td>
                     <td style={tdL}>
                       <span style={{ color: "var(--text-primary)", fontWeight: "var(--w-medium)" }}>{r.tk}</span>
-                      <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>
+                      {!isFut && <span style={{ color: "var(--text-secondary)" }}> {r.strike}</span>}
                     </td>
                     <td style={{ ...tdL }}>
                       <span style={{ display: "inline-flex", alignItems: "center", height: 20, padding: "0 8px", borderRadius: "var(--radius-xs)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)",
-                        background: r.side === "C" ? "var(--profit-bg)" : "var(--loss-bg)", color: r.side === "C" ? "var(--profit)" : "var(--loss)" }}>
-                        {r.side === "C" ? "CALL" : "PUT"}
+                        background: (isFut ? r.strike === "LONG" : r.side === "C") ? "var(--profit-bg)" : "var(--loss-bg)",
+                        color: (isFut ? r.strike === "LONG" : r.side === "C") ? "var(--profit)" : "var(--loss)" }}>
+                        {isFut ? (r.strike || "—") : (r.side === "C" ? "CALL" : "PUT")}
                       </span>
                     </td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>×{r.qty}</td>
                     <td style={td}>{r.entry.toFixed(2)}</td>
                     <td style={{ ...td, color: r.exit == null ? "var(--text-tertiary)" : "var(--text-primary)" }}>{r.exit == null ? "\u2014" : Number(r.exit).toFixed(2)}</td>
                     <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : (r.stop > r.entry ? "var(--text-secondary)" : "var(--loss)")) }}>{r.stop == null ? "\u2014" : Number(r.stop).toFixed(2)}</td>
-                    <td style={{ ...td, color: "var(--text-secondary)" }}>${capital}</td>
+                    <td style={{ ...td, color: "var(--text-secondary)" }}>{isFut ? (r.qty + " contract" + (r.qty === 1 ? "" : "s")) : "$" + capital}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
                     {!isFut && <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>}
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{r.hold === "open" ? "\u2014" : r.hold}</td>

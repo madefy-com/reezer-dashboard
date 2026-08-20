@@ -84,8 +84,17 @@ function WatchdogBanner() {
 
 /* App — Reezer operator dashboard shell with page routing. */
 function App() {
-  const [page, setPage] = React.useState("dashboard");
-  const [world, setWorld] = React.useState("options");
+  // The hash carries the world, so refreshing keeps you where you were rather than jumping
+  // to your default. Reading it here (not in an effect) means the first paint is already
+  // the right world — no flash of the wrong one.
+  const fromHash = () => {
+    const h = String(window.location.hash || "").replace(/^#\/?/, "").trim();
+    const w = h.split("/")[0];
+    return ["options", "swings", "futures"].indexOf(w) >= 0 ? w : null;
+  };
+  const initialWorld = fromHash();
+  const [page, setPage] = React.useState(initialWorld ? (NT_HOME_PAGE[initialWorld] || "dashboard") : "dashboard");
+  const [world, setWorld] = React.useState(initialWorld || "options");
   const [mode, setMode] = React.useState(window.NT_DATA.session.mode);
   const _anyKill = () => (window.NT_DATA.strategies || []).some((s) => s.params && s.params.kill_switch);
   const [kill, setKill] = React.useState(() => (_anyKill() ? "TRIPPED" : "ARMED"));
@@ -123,6 +132,7 @@ function App() {
       db.from("user_prefs").select("prefs").eq("user_email", window.NT_USER_EMAIL).maybeSingle()
         .then(function (r) {
           const c = ((r && r.data && r.data.prefs) || {}).home_category;
+          if (fromHash()) return;                      // the URL wins over the saved default
           if (c && c !== "options") {                  // options is already the initial state
             window.NT_HOME_CATEGORY = c;
             setWorld(c);
@@ -148,11 +158,28 @@ function App() {
     }, function () { /* offline — no futures world */ });
   }, []);
 
-  // Switching worlds always lands on that world's dashboard.
+  // Switching worlds always lands on that world's dashboard, and writes the world into the
+  // URL so a refresh (or a bookmark, or a link) returns to the same place.
   const goWorld = (w) => {
     setWorld(w);
     setPage(NT_HOME_PAGE[w] || "dashboard");
+    try { window.history.replaceState(null, "", "#/" + w); } catch (e) {}
   };
+
+  // Keep the URL honest on first load too, and follow the back/forward buttons.
+  React.useEffect(() => {
+    try {
+      if (!String(window.location.hash || "").replace(/^#\/?/, "").trim()) {
+        window.history.replaceState(null, "", "#/" + world);
+      }
+    } catch (e) {}
+    const onHash = () => {
+      const w = fromHash();
+      if (w && w !== world) { setWorld(w); setPage(NT_HOME_PAGE[w] || "dashboard"); }
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [world]);
 
   const renderPage = () => {
     if (page.indexOf("swings-") === 0) return <SwingsPage page={page} />;

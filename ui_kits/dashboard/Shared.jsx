@@ -317,7 +317,7 @@ function StrategyViewSelect({ category }) {
   const world = category || "options";
   const strategies = (window.NT_DATA.strategies || [])
     .filter((s) => (s.category || "options") === world);
-  if (strategies.length < 2) return null;          // nothing to choose between
+  if (!strategies.length) return null;             // nothing to filter at all
   const mine = {};
   strategies.forEach((s) => { mine[String(s.id)] = true; });
   const raw = String(window.NT_DATA.viewStrategy || "all");

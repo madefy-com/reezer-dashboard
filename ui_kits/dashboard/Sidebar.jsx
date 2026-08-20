@@ -58,7 +58,12 @@ function WorldPicker({ worlds, current, onPick, state }) {
         color: on ? "var(--text-primary)" : "var(--text-secondary)",
         font: (on ? "var(--w-medium)" : "var(--w-regular)") + " var(--t-xs)/1.2 var(--font-sans)" }}>
       <span>{label}</span>
-      {s ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: s.tone || "var(--text-tertiary)" }}>{s.text}</span> : null}
+      {s ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)" }}>
+        {s.live ? <span style={{ color: "var(--profit)" }}>{s.live} live</span> : null}
+        {s.live && s.paper ? <span style={{ color: "var(--text-tertiary)" }}> · </span> : null}
+        {s.paper ? <span style={{ color: "var(--text-tertiary)" }}>{s.paper} paper</span> : null}
+        {s.problem ? <span style={{ color: "var(--loss)" }}>{(s.live || s.paper) ? " · " : ""}{s.problem}</span> : null}
+      </span> : null}
     </button>
   );
   return (
@@ -129,20 +134,13 @@ function Sidebar({ page, onNav, world, onWorld }) {
     : (ibkr.status && ibkr.status !== "connected") ? "broker " + ibkr.status
     : (ibkrAge == null || ibkrAge > STALE_H) ? "broker not checked today" : null;
 
-  const count = (rows, cat) => {
+  // A world's state as PARTS, so live/paper/problem can each carry their own colour.
+  // Only a live strategy behind an unhealthy broker is red — paper is never alarming.
+  const state = (rows, cat, brokerProblem) => {
     const mine = rows.filter((x) => (x.category || "options") === cat);
     const live = mine.filter((x) => x.account === "live").length;
     const paper = mine.length - live;
-    if (!mine.length) return "";
-    if (live && paper) return live + " live · " + paper + " paper";
-    return live ? live + " live" : paper + " paper";
-  };
-
-  // One rule for every world: red when a LIVE strategy sits behind an unhealthy broker,
-  // green when live and healthy, quiet when only paper.
-  const state = (text, nLive, brokerProblem) => {
-    if (nLive && brokerProblem) return { text: text + " · " + brokerProblem, tone: "var(--loss)" };
-    return { text: text, tone: nLive ? "var(--profit)" : null };
+    return { live: live, paper: paper, problem: (live && brokerProblem) ? brokerProblem : null };
   };
 
   const optRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "options");
@@ -150,12 +148,9 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const swgRows = ((D && D.equityStrategies) || []).map((x) => ({ account: x.account, category: "swings" }));
 
   const worldState = {
-    options: state(count((D && D.strategies) || [], "options"),
-                   optRows.filter((x) => x.account === "live").length, schwabBad),
-    swings: state(count(swgRows, "swings"),
-                  swgRows.filter((x) => x.account === "live").length, ibkrBad),
-    futures: state(count((D && D.strategies) || [], "futures"),
-                   futRows.filter((x) => x.account === "live").length, schwabBad),
+    options: state((D && D.strategies) || [], "options", schwabBad),
+    swings: state(swgRows, "swings", ibkrBad),
+    futures: state((D && D.strategies) || [], "futures", schwabBad),
   };
 
   const navBtn = (n) => {

@@ -376,6 +376,26 @@
     return out;
   }
 
+  // Any world can build its own headline numbers from its own trades. Without this the
+  // cards were hardcoded to options and every other world showed six empty boxes even with
+  // closed trades sitting in the table below.
+  window.NT_KPIS_FOR = function (category) {
+    var rows = (window.ntTradesFor ? window.ntTradesFor(category) : []) || [];
+    if (!rows.length) return null;
+    return buildKpis(rows, RAW.strategies, rows);
+  };
+  window.NT_DAILY_FOR = function (category) {
+    var ids = {};
+    (RAW.strategies || []).forEach(function (st) {
+      if ((st.category || "options") === category) ids[st.id] = true;
+    });
+    var pos = (RAW.positions || []).filter(function (p) { return ids[p.strategy_id]; });
+    if (!pos.length) return [];
+    var bal = (RAW.strategies || []).filter(function (st) { return ids[st.id]; })
+      .reduce(function (a, st) { return a + (Number(st.start_balance_usd) || 0); }, 0);
+    return buildDaily(pos, bal);
+  };
+
   // Set the dashboard view filter (persisted) and re-render.
   window.NT_SET_VIEW = function (v) {
     try { window.localStorage.setItem("nt_view_strategy", v); } catch (e) {}

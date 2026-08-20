@@ -10,7 +10,12 @@ function KpiRow({ category = "options" }) {
   // different layout — the shape of the page should not change as data arrives.
   const EMPTY = { accountReturn: { value: "—" }, netPnl: { value: "—" }, winRate: { value: "—", sub: "no closed trades" },
                   avgWinLoss: { value: "—" }, profitFactor: { value: "—" }, expectancy: { value: "—", sub: "per trade" } };
-  const k = category === "options" ? (window.NT_DATA.kpis || {}) : EMPTY;
+  // Every world computes its own numbers from its own trades. Options keeps the prebuilt
+  // set (it carries the account-return baseline); the others build on demand and fall back
+  // to the empty cards only when they genuinely have no trades yet.
+  const k = category === "options"
+    ? (window.NT_DATA.kpis || {})
+    : ((window.NT_KPIS_FOR && window.NT_KPIS_FOR(category)) || EMPTY);
   const toneCol = (t) => (t === "profit" ? "var(--profit)" : t === "loss" ? "var(--loss)" : "var(--text-primary)");
   const dol = (n) => "$" + String(Math.round(Math.abs(n || 0)));
 
