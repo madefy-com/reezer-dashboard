@@ -380,24 +380,72 @@ function SwingsPage({ page }) {
 
   // ---------------------------------------------------------------- alerts
   if (page === "swings-alerts") {
-    // The sheet is Dutch and its own vocabulary ("kopen → houden") means nothing at a
-    // glance. Say what the change MEANS for us, in the same words the phone push uses.
+    const colLabel = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" };
     const EN = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
     const en = (v) => EN[String(v || "").trim().toLowerCase()] || String(v || "").trim();
-    const sigText = (s) => {
-      if (s.kind === "advice") {
-        const was = en(s.from_advies), now = en(s.advies);
-        if (was === "buy" && now === "hold") return "no longer a buy (now hold)";
-        if (now === "buy") return "now a BUY" + (was ? " (was " + was + ")" : "");
-        if (now === "sell" || now === "sold") return "now a SELL" + (was ? " (was " + was + ")" : "");
-        return (was || "—") + " → " + (now || "—");
-      }
-      if (s.kind === "weight") return "weight " + SW_dec(s.from_pct) + "% → " + SW_dec(s.target_pct) + "%";
-      if (s.kind === "closed") return "publisher exited" + (s.result_pct != null ? " at " + SW_dec(s.result_pct) + "%" : "");
-      if (s.kind === "added") return "added to the portfolio at " + SW_dec(s.target_pct) + "%";
-      if (s.kind === "removed") return "dropped from the portfolio";
-      return s.kind || "";
+
+    // The verdict is the payload: what this change MEANS, not which Dutch words swapped.
+    const verdictOf = (s) => {
+      if (!s.tradeable) return { label: "TRACKED ONLY", color: "var(--text-tertiary)", bg: "var(--surface-inset)", muted: true };
+      if (s.kind === "removed" || s.action === "sell") return { label: "HE EXITED", color: "var(--loss)", bg: "var(--loss-bg)" };
+      if (s.kind === "added") return { label: "ADDED", color: "var(--profit)", bg: "var(--profit-bg)" };
+      const was = en(s.from_advies), now = en(s.advies);
+      if (now === "buy" && was !== "buy") return { label: "NOW A BUY", color: "var(--profit)", bg: "var(--profit-bg)" };
+      if (was === "buy" && now === "hold") return { label: "NO LONGER A BUY", color: "var(--dryrun)", bg: "var(--dryrun-bg)" };
+      if (s.kind === "weight") return { label: "WEIGHT CHANGED", color: "var(--accent)", bg: "var(--violet-soft)" };
+      return { label: (now || "change").toUpperCase(), color: "var(--text-secondary)", bg: "var(--surface-inset)" };
     };
+
+    const adviceCell = (s, v) => {
+      if (s.kind === "removed") return <span style={{ color: "var(--loss)", fontWeight: 500 }}>dropped</span>;
+      if (s.kind === "added") return <span style={{ color: "var(--profit)", fontWeight: 500 }}>{en(s.advies) || "added"}</span>;
+      const was = en(s.from_advies), now = en(s.advies);
+      if (!was && !now) return <span style={{ color: "var(--text-tertiary)" }}>weight only</span>;
+      return (<span>
+        <span style={{ color: "var(--text-tertiary)", textDecoration: "line-through" }}>{was || "—"}</span>
+        <span style={{ color: "var(--text-tertiary)" }}> → </span>
+        <span style={{ color: v.color, fontWeight: 500 }}>{now || "—"}</span>
+      </span>);
+    };
+
+    // Your money, not his percentage: what a sheet weight is worth under YOUR tier sizing.
+    const tiers = (d.strats[0] && d.strats[0].sizing_tiers) || {};
+    const plannedUsd = (pct) => {
+      const w = SW_n(pct);
+      if (w == null) return null;
+      const key = w < 2 ? "1" : w < 3 ? "2" : w <= 3 ? "3" : "3plus";
+      const v = SW_n(tiers[key]);
+      return v == null ? null : v;
+    };
+    const posOf = (sym) => d.pos.filter((p) => String(p.symbol).toUpperCase() === String(sym).toUpperCase())
+      .sort((a, b) => (b.id || 0) - (a.id || 0))[0] || null;
+    const unrealPct = (p) => {
+      const u = unrealOf(p), c = costOf(p);
+      return (u == null || !c) ? null : (u / c) * 100;
+    };
+    const didWhat = (s, p) => {
+      if (!s.tradeable) return "never ordered";
+      if (!p) return "not held";
+      if (p.status === "open") return "holding" + (SW_days(p.opened_at, null) != null ? " · " + SW_days(p.opened_at, null) + "d" : "");
+      return "sold" + (p.realized_pnl != null ? " · " + SW_money(p.realized_pnl) : "");
+    };
+    const timeOf = (iso) => { try { return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return "—"; } };
+
+    // Group by day so a busy day reads as a day, not a wall of rows.
+    const dayGroups = (() => {
+      const by = {};
+      d.sigs.forEach((s) => {
+        const k = String(s.detected_at || "").slice(0, 10);
+        (by[k] = by[k] || []).push(s);
+      });
+      const today = new Date().toISOString().slice(0, 10);
+      return Object.keys(by).sort().reverse().map((k) => ({
+        day: k,
+        label: k === today ? "Today · " + SW_date(k) : SW_date(k),
+        rows: by[k],
+      }));
+    })();
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Alerts" subtitle="Every change the publisher makes to the portfolio sheet" />
@@ -405,24 +453,67 @@ function SwingsPage({ page }) {
           <span>Macrotrends sheet · checked {SW_ago(portfolioSnap && portfolioSnap.fetched_at)}</span>
           <SW_Pill tone={feedTone}>{feedLabel}</SW_Pill>
         </div>
-        <NT.Card title={"Sheet changes" + (d.sigs.length ? " · " + d.sigs.length : "")} padding={20} bodyStyle={{ padding: 0 }}>
-          {d.sigs.length === 0 ? emptyBox("Nothing yet — the current sheet is stored as the baseline. You’ll see entries here the first time the publisher changes something.") : d.sigs.map((s, i) => {
-            const muted = !s.tradeable;
-            return (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 20px",
-                borderTop: i ? "1px solid var(--border)" : "none", color: muted ? "var(--text-tertiary)" : "var(--text-primary)", opacity: muted ? 0.75 : 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <SW_Pill tone={muted ? "mute" : s.action === "buy" ? "ok" : s.action === "sell" ? "bad" : "mute"}>{s.action}</SW_Pill>
-                  <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)" }}>{s.symbol}</span>
-                  <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: muted ? "var(--text-tertiary)" : "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {sigText(s) + (muted ? " · tracked, never ordered" : "")}
-                  </span>
-                </div>
-                <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", flex: "none" }}>{SW_ago(s.detected_at)}</span>
-              </div>
-            );
-          })}
-        </NT.Card>
+        {d.sigs.length === 0
+          ? <NT.Card padding={20}>{emptyBox("Nothing yet — the current sheet is stored as the baseline. You’ll see entries here the first time the publisher changes something.")}</NT.Card>
+          : dayGroups.map((g) => (
+            <div key={g.day} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "2px 2px 0" }}>{g.label}</span>
+              {g.rows.map((s) => {
+                const v = verdictOf(s);
+                const meta = marks[String(s.symbol || "").toUpperCase()] || {};
+                const pos = posOf(s.symbol);
+                const plan = plannedUsd(s.target_pct);
+                const wasPlan = s.from_pct != null && s.from_pct !== s.target_pct ? plannedUsd(s.from_pct) : null;
+                const pnl = pos ? (pos.status === "open" ? unrealPct(pos) : SW_n(pos.result_pct)) : null;
+                return (
+                  <div key={s.id} style={{ background: "var(--surface-card)", border: "1px solid var(--border)",
+                        borderLeft: "3px solid " + v.color, borderRadius: "var(--radius-md)", padding: "14px 16px",
+                        display: "grid", gridTemplateColumns: "1.6fr 0.8fr 1.05fr 0.9fr 0.95fr 0.9fr", gap: 14,
+                        alignItems: "center", opacity: v.muted ? 0.62 : 1 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+                        <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-mono)", color: "var(--text-primary)" }}>{s.symbol}</span>
+                        <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", padding: "3px 7px", borderRadius: "var(--radius-xs)", background: v.bg, color: v.color }}>{v.label}</span>
+                      </div>
+                      <div style={{ font: "var(--w-regular) var(--t-xs)/1.35 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.name || s.name || ""}</div>
+                    </div>
+
+                    <div>{meta.theme ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", padding: "4px 9px", borderRadius: 999, background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{meta.theme}</span> : null}</div>
+
+                    <div>
+                      <div style={colLabel}>advice</div>
+                      <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)" }}>{adviceCell(s, v)}</div>
+                    </div>
+
+                    <div>
+                      <div style={colLabel}>invested</div>
+                      <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)" }}>
+                        {pos
+                          ? <span style={{ color: "var(--text-primary)" }}>{SW_money(costOf(pos))}</span>
+                          : <span style={{ color: "var(--text-tertiary)" }}>{plan == null ? "—" : SW_money(plan)}<span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", marginLeft: 5 }}>planned</span></span>}
+                        {wasPlan != null && <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginLeft: 5 }}>was {SW_money(wasPlan)}</span>}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={colLabel}>your p&l</div>
+                      <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)" }}>
+                        {pnl == null
+                          ? <span style={{ color: "var(--text-tertiary)" }}>—{meta.his_pct != null && <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", marginLeft: 6 }}>his {SW_pct(meta.his_pct)}</span>}</span>
+                          : <span><span style={{ color: pnl > 0 ? "var(--profit)" : pnl < 0 ? "var(--loss)" : "var(--text-secondary)", fontWeight: 500 }}>{SW_pct(pnl)}</span>
+                              <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginLeft: 6 }}>{pos.status === "open" ? "live" : "final"}</span></span>}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)" }}>{timeOf(s.detected_at)}</div>
+                      <div style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: pos ? (pos.status === "open" ? "var(--profit)" : "var(--text-secondary)") : "var(--text-tertiary)", marginTop: 3 }}>{didWhat(s, pos)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
       </div>
     );
   }
