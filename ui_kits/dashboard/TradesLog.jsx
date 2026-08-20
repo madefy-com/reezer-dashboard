@@ -36,11 +36,16 @@ function TradesLog({ onSelect, fill = false, category = "options" }) {
             is too narrow — kept as a 0-width cell (not display:none) so the fixed
             columns stay aligned; the freed % is reclaimed by the others. */}
         <table style={{ width: "100%", minWidth: 548, borderCollapse: "collapse", tableLayout: "fixed" }}>
+          {/* Widths must total 100% and match the column COUNT — futures drops the p&l %
+              column, so its 11% is redistributed rather than left as a gap on the right. */}
           <colgroup>
-            <col style={{ width: "4%" }} /><col className="nt-datecol-col" style={{ width: "8%" }} /><col style={{ width: "7%" }} /><col style={{ width: "13%" }} />
+            <col style={{ width: "4%" }} /><col className="nt-datecol-col" style={{ width: "8%" }} /><col style={{ width: "7%" }} />
+            <col style={{ width: isFut ? "18%" : "13%" }} />
             <col style={{ width: "6%" }} /><col style={{ width: "9%" }} /><col style={{ width: "9%" }} />
-            <col style={{ width: "9%" }} /><col style={{ width: "12%" }} /><col style={{ width: "11%" }} />
-            <col style={{ width: "12%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: isFut ? "16%" : "12%" }} />
+            {!isFut && <col style={{ width: "11%" }} />}
+            <col style={{ width: isFut ? "14%" : "12%" }} />
           </colgroup>
           <thead><tr>
             <th style={{ ...thL }}></th>

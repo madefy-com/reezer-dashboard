@@ -35,11 +35,15 @@ function TradesPage({ category }) {
         <div style={{ overflowX: "auto", padding: "0 6px 12px", containerType: "inline-size" }}>
           <style>{`@container (max-width: 760px){ .nt-datecol-col{ width:0 !important; } .nt-datecol{ padding-left:0 !important; padding-right:0 !important; overflow:hidden !important; } }`}</style>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1080, tableLayout: "fixed" }}>
+            {/* Column widths must total 100% and match the column COUNT. Futures has no
+                p&l % column, so its 7% goes to contract and p&l $ instead of leaving a gap. */}
             <colgroup>
               <col style={{ width: "2%" }} /><col className="nt-datecol-col" style={{ width: "5%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} />
-              <col style={{ width: "10%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
-              <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
-              <col style={{ width: "7%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
+              <col style={{ width: isFut ? "13%" : "10%" }} /><col style={{ width: "7%" }} /><col style={{ width: "5%" }} /><col style={{ width: "6%" }} />
+              <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6%" }} />
+              <col style={{ width: isFut ? "12%" : "8%" }} />
+              {!isFut && <col style={{ width: "7%" }} />}
+              <col style={{ width: "6%" }} /><col style={{ width: "6%" }} /><col style={{ width: "8%" }} />
             </colgroup>
             <thead><tr>
               <th style={{ ...thL, paddingRight: 0 }}></th>
