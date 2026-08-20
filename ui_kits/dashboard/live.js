@@ -245,7 +245,8 @@
   //      in place via NT_APPLY — no per-event network round-trip, so each update
   //      renders the instant the websocket message lands. ----
   var RAW = { positions: [], alerts: [], runs: [], sp: null, flags: [],
-              strategies: [], sources: [], strategySources: [], events: [] };
+              strategies: [], sources: [], strategySources: [], events: [],
+              equityStrategies: [], equityBrokers: [] };
 
   function rebuild() {
     var base = window.NT_DATA || {};
@@ -367,6 +368,8 @@
     out.sources = (RAW.sources || []);
     out.brokerAccounts = (RAW.brokerAccounts || []);
     out.machines = (RAW.machines || []);
+    out.equityStrategies = (RAW.equityStrategies || []);
+    out.equityBrokers = (RAW.equityBrokers || []);
     out.machineCommands = (RAW.machineCommands || []);
     out.flags = RAW.flags || [];
     return out;
@@ -434,6 +437,8 @@
       c.from("machine_commands").select("*").order("id", { ascending: false }).limit(40),
       c.from("session_config").select("*").eq("id", 1).maybeSingle(),
       c.from("bot_events").select("*").order("id", { ascending: false }).limit(300),
+      c.from("equity_strategies").select("*").order("id"),
+      c.from("equity_broker_accounts").select("*"),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -448,6 +453,8 @@
       RAW.machineCommands = (res[10] && res[10].data) || [];
       RAW.sessionConfig = (res[11] && res[11].data) || null;
       RAW.events = (res[12] && res[12].data) || [];
+      RAW.equityStrategies = (res[13] && res[13].data) || [];
+      RAW.equityBrokers = (res[14] && res[14].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };

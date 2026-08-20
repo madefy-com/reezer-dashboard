@@ -95,13 +95,56 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const w = worlds.includes(world) ? world : (worlds[0] || "options");
   const nav = NT_WORLD_NAV[w] || NT_WORLD_NAV.options;
 
-  // A one-line state per world, so the picker says where to look, not just where you are.
-  const strat = (D && D.strategies) || [];
-  const nLive = strat.filter((x) => x.account === "live").length;
+  // A one-line state per world: how many strategies are running, and whether the broker
+  // behind them is actually healthy. A world with live money must NEVER read green while its
+  // broker is stale or disconnected — that is the one case where a status line matters, and
+  // showing "1 live" in green while the gateway is down would be worse than showing nothing.
+  const hoursSince = (iso) => {
+    if (!iso) return null;
+    const t = new Date(iso).getTime();
+    return isNaN(t) ? null : (Date.now() - t) / 3600000;
+  };
+  const STALE_H = 26;                       // brokers sync daily; a day and a bit is generous
+
+  // Schwab powers options and futures; IBKR powers swings.
+  const schwab = ((D && D.brokerAccounts) || [])[0];
+  const schwabAge = hoursSince(schwab && schwab.settings && schwab.settings.synced_at);
+  const schwabBad = !schwab ? "no broker linked"
+    : (schwabAge == null || schwabAge > STALE_H) ? "broker not checked today" : null;
+
+  const ibkr = ((D && D.equityBrokers) || []).filter((b) => b.broker === "ibkr")[0];
+  const ibkrAge = hoursSince(ibkr && ibkr.settings && ibkr.settings.synced_at);
+  const ibkrBad = !ibkr ? "no broker linked"
+    : (ibkr.status && ibkr.status !== "connected") ? "broker " + ibkr.status
+    : (ibkrAge == null || ibkrAge > STALE_H) ? "broker not checked today" : null;
+
+  const count = (rows, cat) => {
+    const mine = rows.filter((x) => (x.category || "options") === cat);
+    const live = mine.filter((x) => x.account === "live").length;
+    const paper = mine.length - live;
+    if (!mine.length) return "";
+    if (live && paper) return live + " live · " + paper + " paper";
+    return live ? live + " live" : paper + " paper";
+  };
+
+  // One rule for every world: red when a LIVE strategy sits behind an unhealthy broker,
+  // green when live and healthy, quiet when only paper.
+  const state = (text, nLive, brokerProblem) => {
+    if (nLive && brokerProblem) return { text: text + " · " + brokerProblem, tone: "var(--loss)" };
+    return { text: text, tone: nLive ? "var(--profit)" : null };
+  };
+
+  const optRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "options");
+  const futRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "futures");
+  const swgRows = ((D && D.equityStrategies) || []).map((x) => ({ account: x.account, category: "swings" }));
+
   const worldState = {
-    options: { text: strat.length ? (nLive ? nLive + " live · " + (strat.length - nLive) + " paper" : strat.length + " paper") : "", tone: nLive ? "var(--profit)" : null },
-    swings: { text: window.NT_SWINGS_STATE || "", tone: window.NT_SWINGS_LIVE ? "var(--profit)" : null },
-    futures: { text: window.NT_FUTURES_STATE || "", tone: window.NT_FUTURES_LIVE ? "var(--profit)" : null },
+    options: state(count((D && D.strategies) || [], "options"),
+                   optRows.filter((x) => x.account === "live").length, schwabBad),
+    swings: state(count(swgRows, "swings"),
+                  swgRows.filter((x) => x.account === "live").length, ibkrBad),
+    futures: state(count((D && D.strategies) || [], "futures"),
+                   futRows.filter((x) => x.account === "live").length, schwabBad),
   };
 
   const navBtn = (n) => {
