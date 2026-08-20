@@ -38,7 +38,7 @@ function NT_tickMoney(ticks, contracts, allowlist) {
     const usd = n * NT_TICK_USD[sym] * c;
     return "$" + (usd >= 100 ? Math.round(usd) : Math.round(usd * 100) / 100) + " " + sym;
   });
-  return n + " ticks x " + c + " contract" + (c === 1 ? "" : "s") + " = " + parts.join(" · ");
+  return parts.join(" · ");
 }
 
 const NT_EXIT_MODES = [
@@ -267,11 +267,11 @@ function StrategyCard({ strat, sources }) {
     { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)],
       ["Stop loss", isFut
         ? (p.stop_loss_ticks
-            ? p.stop_loss_ticks + " ticks (" + NT_tickMoney(p.stop_loss_ticks, p.contracts_per_trade, p.allowlist).split("= ")[1] + ")"
+            ? p.stop_loss_ticks + " ticks (" + NT_tickMoney(p.stop_loss_ticks, p.contracts_per_trade, p.allowlist) + ")"
             : "off")
         : pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", isFut
         ? (p.take_profit_ticks
-            ? p.take_profit_ticks + " ticks (" + NT_tickMoney(p.take_profit_ticks, p.contracts_per_trade, p.allowlist).split("= ")[1] + ")"
+            ? p.take_profit_ticks + " ticks (" + NT_tickMoney(p.take_profit_ticks, p.contracts_per_trade, p.allowlist) + ")"
             : "off")
         : pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? "Yes" : "No"],
@@ -455,18 +455,25 @@ function StrategyCard({ strat, sources }) {
             {isFut ? (
               // A dollar budget is meaningless for futures: one MNQ controls ~$59,000 of
               // index on a few hundred of margin, so size is a contract count and nothing else.
-              <NT_SField label="Contracts per trade"
-                hint="How many contracts each of his entries takes. 1 MNQ = $2 per point.">
-                <input type="number" min="1" value={form.contracts}
-                  onChange={(e) => setF("contracts", e.target.value)} style={NT_SINPUT} />
-              </NT_SField>
-            ) : (
+              // Size and allowlist sit together because they are one decision: how much, of what.
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <NT_SField label="Trade budget ($)"><input type="number" value={form.budget} onChange={(e) => setF("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
-                <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                <NT_SField label="Contracts per trade" hint="Taken on each of his entries.">
+                  <input type="number" min="1" value={form.contracts}
+                    onChange={(e) => setF("contracts", e.target.value)} style={NT_SINPUT} />
+                </NT_SField>
+                <NT_SField label="Allowlist" hint="Comma separated. Others are skipped.">
+                  <input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} />
+                </NT_SField>
               </div>
+            ) : (
+              <React.Fragment>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <NT_SField label="Trade budget ($)"><input type="number" value={form.budget} onChange={(e) => setF("budget", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                  <NT_SField label="Max contracts"><input type="number" value={form.maxC} onChange={(e) => setF("maxC", e.target.value)} style={NT_SINPUT} /></NT_SField>
+                </div>
+                <NT_SField label="Allowlist" hint="Comma-separated tickers the bot may trade."><input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} /></NT_SField>
+              </React.Fragment>
             )}
-            <NT_SField label="Allowlist" hint="Comma-separated tickers the bot may trade."><input value={form.allowlist} onChange={(e) => setF("allowlist", e.target.value)} style={NT_SINPUT} /></NT_SField>
             <NT_SField label="Budget by weekday (%)" hint="Trade this % of the budget on each day. 100 = full size; e.g. Mon 50% halves it.">
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
                 {[["Mon", "mon"], ["Tue", "tue"], ["Wed", "wed"], ["Thu", "thu"], ["Fri", "fri"]].map(function (d) {
