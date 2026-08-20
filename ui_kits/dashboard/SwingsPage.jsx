@@ -490,8 +490,7 @@ function SwingsPage({ page }) {
                       <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)" }}>
                         {pos
                           ? <span style={{ color: "var(--text-primary)" }}>{SW_money(costOf(pos))}</span>
-                          : <span style={{ color: "var(--text-tertiary)" }}>{plan == null ? "—" : SW_money(plan)}<span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", marginLeft: 5 }}>planned</span></span>}
-                        {wasPlan != null && <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginLeft: 5 }}>was {SW_money(wasPlan)}</span>}
+                          : <span style={{ color: "var(--text-tertiary)" }}>—</span>}
                       </div>
                     </div>
 

@@ -19,7 +19,6 @@ function PnlChart({ onSelect, range: rangeProp, onRange, category = "options" })
     return out;
   };
   const series = React.useMemo(() => {
-    if (category !== "options") return [];          // no trades in this world yet
     if (range === "1D") {
       return (window.ntTradesFor ? window.ntTradesFor(category) : D.trades).filter((t) => t.status !== "live").slice().reverse()
         .map((tr) => ({ label: tr.tk, $: tr.pnl, pct: tr.pct, tr }));

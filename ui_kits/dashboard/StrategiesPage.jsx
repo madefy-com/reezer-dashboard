@@ -181,7 +181,9 @@ function StrategyCard({ strat, sources }) {
 
   const [replay, setReplay] = React.useState(null);   // {status} | {result} | {error}
   const [whatif, setWhatif] = React.useState(null);   // the editable what-if settings (pre-filled from the strategy)
-  const canReplay = acct === "fronttest" || acct === "draft";
+  // Replay re-runs recorded trades through the options engine using its taped price paths.
+  // Futures has neither, so the button would start something that cannot finish.
+  const canReplay = (acct === "fronttest" || acct === "draft") && !isFut;
   // pre-fill the what-if panel with the strategy's real settings (percentages shown as whole numbers)
   const initWhatif = () => ({
     stop: p.stop_loss_pct == null ? "" : NT_pct(p.stop_loss_pct),
@@ -262,7 +264,10 @@ function StrategyCard({ strat, sources }) {
   const srcNames = (strat.sourceIds || []).map((id) => { const s = (sources || []).find((x) => x.id === id); return s ? s.name : id; });
 
   const groups = [
-    { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)],
+    { g: "Sizing", icon: "coins", items: isFut
+      ? [["Contracts per trade", String(p.contracts_per_trade == null ? 1 : p.contracts_per_trade)],
+         ["Instruments", p.allowlist || "all"]]
+      : [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)],
       ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
     { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)],
       ["Stop loss", isFut
@@ -274,7 +279,7 @@ function StrategyCard({ strat, sources }) {
             ? p.take_profit_ticks + " ticks (" + NT_tickMoney(p.take_profit_ticks, p.contracts_per_trade, p.allowlist) + ")"
             : "off")
         : pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
-      ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? "Yes" : "No"],
+
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
   ];
@@ -535,7 +540,9 @@ function StrategyCard({ strat, sources }) {
               </div>
             </div>
 
-            <NT_SSection>Trailing stop</NT_SSection>
+            {!isFut && (
+              <React.Fragment>
+                <NT_SSection>Trailing stop</NT_SSection>
             <div style={{ display: "inline-flex", width: "fit-content", padding: 3, gap: 3, background: "var(--surface-inset)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-sm)" }}>
               {[["Off", false], ["On", true]].map((o) => {
                 const on = !!form.trailOn === o[1];
@@ -554,6 +561,9 @@ function StrategyCard({ strat, sources }) {
                   {form.tierCount < 3 && <NT.Button variant="ghost" size="sm" onClick={() => setF("tierCount", form.tierCount + 1)}>+ Add tier</NT.Button>}
                   {form.tierCount > 1 && <NT.Button variant="ghost" size="sm" onClick={() => setF("tierCount", form.tierCount - 1)}>Remove tier</NT.Button>}
                 </div>
+              </React.Fragment>
+            )}
+
               </React.Fragment>
             )}
 
