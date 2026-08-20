@@ -273,6 +273,19 @@ function NT_Select({ value, options, onChange, icon, minWidth }) {
   );
 }
 
+/* Which trades belong to a world. Strategies of every category share one table, so a page
+   scopes by looking up its strategy ids rather than assuming a world owns the whole list. */
+function ntTradesFor(category) {
+  var world = category || "options";
+  var ids = {};
+  ((window.NT_DATA.strategies) || []).forEach(function (s) {
+    if ((s.category || "options") === world) ids[s.id] = true;
+  });
+  return ((window.NT_DATA.trades) || []).filter(function (t) {
+    return t.strategyId == null ? world === "options" : !!ids[t.strategyId];
+  });
+}
+
 /* NT_TypeChip — alert type pill. PARTIAL + CLOSE share the brightest (amber)
    colour so the profit-taking signals stand out most; ENTRY is calmer; WATCH
    neutral; NOISE grey. Used by both the dashboard feed and the Alerts page so
@@ -303,5 +316,5 @@ function StrategyViewSelect() {
   return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
 }
 
-Object.assign(window, { greeting, DateFilter, ntRangeBounds, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,
+Object.assign(window, { ntTradesFor, greeting, DateFilter, ntRangeBounds, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,
   ntSession, ntFmtTz, ntNextOpen, ntNextOpenLabel, ntTzInstant, ntTzDow });

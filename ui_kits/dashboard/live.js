@@ -38,7 +38,11 @@
   var money = function (v) { return (v >= 0 ? "+" : "−") + "$" + String(Math.abs(Math.round(v))); };
   var pctS = function (v) { return (v >= 0 ? "+" : "−") + Math.abs(v) + "%"; };
 
-  function buildTrades(positions, stratName, nameById) {
+  // Dollar value of one point, per futures root. Options are always 100 per contract.
+  var FUT_MULT = { MNQ: 2, MES: 5, MGC: 10, M2K: 5, MYM: 0.5, NQ: 20, ES: 50, GC: 100 };
+
+  function buildTrades(positions, stratName, nameById, futuresIds) {
+    futuresIds = futuresIds || {};
     return positions.map(function (p) {
       var entry = Number(p.entry_price);
       var closed = p.status === "closed";
@@ -46,14 +50,17 @@
       var remaining = Number(p.qty);                       // still open after partials
       var last = p.last_price == null ? null : Number(p.last_price);
       var mark = (!closed && last != null) ? last : entry; // live mark for open legs
+      // one contract controls: 100 shares (options) or N dollars per point (futures)
+      var mult = futuresIds[p.strategy_id]
+        ? (FUT_MULT[String(p.ticker || "").toUpperCase()] || 1) : 100;
       var realized = Number(p.realized_pnl || 0);
       // Whole-trade P&L: banked realized + live unrealized on the remaining legs.
-      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * 100 * remaining));
-      var cost = entry * 100 * total;                      // original capital at risk
+      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * mult * remaining));
+      var cost = entry * mult * total;                     // original capital at risk
       var pct = cost ? Math.round((pnl / cost * 100) * 10) / 10 : 0;  // total return %
       // Exit price shown: closed -> blended average across all sells (derived from
       // realized P&L over the full size); open -> the live mark.
-      var exitShown = closed ? Math.round((entry + realized / (100 * total)) * 100 + 1e-6) / 100
+      var exitShown = closed ? Math.round((entry + realized / (mult * total)) * 100 + 1e-6) / 100
                              : last;
       var stop = p.stop_price == null ? null : Number(p.stop_price);
       var label = strikeOf(p.strike) + (p.side || "");
@@ -233,7 +240,11 @@
     var sName = (sp && sp.name) || "Nitro 0DTE";
     var stratNameById = {};
     (RAW.strategies || []).forEach(function (s) { if (s && s.id != null) stratNameById[s.id] = s.name; });
-    var trades = positions.length ? buildTrades(positions, sName, stratNameById) : null;
+    var futuresIds = {};
+    (RAW.strategies || []).forEach(function (st) {
+      if ((st.category || "options") === "futures") futuresIds[st.id] = true;
+    });
+    var trades = positions.length ? buildTrades(positions, sName, stratNameById, futuresIds) : null;
 
     // source id -> name/type (for the alerts feed); strategy id -> [source_id]
     var srcName = {}, srcType = {}, srcCat = {};

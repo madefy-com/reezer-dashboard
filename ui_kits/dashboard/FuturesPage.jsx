@@ -35,17 +35,15 @@ function FuturesPage({ page }) {
   // that is the point: the page does not change shape when data arrives.
   if (page === "futures-dashboard") return <DashboardPage category="futures" />;
 
+  // Strategies and Trades are the SAME components the options world uses, scoped to this
+  // category — so the futures strategy is edited exactly like an options one, with the same
+  // stop / target / max-hold controls, rather than living only in the database.
+  if (page === "futures-strategies") return <StrategiesPage category="futures" />;
+  if (page === "futures-trades") return <TradesPage category="futures" />;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title={page === "futures-trades" ? "Trades" : "Strategies"}
-        subtitle="Being built — alerts are already being read and recorded" />
-      <NT.Card padding={22}>
-        <div style={{ font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)", color: "var(--text-secondary)", maxWidth: 640 }}>
-          {page === "futures-trades"
-            ? "No futures trades yet. The channel is being read and every one of his alerts is recorded, but nothing is ordered until a strategy is created and switched on."
-            : "No futures strategy yet. The next step is a strategy that takes his entries at market on Schwab and manages the exit with your own rules, the same shape as the options strategies."}
-        </div>
-      </NT.Card>
+      <PageHead title="Futures" subtitle="Being built" />
     </div>
   );
 }

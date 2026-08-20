@@ -1,9 +1,9 @@
 /* TradesPage — every trade the bot placed, in full detail.
    Detailed table (more columns than the dashboard log). Click a row to open the
    full breakdown in a right-side drawer; click the dimmed backdrop to dismiss. */
-function TradesPage() {
+function TradesPage({ category }) {
   const NT = window.NitroTraderDesignSystem_95e598;
-  const rows = window.NT_DATA.trades;
+  const rows = window.ntTradesFor(category);
   const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [sel, setSel] = React.useState(null);
 

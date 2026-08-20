@@ -123,6 +123,7 @@ function StrategyCard({ strat, sources }) {
     setBusy(true);
     try {
       const r = await window.NT_CLIENT.from("strategies").insert({
+        category: world,
         name: (strat.name || "Strategy") + " copy", description: strat.desc || "", account: "draft",
         trade_budget_usd: p.trade_budget_usd, max_contracts_per_trade: p.max_contracts_per_trade,
         allowlist: p.allowlist, stop_loss_pct: p.stop_loss_pct, breakeven_at_pct: p.breakeven_at_pct,
@@ -518,16 +519,22 @@ function StrategyCard({ strat, sources }) {
   );
 }
 
-function StrategiesPage() {
+function StrategiesPage({ category }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
   React.useEffect(() => { const h = () => force((x) => x + 1); window.addEventListener("nt-data", h); return () => window.removeEventListener("nt-data", h); }, []);
-  const strategies = (window.NT_DATA.strategies) || [];
+  // Strategies of every world live in one table, so each world must show only its own —
+  // otherwise the futures strategy appears among the options ones and vice versa. A row
+  // written before categories existed has none, and belongs to options.
+  const world = category || "options";
+  const strategies = ((window.NT_DATA.strategies) || [])
+    .filter((s) => (s.category || "options") === world);
   const sources = (window.NT_DATA.sources) || [];
 
   const createStrategy = async () => {
     try {
       const r = await window.NT_CLIENT.from("strategies").insert({
+        category: world,
         name: "New strategy", description: "", account: "draft",
         trade_budget_usd: 400, max_contracts_per_trade: 10, allowlist: "QQQ,NVDA,TSLA",
         stop_loss_pct: 0.2, breakeven_at_pct: 0.2, breakeven_after_partial: true, take_half_at_pct: 0.3, trailing_tiers: [],

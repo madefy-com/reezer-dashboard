@@ -3,9 +3,18 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.023";
+window.NT_VERSION = "1.024";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.024", date: "2026-08-20",
+    notes: [
+      "Futures now has real Strategies and Trades pages instead of placeholders — the same cards and tables as Options, so the futures strategy is edited the same way, with its own stop, target and maximum hold.",
+      "Strategies are now shown per world. Before, every strategy lived in one list, so the futures strategy could appear among the options ones; each world now shows only its own, and a strategy created from a world belongs to it.",
+      "Fixed: profit on a futures trade was calculated as if it were an option (100 per contract). Each futures contract now uses its own value per point — 2 for MNQ, 5 for MES, 10 for gold — so open positions and exit prices read correctly.",
+      "Recovered the trade history: every strategy shows its full record from June again, the duplicated June trades in No Stop strategy are removed, and the missing July weeks were replayed for both paper strategies. Bulk deletion of trade history is now blocked at the database, and a copy of all positions is saved automatically every night.",
+    ],
+  },
   {
     v: "1.023", date: "2026-08-18",
     notes: [
