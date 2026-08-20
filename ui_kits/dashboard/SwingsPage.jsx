@@ -378,11 +378,22 @@ function SwingsPage({ page }) {
 
   // ---------------------------------------------------------------- alerts
   if (page === "swings-alerts") {
+    // The sheet is Dutch and its own vocabulary ("kopen → houden") means nothing at a
+    // glance. Say what the change MEANS for us, in the same words the phone push uses.
+    const EN = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
+    const en = (v) => EN[String(v || "").trim().toLowerCase()] || String(v || "").trim();
     const sigText = (s) => {
-      if (s.kind === "advice") return (s.from_advies || "—") + " → " + (s.advies || "—");
-      if (s.kind === "weight") return SW_dec(s.from_pct) + "% → " + SW_dec(s.target_pct) + "%";
+      if (s.kind === "advice") {
+        const was = en(s.from_advies), now = en(s.advies);
+        if (was === "buy" && now === "hold") return "no longer a buy (now hold)";
+        if (now === "buy") return "now a BUY" + (was ? " (was " + was + ")" : "");
+        if (now === "sell" || now === "sold") return "now a SELL" + (was ? " (was " + was + ")" : "");
+        return (was || "—") + " → " + (now || "—");
+      }
+      if (s.kind === "weight") return "weight " + SW_dec(s.from_pct) + "% → " + SW_dec(s.target_pct) + "%";
       if (s.kind === "closed") return "publisher exited" + (s.result_pct != null ? " at " + SW_dec(s.result_pct) + "%" : "");
-      if (s.kind === "added") return "new holding · " + SW_dec(s.target_pct) + "%";
+      if (s.kind === "added") return "added to the portfolio at " + SW_dec(s.target_pct) + "%";
+      if (s.kind === "removed") return "dropped from the portfolio";
       return s.kind || "";
     };
     return (
