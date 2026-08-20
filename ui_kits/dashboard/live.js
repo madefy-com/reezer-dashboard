@@ -184,6 +184,10 @@
     return {
       trade_budget_usd: Number(sp.trade_budget_usd), max_contracts_per_trade: Number(sp.max_contracts_per_trade),
       allowlist: sp.allowlist || "",
+      // futures: sized in contracts, and how much of his exit we follow
+      contracts_per_trade: sp.contracts_per_trade == null ? null : Number(sp.contracts_per_trade),
+      exit_mode: sp.exit_mode || null,
+      broker: sp.broker || null,
       stop_loss_pct: sp.stop_loss_pct == null ? null : Number(sp.stop_loss_pct),
       breakeven_at_pct: sp.breakeven_at_pct == null ? null : Number(sp.breakeven_at_pct),
       breakeven_after_partial: sp.breakeven_after_partial !== false,
@@ -221,6 +225,8 @@
     var s = _stats(trades);
     var account = String(row.account || "draft").toLowerCase();
     return Object.assign({ id: row.id, account: account, name: row.name || "strategy",
+      category: row.category || "options",
+      broker: row.broker || null,
       status: account === "draft" ? "draft" : (row.paused ? "paused" : account),
       desc: row.description || "Reads 0DTE options alerts and trades them on Schwab.",
       alloc: "$" + Math.round(Number(row.trade_budget_usd || 0)) + "/trade",

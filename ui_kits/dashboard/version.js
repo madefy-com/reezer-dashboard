@@ -9,6 +9,9 @@ window.NT_CHANGELOG = [
   {
     v: "1.024", date: "2026-08-20",
     notes: [
+      "Fixed: new strategies were created but never appeared, so clicking again just made more invisible ones. The strategy list dropped the category when preparing the page, so every world's filter matched nothing. Four empty drafts from that have been cleaned up.",
+      "Futures strategies now offer the same three exit choices as options: follow the trader's exits, use only your own rules, or both — whichever comes first. Following the trader means exactly that: no stop, no target, no time limit.",
+      "Futures prices are now checked twice a second instead of every ten seconds, matching the options bot, with quotes cached per tick so it doesn't hammer the broker.",
       "Futures now has real Strategies and Trades pages instead of placeholders — the same cards and tables as Options, so the futures strategy is edited the same way, with its own stop, target and maximum hold.",
       "Strategies are now shown per world. Before, every strategy lived in one list, so the futures strategy could appear among the options ones; each world now shows only its own, and a strategy created from a world belongs to it.",
       "Fixed: profit on a futures trade was calculated as if it were an option (100 per contract). Each futures contract now uses its own value per point — 2 for MNQ, 5 for MES, 10 for gold — so open positions and exit prices read correctly.",
