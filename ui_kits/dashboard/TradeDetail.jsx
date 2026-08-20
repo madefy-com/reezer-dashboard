@@ -173,8 +173,8 @@ function TradeDetail({ trade, onClose, detailOverride }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", color: "var(--text-tertiary)" }}>CONTRACT PRICE</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-              {!detailOverride && tradeId != null && (
-                {!isFut && <button onClick={() => setFull((f) => !f)} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: full ? "var(--accent)" : "var(--text-tertiary)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", padding: "2px 7px", cursor: "pointer" }}>{full ? "during trade" : "full tape"}</button>}
+              {!detailOverride && tradeId != null && !isFut && (
+                <button onClick={() => setFull((f) => !f)} style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", color: full ? "var(--accent)" : "var(--text-tertiary)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius-xs)", padding: "2px 7px", cursor: "pointer" }}>{full ? "during trade" : "full tape"}</button>
               )}
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{tr.t.slice(0, 5)} → {tr.close.slice(0, 5)}</span>
             </span>
