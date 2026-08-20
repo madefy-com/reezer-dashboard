@@ -281,7 +281,17 @@
     try { view = (window.localStorage && localStorage.getItem("nt_view_strategy")) || "all"; } catch (e) {}
     var liveIds = {};
     stratList.forEach(function (s) { if (s.account === "live") liveIds[s.id] = true; });
+    // The strategy dropdown is an OPTIONS-world control — it only ever lists options
+    // strategies. Applying it across every world silently discarded futures and swing
+    // trades before their own page could filter them, so a futures trade simply never
+    // appeared. Strategies outside options are therefore always in view here; each world
+    // scopes its own rows via ntTradesFor().
+    var nonOptionIds = {};
+    (RAW.strategies || []).forEach(function (st) {
+      if ((st.category || "options") !== "options") nonOptionIds[st.id] = true;
+    });
     var inView = function (sid) {
+      if (nonOptionIds[sid]) return true;
       if (view === "all") return true;
       if (view === "live") return !!liveIds[sid];
       return String(sid) === String(view);
