@@ -311,16 +311,27 @@
     var vTrades = sTrades.filter(function (t) { return inDate(t.entryTs); });                  // + date filter — for the windowed metrics
     var vPositions = positions.filter(function (p) { return inView(p.strategy_id) && inDate(p.entry_ts); });
 
+    // KPI cards, the P&L chart and the account-return figure are OPTIONS-world numbers — the
+    // components that render them show nothing for other worlds. inView deliberately lets
+    // futures and swing trades through (so their own pages can scope them), which means the
+    // totals must exclude them HERE or a futures loss lands on the options dashboard. That is
+    // exactly what happened: a -$96.50 MNQ trade appeared as ~$100 of extra loss on the live
+    // options account.
+    var isOptions = function (sid) { return !nonOptionIds[sid]; };
+    var oTrades = vTrades.filter(function (t) { return isOptions(t.strategyId); });
+    var oTradesAll = sTrades.filter(function (t) { return isOptions(t.strategyId); });
+    var oPositions = vPositions.filter(function (p) { return isOptions(p.strategy_id); });
+
     var sc = RAW.sessionConfig || base.sessionConfig || null;
     var fired = alerts.filter(function (a) { return a.fired; }).length;
     // account starting balance for the strategies in view — used as the % basis for the
     // P&L chart so its return matches the account-return card (same denominator).
-    var scopeIds = {}; sTrades.forEach(function (t) { if (t.strategyId != null) scopeIds[t.strategyId] = true; });
+    var scopeIds = {}; oTradesAll.forEach(function (t) { if (t.strategyId != null) scopeIds[t.strategyId] = true; });
     var acctStartBal = (RAW.strategies || []).filter(function (s) { return scopeIds[s.id]; }).reduce(function (a, s) { return a + (Number(s.start_balance_usd) || 0); }, 0);
     var out = Object.assign({}, base, {
       trades: trades ? vTrades : base.trades,
-      kpis: trades ? buildKpis(vTrades, RAW.strategies, sTrades) : base.kpis,
-      daily: positions.length ? buildDaily(vPositions, acctStartBal) : base.daily,
+      kpis: trades ? buildKpis(oTrades, RAW.strategies, oTradesAll) : base.kpis,
+      daily: positions.length ? buildDaily(oPositions, acctStartBal) : base.daily,
       discord: alerts.length ? buildDiscord(alerts, srcName, srcType, srcCat) : base.discord,
       summary14d: alerts.length ? { fired: fired, filtered: alerts.length - fired } : base.summary14d,
       // per-world counts for the alert page headers (one table, several worlds)

@@ -281,8 +281,12 @@ function ntTradesFor(category) {
   ((window.NT_DATA.strategies) || []).forEach(function (s) {
     if ((s.category || "options") === world) ids[s.id] = true;
   });
+  var sel = String(window.NT_DATA.viewStrategy || "all");
+  var pick = ids[sel] ? sel : null;                // ignore a selection from another world
   return ((window.NT_DATA.trades) || []).filter(function (t) {
-    return t.strategyId == null ? world === "options" : !!ids[t.strategyId];
+    if (t.strategyId == null) return world === "options";
+    if (!ids[t.strategyId]) return false;
+    return pick ? String(t.strategyId) === pick : true;
   });
 }
 
@@ -307,10 +311,17 @@ function NT_TypeChip({ type }) {
 
 /* StrategyViewSelect — the view filter shared by the Dashboard and Trades pages
    (all / live only / a single strategy). Hidden until there are 2+ strategies. */
-function StrategyViewSelect() {
-  const strategies = window.NT_DATA.strategies || [];
-  if (strategies.length < 2) return null;
-  const view = String(window.NT_DATA.viewStrategy || "all");
+function StrategyViewSelect({ category }) {
+  // Per world: the picker lists only this world's strategies, so a selection can never
+  // point at something the current pages do not show.
+  const world = category || "options";
+  const strategies = (window.NT_DATA.strategies || [])
+    .filter((s) => (s.category || "options") === world);
+  if (strategies.length < 2) return null;          // nothing to choose between
+  const mine = {};
+  strategies.forEach((s) => { mine[String(s.id)] = true; });
+  const raw = String(window.NT_DATA.viewStrategy || "all");
+  const view = mine[raw] ? raw : "all";            // a selection from another world resets
   const options = [{ value: "all", label: "All strategies" }]
     .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
   return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;

@@ -19,7 +19,7 @@ function DashboardPage({ mode, kill, category = "options" }) {
   };
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title={greeting(window.NT_USER_NAME || window.NT_DATA.session.user)} right={<div style={{ display: "flex", alignItems: "center", gap: 10 }}>{category === "options" ? <StrategyViewSelect /> : null}<DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /></div>} />
+      <PageHead title={greeting(window.NT_USER_NAME || window.NT_DATA.session.user)} right={<div style={{ display: "flex", alignItems: "center", gap: 10 }}><StrategyViewSelect category={category} /><DateFilter value={range} onChange={(v, b) => window.NT_SET_RANGE(v, b)} /></div>} />
       <KpiRow category={category} />
       <div className="nt-body" style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gridTemplateRows: "minmax(0,1fr)", gap: "var(--gap-grid)", alignItems: "stretch" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", minHeight: 0 }}>
