@@ -107,7 +107,18 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const STALE_H = 26;                       // brokers sync daily; a day and a bit is generous
 
   // Schwab powers options and futures; IBKR powers swings.
-  const schwab = ((D && D.brokerAccounts) || [])[0];
+  // Check the account the LIVE strategy is actually linked to — not simply the first row.
+  // There are two Schwab accounts and the unused one has not synced in days, so picking by
+  // position would raise a false alarm about a broker that is perfectly healthy.
+  const liveOpt = ((D && D.strategies) || [])
+    .filter((x) => (x.category || "options") === "options" && x.account === "live")[0];
+  const linkedId = liveOpt && (liveOpt.broker_account != null ? liveOpt.broker_account
+                               : (liveOpt.params && liveOpt.params.broker_account));
+  const accounts = (D && D.brokerAccounts) || [];
+  const schwab = (linkedId != null && accounts.filter((b) => b.id === linkedId)[0])
+    // no explicit link: fall back to the account that actually holds money, then the first
+    || accounts.filter((b) => Number((b.settings || {}).account_value) > 0)[0]
+    || accounts[0];
   const schwabAge = hoursSince(schwab && schwab.settings && schwab.settings.synced_at);
   const schwabBad = !schwab ? "no broker linked"
     : (schwabAge == null || schwabAge > STALE_H) ? "broker not checked today" : null;

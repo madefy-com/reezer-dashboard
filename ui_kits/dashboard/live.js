@@ -234,6 +234,7 @@
     return Object.assign({ id: row.id, account: account, name: row.name || "strategy",
       category: row.category || "options",
       broker: row.broker || null,
+      broker_account: row.broker_account == null ? null : row.broker_account,
       status: account === "draft" ? "draft" : (row.paused ? "paused" : account),
       desc: row.description || "Reads 0DTE options alerts and trades them on Schwab.",
       alloc: "$" + Math.round(Number(row.trade_budget_usd || 0)) + "/trade",
