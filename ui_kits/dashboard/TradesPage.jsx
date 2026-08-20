@@ -3,6 +3,7 @@
    full breakdown in a right-side drawer; click the dimmed backdrop to dismiss. */
 function TradesPage({ category }) {
   const NT = window.NitroTraderDesignSystem_95e598;
+  const isFut = category === "futures";
   const rows = window.ntTradesFor(category);
   const range = String(window.NT_DATA.dateRange || "week");   // shared, persisted date filter
   const [sel, setSel] = React.useState(null);
@@ -53,7 +54,7 @@ function TradesPage({ category }) {
               <th style={th}>stop</th>
               <th style={th}>capital</th>
               <th style={th}>p&l $</th>
-              <th style={th}>p&l %</th>
+              {!isFut && <th style={th}>p&l %</th>}
               <th style={th}>hold</th>
               <th style={thL}>strategy</th>
               <th style={{ ...th }}>result</th>
@@ -83,7 +84,7 @@ function TradesPage({ category }) {
                     <td title={r.stop != null && r.atBreakeven ? "at breakeven" : undefined} style={{ ...td, color: r.stop == null ? "var(--text-tertiary)" : (r.atBreakeven ? "var(--breakeven)" : (r.stop > r.entry ? "var(--text-secondary)" : "var(--loss)")) }}>{r.stop == null ? "\u2014" : Number(r.stop).toFixed(2)}</td>
                     <td style={{ ...td, color: "var(--text-secondary)" }}>${capital}</td>
                     <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
-                    <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
+                    {!isFut && <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>}
                     <td style={{ ...td, color: "var(--text-secondary)" }}>{r.hold === "open" ? "\u2014" : r.hold}</td>
                     <td title={r.strat} style={{ ...tdL, color: "var(--text-secondary)", fontFamily: "var(--font-sans)" }}>{r.strat}</td>
                     <td style={{ ...td, overflow: "visible", textOverflow: "clip" }}>

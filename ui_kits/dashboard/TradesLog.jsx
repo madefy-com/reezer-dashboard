@@ -1,6 +1,8 @@
 /* TradesLog — live trades table / log. Fillable with internal scroll + sticky header. */
 function TradesLog({ onSelect, fill = false, category = "options" }) {
   const NT = window.NitroTraderDesignSystem_95e598;
+  // Percent return is meaningless on a futures contract — see the column below.
+  const isFut = category === "futures";
   // Trades are per-world: scoped by the strategies that belong to this category, so the
   // futures table shows futures trades rather than borrowing options' rows or sitting empty.
   // Stable order: newest entry first, tie-broken by id — so a live (open) trade's row
@@ -50,7 +52,7 @@ function TradesLog({ onSelect, fill = false, category = "options" }) {
             <th style={th}>exit</th>
             <th style={th}>stop</th>
             <th style={th}>p&l $</th>
-            <th style={th}>p&l %</th>
+            {!isFut && <th style={th}>p&l %</th>}
             <th style={{ ...th, paddingRight: 2 }}>result</th>
           </tr></thead>
           <tbody>
@@ -73,7 +75,7 @@ function TradesLog({ onSelect, fill = false, category = "options" }) {
                   {r.stop == null ? "—" : Number(r.stop).toFixed(2)}
                 </td>
                 <td style={{ ...td, color: tone(r.pnl), fontWeight: "var(--w-medium)" }}>{money(r.pnl)}</td>
-                <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>
+                {!isFut && <td style={{ ...td, color: tone(r.pnl) }}>{pct(r.pct)}</td>}
                 <td style={{ ...td, paddingRight: 2 }}><NT.ResultBadge result={r.result} size="sm" /></td>
               </tr>
             ))}
