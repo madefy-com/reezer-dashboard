@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.024", date: "2026-08-20",
     notes: [
+      "When you set a stop or target in ticks, the strategy now shows what that is worth in real money for every instrument it trades, including the number of contracts — so 40 ticks reads as \u201c$20 MNQ \u00b7 $50 MES \u00b7 $40 MGC\u201d as you type it, and the same figure appears on the strategy card.",
       "Futures strategies now speak the language of futures: risk is set in ticks instead of percentages (MNQ: 1 tick = 0.25 points = $0.50), and size is a number of contracts instead of a dollar budget — a dollar figure is meaningless when one contract controls tens of thousands of index. A strategy also only offers the alert channels of its own world.",
       "Fixed: new strategies were created but never appeared, so clicking again just made more invisible ones. The strategy list dropped the category when preparing the page, so every world's filter matched nothing. Four empty drafts from that have been cleaned up.",
       "Futures strategies now offer the same three exit choices as options: follow the trader's exits, use only your own rules, or both — whichever comes first. Following the trader means exactly that: no stop, no target, no time limit.",

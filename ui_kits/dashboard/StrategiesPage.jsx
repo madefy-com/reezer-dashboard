@@ -20,6 +20,27 @@ const NT_pct = (v) => Math.round((Number(v) || 0) * 100);
 const NT_tier = (p, i) => (Array.isArray(p.trailing_tiers) ? p.trailing_tiers[i] : null) || null;
 const NT_tierAt = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.at != null ? t.at : t[0]); };
 const NT_tierTr = (p, i) => { const t = NT_tier(p, i); return t == null ? "" : NT_pct(t.trail != null ? t.trail : t[1]); };
+/* Dollars per tick, per contract. MUST match src/futures_engine.py TICK_SIZE x MULTIPLIER —
+   if one changes, change both. MNQ: 0.25 pt x $2 = $0.50 a tick. */
+const NT_TICK_USD = { MNQ: 0.5, MES: 1.25, MGC: 1.0, M2K: 0.5, MYM: 0.5,
+                      NQ: 5.0, ES: 12.5, GC: 10.0, RTY: 5.0 };
+
+/* What a tick distance is actually worth, for every instrument the strategy may trade.
+   Ticks are the right unit to SET risk in; dollars are the only unit anyone feels. */
+function NT_tickMoney(ticks, contracts, allowlist) {
+  const n = Number(ticks);
+  const c = Math.max(1, Number(contracts) || 1);
+  if (!n) return "";
+  const syms = String(allowlist || "").split(",").map((x) => x.trim().toUpperCase())
+    .filter((x) => NT_TICK_USD[x]);
+  const list = syms.length ? syms : ["MNQ"];
+  const parts = list.map((sym) => {
+    const usd = n * NT_TICK_USD[sym] * c;
+    return "$" + (usd >= 100 ? Math.round(usd) : Math.round(usd * 100) / 100) + " " + sym;
+  });
+  return n + " ticks x " + c + " contract" + (c === 1 ? "" : "s") + " = " + parts.join(" · ");
+}
+
 const NT_EXIT_MODES = [
   { id: "rules", label: "Rules only", desc: "Ignore the trader's partial AND close alerts — exits come only from the rules below." },
   { id: "rules_close", label: "Rules + closes", desc: "Use the rules below, and also close fully when the trader posts a close — but ignore their partials/scales." },
@@ -244,7 +265,15 @@ function StrategyCard({ strat, sources }) {
     { g: "Sizing", icon: "coins", items: [["Trade budget", "$" + Number(p.trade_budget_usd)], ["Max contracts", String(p.max_contracts_per_trade)],
       ["Budget by weekday", (p.budget_day_pct && Object.keys(p.budget_day_pct).length) ? Object.entries(p.budget_day_pct).map(function (e) { return e[0].charAt(0).toUpperCase() + e[0].slice(1) + " " + e[1] + "%"; }).join(" · ") : "full every day"]] },
     { g: "Exits & risk", icon: "shield", items: [["Exits", NT_exitModeLabel(p)],
-      ["Stop loss", isFut ? (p.stop_loss_ticks ? p.stop_loss_ticks + " ticks" : "off") : pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", isFut ? (p.take_profit_ticks ? p.take_profit_ticks + " ticks" : "off") : pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
+      ["Stop loss", isFut
+        ? (p.stop_loss_ticks
+            ? p.stop_loss_ticks + " ticks (" + NT_tickMoney(p.stop_loss_ticks, p.contracts_per_trade, p.allowlist).split("= ")[1] + ")"
+            : "off")
+        : pctOff(p.stop_loss_pct)], ["Breakeven at", pctOff(p.breakeven_at_pct)], ["BE after exit", p.breakeven_after_partial === false ? "off" : "on"], ["Take profit", isFut
+        ? (p.take_profit_ticks
+            ? p.take_profit_ticks + " ticks (" + NT_tickMoney(p.take_profit_ticks, p.contracts_per_trade, p.allowlist).split("= ")[1] + ")"
+            : "off")
+        : pctOff(p.take_profit_pct)], ["Take half at", pctOff(p.take_half_at_pct)],
       ["Trailing stop", (Array.isArray(p.trailing_tiers) && p.trailing_tiers.length) ? "Yes" : "No"],
       ["Max hold", p.max_hold_minutes == null ? "off" : p.max_hold_minutes + " min"]] },
     { g: "Sources", icon: "rss", items: [["Listens to", srcNames.length ? srcNames.join(", ") : "all sources"]] },
@@ -471,12 +500,16 @@ function StrategyCard({ strat, sources }) {
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: -4 }}>Leave any field empty to skip that rule and follow the alerts.</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               {isFut
-                ? <NT_SField label="Stop loss (ticks)" hint="MNQ: 1 tick = 0.25 pt = $0.50. Empty = no stop.">
+                ? <NT_SField label="Stop loss (ticks)"
+                    hint={NT_tickMoney(form.stopTicks, form.contracts, form.allowlist)
+                          || "MNQ: 1 tick = 0.25 pt = $0.50. Empty = no stop."}>
                     <input type="number" value={form.stopTicks} onChange={(e) => setF("stopTicks", e.target.value)} style={NT_SINPUT} /></NT_SField>
                 : <NT_SField label="Stop loss (%)" hint="Empty = no auto stop"><input type="number" value={form.stop} onChange={(e) => setF("stop", e.target.value)} style={NT_SINPUT} /></NT_SField>}
               <NT_SField label="Breakeven (%)" hint="Empty = off"><input type="number" value={form.be} onChange={(e) => setF("be", e.target.value)} style={NT_SINPUT} /></NT_SField>
               {isFut
-                ? <NT_SField label="Take profit (ticks)" hint="Distance from entry, in ticks. Empty = off.">
+                ? <NT_SField label="Take profit (ticks)"
+                    hint={NT_tickMoney(form.tpTicks, form.contracts, form.allowlist)
+                          || "Distance from entry, in ticks. Empty = off."}>
                     <input type="number" value={form.tpTicks} onChange={(e) => setF("tpTicks", e.target.value)} style={NT_SINPUT} /></NT_SField>
                 : <NT_SField label="Take profit (%)" hint="Empty = off"><input type="number" value={form.tp} onChange={(e) => setF("tp", e.target.value)} style={NT_SINPUT} /></NT_SField>}
               <NT_SField label="Take half (%)" hint="Empty = off"><input type="number" value={form.half} onChange={(e) => setF("half", e.target.value)} style={NT_SINPUT} /></NT_SField>
