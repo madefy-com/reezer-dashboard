@@ -55,12 +55,15 @@
         ? (FUT_MULT[String(p.ticker || "").toUpperCase()] || 1) : 100;
       var realized = Number(p.realized_pnl || 0);
       // Whole-trade P&L: banked realized + live unrealized on the remaining legs.
-      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * mult * remaining));
+      // Direction matters: an option position is always long the contract, but a futures
+      // SHORT profits when the price FALLS — without this its open P&L shows the wrong sign.
+      var dir = String(p.direction || "LONG").toUpperCase() === "SHORT" ? -1 : 1;
+      var pnl = Math.round(realized + (closed ? 0 : (mark - entry) * dir * mult * remaining));
       var cost = entry * mult * total;                     // original capital at risk
       var pct = cost ? Math.round((pnl / cost * 100) * 10) / 10 : 0;  // total return %
       // Exit price shown: closed -> blended average across all sells (derived from
       // realized P&L over the full size); open -> the live mark.
-      var exitShown = closed ? Math.round((entry + realized / (mult * total)) * 100 + 1e-6) / 100
+      var exitShown = closed ? Math.round((entry + (realized / (mult * total)) * dir) * 100 + 1e-6) / 100
                              : last;
       var stop = p.stop_price == null ? null : Number(p.stop_price);
       var label = strikeOf(p.strike) + (p.side || "");
