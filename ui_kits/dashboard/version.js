@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.025", date: "2026-08-21",
     notes: [
+      "Fixed: the same position showed -0.1% in the holdings table and -0.7% on the S&P card. Two separate pieces of code were working out the same profit in two different ways, and one of them was dividing a converted amount by an unconverted one. Every percentage on the page now comes from one figure: IBKR's profit for the position, over what you paid for it.",
       "Your profit and loss is now IBKR's own figure, asked for directly, instead of something calculated here from a price. A share has several prices at once \u2014 the last trade, the midpoint, the official close \u2014 and after-hours trading on Tradegate moves one while IBKR keeps valuing at another, so any figure worked out from a price was always going to drift from your broker screen. Now the dashboard shows the same number IBKR does, because it is the same number.",
       "Holdings are valued at the last traded price, the same one IBKR uses. They were briefly valued at the midpoint between the best bid and offer, which is the right price for placing an order but not for valuing something you already own \u2014 it read \u20ac0.44 away from the broker on Zalando.",
       "Live prices now refresh on their own schedule (about every 30 seconds) instead of waiting for the portfolio sheet, which is only re-read every five minutes because Google caches it. Sheet polling itself is unchanged.",

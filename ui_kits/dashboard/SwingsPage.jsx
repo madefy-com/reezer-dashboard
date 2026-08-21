@@ -213,11 +213,12 @@ function SwingsPage({ page }) {
   // Swing positions are held for MONTHS, so realized-only P&L would read zero for most of the
   // year — the unrealized move is the number that actually matters. Marked off the sheet's own
   // price column (the same source the entry was sized on, so entry and mark share a currency).
+  // ONE source of truth: the broker's P&L for the position, converted into the account's
+  // currency so several holdings can be added together. Deriving it separately here is how the
+  // holdings row said -0.1% while the S&P card said -0.7% for the same position.
   const unrealOf = (p) => {
-    const m = markOf(p);
-    const e = SW_n(p.avg_price), q = SW_n(p.qty);
-    if (!m || e == null || q == null) return null;
-    return usd((SW_n(m.px) - e) * q, m.ccy);
+    const v = natPnl(p);
+    return v == null ? null : usd(v, ccyOf(p));
   };
   const unrealized = openPos.reduce((a, p) => a + (unrealOf(p) || 0), 0);
   const totalPnl = realized + unrealized;
@@ -277,8 +278,10 @@ function SwingsPage({ page }) {
   // index would report a big negative before a single trade is placed — "you can't be down if
   // you never bought anything". So: return on invested capital, and nothing at all until we
   // have actually traded. Cash drag stays visible on its own card (exposure).
-  const investedCost = openPos.reduce((a, p) => a + ((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0)), 0);
-  const closedCost = closedPos.reduce((a, p) => a + ((SW_n(p.orig_qty) || 0) * (SW_n(p.avg_price) || 0)), 0);
+  // Cost must be converted too. Dividing a converted P&L by an unconverted cost inflated the
+  // return by the FX rate — the same currency-mixing bug as the sizing one, third instance.
+  const investedCost = openPos.reduce((a, p) => a + (usd((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0), ccyOf(p)) || 0), 0);
+  const closedCost = closedPos.reduce((a, p) => a + (usd((SW_n(p.orig_qty) || 0) * (SW_n(p.avg_price) || 0), ccyOf(p)) || 0), 0);
   const capitalUsed = investedCost + closedCost;
   const investedRet = capitalUsed > 0 ? (totalPnl / capitalUsed) * 100 : null;
   const traded = (d.pos || []).length > 0;
