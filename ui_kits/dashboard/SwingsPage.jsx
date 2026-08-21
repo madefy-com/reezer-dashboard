@@ -285,7 +285,11 @@ function SwingsPage({ page }) {
   const capitalUsed = investedCost + closedCost;
   const investedRet = capitalUsed > 0 ? (totalPnl / capitalUsed) * 100 : null;
   const traded = (d.pos || []).length > 0;
-  const edge = (traded && investedRet != null && spyYtd != null) ? investedRet - spyYtd : null;
+  // Compare the PORTFOLIO with the index, not just the sliver of it that happens to be
+  // invested. The index return assumes you were fully in it; measuring only deployed capital
+  // against that flatters the strategy by hiding the cash it chose not to deploy.
+  const portfolioRet = acctRet;
+  const edge = (traded && portfolioRet != null && spyYtd != null) ? portfolioRet - spyYtd : null;
 
   const portfolioSnap = d.snaps.filter((s) => s.tab === "portfolio")[0] || null;
   const feedAge = portfolioSnap ? (Date.now() - new Date(portfolioSnap.fetched_at).getTime()) / 60000 : null;
@@ -388,7 +392,7 @@ function SwingsPage({ page }) {
         visual={<Ico name="clock" size={17} color="var(--text-tertiary)" />} />
       <Kard label="vs S&P 500" value={traded ? SW_pct(edge) : "—"} tone={traded ? tone(edge) : null}
         sub={traded
-          ? ("your positions " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
+          ? ("your portfolio " + SW_pct(portfolioRet) + " · invested " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
           : "nothing bought yet · starts at your first buy"} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
