@@ -9,6 +9,8 @@ window.NT_CHANGELOG = [
   {
     v: "1.025", date: "2026-08-21",
     notes: [
+      "Position sizes are now set in your account's own currency. Your IBKR account is in euros, but sizing was computed in dollars, so a tier of 300 bought about \u20ac259 of stock instead of \u20ac300 \u2014 roughly 16% short on every position. A 2% weight now buys 61 SES instead of 52, and 13 Zalando instead of 11. The existing SES order is left as it was.",
+      "Closed a gap that let anyone holding the dashboard's public key read or alter the swing order book. It is now restricted to your signed-in account, matching every other table.",
       "Holdings are now shown in their own currency \u2014 a Zalando position reads in euros, a Toronto one in Canadian dollars \u2014 and the table now shows the price you actually paid, the price it is currently marked at, and the resulting profit to the cent. Converting everything to dollars made the dashboard disagree with the IBKR screen for no good reason. Totals across all holdings are still converted to USD, since four currencies cannot be added up, and the card now says so.",
       "The Macrotrends portfolio table now shows what he paid for each holding next to today's price, so you can see at a glance which names are still available at or below his entry.",
       "Swings now shows Resting orders on the dashboard: an order that has been sent to the broker but has not filled yet. Placing a market order after the exchange closes leaves it waiting at the venue until the next opening auction, and until now nothing on screen told you that your money was already committed.",

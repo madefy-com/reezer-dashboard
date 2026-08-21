@@ -732,13 +732,13 @@ function SwingsPage({ page }) {
             const isPct = s.sizing_mode === "tiers_pct";
             const tierTxt = ["1", "2", "3", "3plus"].map(function (k) {
               const v = SW_n(T[k]);
-              return v == null ? null : (k === "3plus" ? "3%+" : k + "%") + " " + (isPct ? SW_dec(v) + "%" : SW_money(v));
+              return v == null ? null : (k === "3plus" ? "3%+" : k + "%") + " " + (isPct ? SW_dec(v) + "%" : SW_cur(v, acctCcy));
             }).filter(Boolean).join("  ·  ");
             const rows = [
               ["Sizing", isPct ? "% of your account, by their weight" : "a set amount per weight"],
               ["Per position", tierTxt || "not set"],
             ];
-            rows.push(["Max per position", s.max_position_usd == null ? "no cap" : SW_money(s.max_position_usd)]);
+            rows.push(["Max per position", s.max_position_usd == null ? "no cap" : SW_cur(s.max_position_usd, acctCcy)]);
             rows.push(["Only these tickers", s.allowlist || "all from the sheet"]);
             rows.push(["Broker", s.broker_account_id == null ? "not linked" : "linked in Settings"]);
             return (
@@ -827,10 +827,10 @@ function SwingsPage({ page }) {
                         <span style={{ color: "var(--text-tertiary)" }}>→</span>
                         <input type="number" value={tiers[r[0]] == null ? "" : tiers[r[0]]}
                           onChange={(e) => setTier(r[0], e.target.value)}
-                          placeholder={pctMode ? "%" : "USD"}
+                          placeholder={pctMode ? "%" : acctCcy}
                           style={{ ...SW_INPUT, height: 34, width: 120, flex: "none" }} />
                         <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                          {pctMode ? "% of account" : "per position"}
+                          {pctMode ? "% of account" : acctCcy + " per position"}
                         </span>
                       </div>
                     ))}
