@@ -29,6 +29,12 @@ const SW_cur = (v, ccy) => {
   const sym = { EUR: "\u20ac", GBP: "\u00a3", USD: "$", CAD: "C$" }[ccy] || "$";
   return (x < 0 ? "\u2212" : "") + sym + String(Math.abs(Math.round(x)));
 };
+const SW_curP = (v, ccy) => {
+  const x = SW_n(v);
+  if (x == null) return "\u2014";
+  const sym = { EUR: "\u20ac", GBP: "\u00a3", USD: "$", CAD: "C$" }[ccy] || "$";
+  return (x < 0 ? "\u2212" : "") + sym + Math.abs(x).toFixed(2);
+};
 const SW_money = (v) => {
   const x = SW_n(v);
   if (x == null) return "—";
@@ -149,6 +155,15 @@ function SwingsPage({ page }) {
   const markOf = (p) => marks[String(p.symbol || "").toUpperCase()] || null;
 
   const costOf = (p) => usd((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0), (markOf(p) || {}).ccy) || 0;
+  // The instrument's OWN currency. A position bought in euros is a euro position; converting
+  // it to dollars for display is what made the dashboard disagree with the IBKR screen.
+  const ccyOf = (p) => (markOf(p) || {}).ccy || "USD";
+  const natCost = (p) => (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
+  const natPnl = (p) => {
+    const m = markOf(p), e = SW_n(p.avg_price), q = SW_n(p.qty);
+    if (!m || e == null || q == null) return null;
+    return (SW_n(m.px) - e) * q;
+  };
   const openValue = openPos.reduce((a, p) => a + costOf(p), 0);
   const realized = closedPos.reduce((a, p) => a + (SW_n(p.realized_pnl) || 0), 0);
   // Swing positions are held for MONTHS, so realized-only P&L would read zero for most of the
@@ -312,7 +327,7 @@ function SwingsPage({ page }) {
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
       <Kard label="net p&l" value={SW_money(realized)} tone={tone(realized)}
-        sub={"realized · " + SW_money(openValue) + " open"} />
+        sub={"realized · " + SW_money(openValue) + " open · totals in USD"} />
       <Kard label="win rate" value={winFrac == null ? "—" : Math.round(winFrac * 100) + "%"}
         tone={winFrac == null ? null : (winFrac >= 0.5 ? "profit" : "loss")}
         sub={winners.length + " of " + closedPos.length + " closed"} visual={ring(winFrac)} />
@@ -395,7 +410,9 @@ function SwingsPage({ page }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
                   <th style={th}>holding</th>
-                  <th style={thR}>sheet weight</th>
+                  <th style={thR}>qty</th>
+                  <th style={thR}>your buy-in</th>
+                  <th style={thR}>mark</th>
                   <th style={thR}>value</th>
                   <th style={thR}>unrealized p&l</th>
                   <th style={thR}>days held</th>
@@ -407,11 +424,13 @@ function SwingsPage({ page }) {
                         <span style={{ fontWeight: 500 }}>{p.symbol}</span>
                         {p.name ? <span style={{ color: "var(--text-tertiary)" }}>{" " + p.name}</span> : null}
                       </td>
-                      <td style={{ ...tdR, ...mono }}>{p.target_pct == null ? "—" : SW_dec(p.target_pct) + "%"}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-primary)" }}>{SW_money(costOf(p))}</td>
-                      <td style={{ ...tdR, ...mono, color: unrealOf(p) == null ? "var(--text-tertiary)"
-                            : unrealOf(p) > 0 ? "var(--profit)" : unrealOf(p) < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
-                        {unrealOf(p) == null ? "—" : SW_money(unrealOf(p))}</td>
+                      <td style={{ ...tdR, ...mono }}>{p.qty == null ? "—" : SW_n(p.qty)}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{SW_price(p.avg_price)}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_price(markOf(p).px)}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-primary)" }}>{SW_cur(natCost(p), ccyOf(p))}</td>
+                      <td style={{ ...tdR, ...mono, color: natPnl(p) == null ? "var(--text-tertiary)"
+                            : natPnl(p) > 0 ? "var(--profit)" : natPnl(p) < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
+                        {natPnl(p) == null ? "—" : SW_curP(natPnl(p), ccyOf(p))}</td>
                       <td style={{ ...tdR, ...mono }}>{SW_days(p.opened_at, null) == null ? "—" : SW_days(p.opened_at, null) + "d"}</td>
                     </tr>
                   ))}

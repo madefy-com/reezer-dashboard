@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.025", date: "2026-08-21",
     notes: [
+      "Holdings are now shown in their own currency \u2014 a Zalando position reads in euros, a Toronto one in Canadian dollars \u2014 and the table now shows the price you actually paid, the price it is currently marked at, and the resulting profit to the cent. Converting everything to dollars made the dashboard disagree with the IBKR screen for no good reason. Totals across all holdings are still converted to USD, since four currencies cannot be added up, and the card now says so.",
       "The Macrotrends portfolio table now shows what he paid for each holding next to today's price, so you can see at a glance which names are still available at or below his entry.",
       "Swings now shows Resting orders on the dashboard: an order that has been sent to the broker but has not filled yet. Placing a market order after the exchange closes leaves it waiting at the venue until the next opening auction, and until now nothing on screen told you that your money was already committed.",
       "Swing orders are now plain market orders. The old style priced them just through the offer, which produced a price the exchange refused outright (\u201cthe price does not meet the minimum price variation\u201d) and cost a real buy on 21 August. A market order has no price to get wrong.",
