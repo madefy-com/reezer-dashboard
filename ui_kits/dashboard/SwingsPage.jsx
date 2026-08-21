@@ -422,6 +422,7 @@ function SwingsPage({ page }) {
                   <th style={th}>order</th>
                   <th style={thR}>qty</th>
                   <th style={thR}>type</th>
+                  <th style={thR}>lives until</th>
                   <th style={thR}>filled</th>
                   <th style={thR}>placed</th>
                 </tr></thead>
@@ -434,6 +435,10 @@ function SwingsPage({ page }) {
                       </td>
                       <td style={{ ...tdR, ...mono }}>{o.qty == null ? "\u2014" : o.qty}</td>
                       <td style={{ ...tdR, ...mono }}>{o.limit_price == null ? "market" : SW_dec(o.limit_price)}</td>
+                      {/* A day order dies at the close of the session it was sent in. That is
+                          not obvious from "working", and it silently killed a real entry. */}
+                      <td style={{ ...tdR, ...mono, color: o.tif === "GTC" ? "var(--text-secondary)" : "var(--dryrun)" }}>
+                        {o.tif === "GTC" ? "cancelled" : o.tif ? "today's close" : "—"}</td>
                       <td style={{ ...tdR, ...mono, color: Number(o.filled_qty) > 0 ? "var(--text-primary)" : "var(--text-tertiary)" }}>
                         {(Number(o.filled_qty) || 0) + " / " + (o.qty == null ? "\u2014" : o.qty)}</td>
                       <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>
