@@ -182,19 +182,28 @@ function SwingsPage({ page }) {
   const natCost = (p) => (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
   // Market value is what it is WORTH now (shares x current price), not what it cost. The
   // column used to show cost under the label "value", which is a different number entirely.
+  const brokerOf = (p) => brokerMarks[String(p.symbol || "").toUpperCase()] || null;
+  // IBKR's own market value when it gave us one. Multiplying a price by a share count is how
+  // the dashboard kept ending up a few cents away from the broker's screen.
   const natMktValue = (p) => {
+    const b = brokerOf(p);
+    if (b && b.mkt_value != null) return SW_n(b.mkt_value);
     const m = markOf(p), q = SW_n(p.qty);
     if (!m || q == null || SW_n(m.px) == null) return null;
     return SW_n(m.px) * q;
   };
+  // Percentage derived from the SAME two numbers shown beside it, so the row is internally
+  // consistent: profit over what the position cost.
   const pnlPct = (p) => {
-    const m = markOf(p), e = SW_n(p.avg_price);
-    if (!m || e == null || !e || SW_n(m.px) == null) return null;
-    return ((SW_n(m.px) / e) - 1) * 100;
+    const v = natPnl(p), cost = (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
+    if (v == null || !cost) return null;
+    return (v / cost) * 100;
   };
   const pnlCol = (v) => (v == null ? "var(--text-tertiary)"
     : v > 0 ? "var(--profit)" : v < 0 ? "var(--loss)" : "var(--text-secondary)");
   const natPnl = (p) => {
+    const b = brokerOf(p);
+    if (b && b.unrealized_pnl != null) return SW_n(b.unrealized_pnl);
     const m = markOf(p), e = SW_n(p.avg_price), q = SW_n(p.qty);
     if (!m || e == null || q == null) return null;
     return (SW_n(m.px) - e) * q;
@@ -410,7 +419,7 @@ function SwingsPage({ page }) {
   // the last price IBKR gave — correct, but it must not be mistaken for a live one.
   const markTimes = (d.marks || []).map((m) => m.quoted_at || m.updated_at).filter(Boolean).sort();
   const markStamp = markTimes.length
-    ? "priced from IBKR · " + SW_ago(markTimes[markTimes.length - 1])
+    ? "valued by IBKR · " + SW_ago(markTimes[markTimes.length - 1])
     : (openPos.length ? "waiting for the first broker price" : null);
 
   // ---------------------------------------------------------------- dashboard
