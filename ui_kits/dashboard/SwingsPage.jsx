@@ -406,6 +406,13 @@ function SwingsPage({ page }) {
     return (Number(o.filled_qty) || 0) < (Number(o.qty) || 0);
   });
 
+  // A mark persists until a newer quote replaces it, so outside trading hours the table shows
+  // the last price IBKR gave — correct, but it must not be mistaken for a live one.
+  const markTimes = (d.marks || []).map((m) => m.quoted_at || m.updated_at).filter(Boolean).sort();
+  const markStamp = markTimes.length
+    ? "priced from IBKR · " + SW_ago(markTimes[markTimes.length - 1])
+    : (openPos.length ? "waiting for the first broker price" : null);
+
   // ---------------------------------------------------------------- dashboard
   if (page === "swings-dashboard") {
 
@@ -454,6 +461,8 @@ function SwingsPage({ page }) {
         ) : null}
         <NT.Card title={openPos.length ? "Holdings · " + openPos.length : "Holdings"} padding={20} bodyStyle={{ padding: 0 }}>
           {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
+            <div>
+            {markStamp ? <div style={{ padding: "10px 20px 0", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>{markStamp}</div> : null}
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
@@ -506,6 +515,7 @@ function SwingsPage({ page }) {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           )}
         </NT.Card>
