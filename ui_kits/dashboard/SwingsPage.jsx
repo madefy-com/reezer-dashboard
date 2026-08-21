@@ -112,7 +112,7 @@ function SwingsPage({ page }) {
   const load = React.useCallback(async () => {
     if (!db) return;
     const y = new Date().getFullYear();
-    const [strats, pos, sigs, snaps, bench, fx, brokers, orders] = await Promise.all([
+    const [strats, pos, sigs, snaps, bench, fx, brokers, orders, bmarks] = await Promise.all([
       db.from("equity_strategies").select("*").order("id"),
       db.from("equity_positions").select("*").order("id", { ascending: false }),
       db.from("sheet_signals").select("*").order("detected_at", { ascending: false }).limit(60),
@@ -125,6 +125,9 @@ function SwingsPage({ page }) {
       // these exists, so it has to be visible — a market order placed after the close rests
       // at the venue until the next auction, and until 2026-08-21 nothing on screen said so.
       db.from("equity_orders").select("*").order("id", { ascending: false }).limit(50),
+      // Broker quotes for what we hold. These beat the sheet for OUR P&L: the publisher keeps
+      // revising his prices after the exchange shuts, which moved a settled position's P&L.
+      db.from("equity_marks").select("*"),
     ]);
     const strategies = strats.data || [];
     window.NT_HAS_SWINGS = strategies.length > 0;
@@ -134,7 +137,7 @@ function SwingsPage({ page }) {
     (fx.data || []).forEach((r) => { const c = String(r.symbol).slice(0, 3); if (rates[c] == null) rates[c] = Number(r.close); });
     setD({ strats: strategies, pos: pos.data || [], sigs: sigs.data || [],
            snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [],
-           orders: orders.data || [] });
+           orders: orders.data || [], marks: bmarks.data || [] });
   }, [db]);
   React.useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -148,17 +151,47 @@ function SwingsPage({ page }) {
   // Everything is reported in USD. The sheet quotes each holding in its own market's currency
   // (C$ / € / £ / $), so a price is only meaningful together with its unit.
   const fx = d.fx || { USD: 1 };
-  const usd = (v, ccy) => { const r = fx[ccy || "USD"]; return (v == null || r == null) ? null : v * r; };
+  const baseCcy = ((d.brokers || []).map((b) => (b.settings || {}).currency).filter(Boolean)[0] || "USD").toUpperCase();
+  // fx is quoted USD-per-unit, so reaching a non-USD base needs the second division. Without
+  // it a EUR account's totals were inflated by ~16%.
+  const usd = (v, ccy) => {
+    const r = fx[ccy || "USD"], b = fx[baseCcy] || 1;
+    return (v == null || r == null) ? null : (v * r) / b;
+  };
   // Current marks come from the sheet's own price column, stored parsed on the newest snapshot.
   const markSnap = d.snaps.filter((s) => s.tab === "portfolio" && s.prices)[0] || null;
   const marks = (markSnap && markSnap.prices) || {};
-  const markOf = (p) => marks[String(p.symbol || "").toUpperCase()] || null;
+  const brokerMarks = {};
+  (d.marks || []).forEach((m) => { brokerMarks[String(m.symbol || "").toUpperCase()] = m; });
+  // OUR positions are marked at OUR broker. The sheet is only a fallback for a name IBKR has
+  // not quoted yet — his prices keep moving after the close, which is not our P&L moving.
+  const markOf = (p) => {
+    const sym = String(p.symbol || "").toUpperCase();
+    const b = brokerMarks[sym];
+    if (b && b.px != null) return { px: SW_n(b.px), ccy: b.ccy || "USD", src: "ibkr" };
+    const m = marks[sym];
+    return m ? { ...m, src: "sheet" } : null;
+  };
 
   const costOf = (p) => usd((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0), (markOf(p) || {}).ccy) || 0;
   // The instrument's OWN currency. A position bought in euros is a euro position; converting
   // it to dollars for display is what made the dashboard disagree with the IBKR screen.
   const ccyOf = (p) => (markOf(p) || {}).ccy || "USD";
   const natCost = (p) => (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
+  // Market value is what it is WORTH now (shares x current price), not what it cost. The
+  // column used to show cost under the label "value", which is a different number entirely.
+  const natMktValue = (p) => {
+    const m = markOf(p), q = SW_n(p.qty);
+    if (!m || q == null || SW_n(m.px) == null) return null;
+    return SW_n(m.px) * q;
+  };
+  const pnlPct = (p) => {
+    const m = markOf(p), e = SW_n(p.avg_price);
+    if (!m || e == null || !e || SW_n(m.px) == null) return null;
+    return ((SW_n(m.px) / e) - 1) * 100;
+  };
+  const pnlCol = (v) => (v == null ? "var(--text-tertiary)"
+    : v > 0 ? "var(--profit)" : v < 0 ? "var(--loss)" : "var(--text-secondary)");
   const natPnl = (p) => {
     const m = markOf(p), e = SW_n(p.avg_price), q = SW_n(p.qty);
     if (!m || e == null || q == null) return null;
@@ -218,10 +251,15 @@ function SwingsPage({ page }) {
   const firstYear = firstEntry ? new Date(firstEntry).getFullYear() : null;
   const sinceInception = firstEntry != null && firstYear === year;
   const benchFrom = sinceInception ? String(firstEntry).slice(0, 10) : (year + "-01-01");
-  const bench = d.bench.filter((b) => String(b.d) >= benchFrom);
-  const bFirst = bench.length ? SW_n(bench[0].close) : null;
-  const bLast = bench.length ? SW_n(bench[bench.length - 1].close) : null;
-  const spyYtd = (bench.length >= 2 && bFirst != null && bFirst > 0 && bLast != null) ? ((bLast / bFirst) - 1) * 100 : null;
+  const before = d.bench.filter((b) => String(b.d) <= benchFrom);
+  const after = d.bench.filter((b) => String(b.d) >= benchFrom);
+  // Baseline = the last index close AT OR BEFORE the first buy. That is where the index stood
+  // when we entered, and it exists from day one — unlike a row dated on the entry day itself,
+  // which will not be written until that session closes.
+  const bFirst = before.length ? SW_n(before[before.length - 1].close)
+                               : (after.length ? SW_n(after[0].close) : null);
+  const bLast = d.bench.length ? SW_n(d.bench[d.bench.length - 1].close) : null;
+  const spyYtd = (bFirst != null && bFirst > 0 && bLast != null) ? ((bLast / bFirst) - 1) * 100 : null;
   const benchLabel = sinceInception ? ("since " + SW_date(firstEntry)) : "YTD";
   // Compare MONEY AT WORK, not the whole account. The strategy starts flat and stays mostly
   // cash for months, so measuring an account that is 0-25% invested against a fully-invested
@@ -326,8 +364,8 @@ function SwingsPage({ page }) {
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={year + " · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
-      <Kard label="net p&l" value={SW_money(realized)} tone={tone(realized)}
-        sub={"realized · " + SW_money(openValue) + " open · totals in USD"} />
+      <Kard label="net p&l" value={SW_cur(realized, baseCcy)} tone={tone(realized)}
+        sub={"realized · " + SW_cur(openValue, baseCcy) + " open"} />
       <Kard label="win rate" value={winFrac == null ? "—" : Math.round(winFrac * 100) + "%"}
         tone={winFrac == null ? null : (winFrac >= 0.5 ? "profit" : "loss")}
         sub={winners.length + " of " + closedPos.length + " closed"} visual={ring(winFrac)} />
@@ -351,6 +389,9 @@ function SwingsPage({ page }) {
   const thR = { ...th, textAlign: "right" };
   const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--border)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top" };
   const tdR = { ...td, textAlign: "right" };
+  // Holdings get room to breathe — there are only ever a handful of them.
+  const tdTall = { ...td, padding: "15px 14px", verticalAlign: "middle" };
+  const tdTallR = { ...tdTall, textAlign: "right" };
   const mono = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-mono)", fontVariantNumeric: "tabular-nums" };
   const emptyBox = (text) => (
     <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)" }}>{text}</div>
@@ -410,28 +451,50 @@ function SwingsPage({ page }) {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
                   <th style={th}>holding</th>
-                  <th style={thR}>qty</th>
-                  <th style={thR}>your buy-in</th>
-                  <th style={thR}>mark</th>
-                  <th style={thR}>value</th>
+                  <th style={thR}>shares</th>
+                  <th style={thR}>buy-in</th>
+                  <th style={thR}>current price</th>
+                  <th style={thR}>market value</th>
                   <th style={thR}>unrealized p&l</th>
-                  <th style={thR}>days held</th>
+                  <th style={thR}>%</th>
                 </tr></thead>
                 <tbody>
                   {openPos.map((p) => (
                     <tr key={p.id} className="nt-trow">
-                      <td style={{ ...td, color: "var(--text-primary)" }}>
-                        <span style={{ fontWeight: 500 }}>{p.symbol}</span>
-                        {p.name ? <span style={{ color: "var(--text-tertiary)" }}>{" " + p.name}</span> : null}
+                      <td style={{ ...tdTall, color: "var(--text-primary)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                         width: 36, height: 36, flex: "none", borderRadius: "var(--radius-sm)",
+                                         background: "var(--violet-soft)", border: "1px solid var(--violet-line)",
+                                         color: "var(--violet-400)",
+                                         font: "var(--w-medium) " + (String(p.symbol || "").length > 3 ? "11px" : "12px") + "/1 var(--font-mono)" }}>
+                            {p.symbol}
+                          </span>
+                          <span>
+                            <span style={{ display: "block", font: "var(--w-regular) var(--t-body)/1.2 var(--font-sans)" }}>{p.name || p.symbol}</span>
+                            <span style={{ display: "block", marginTop: 4, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                              {[p.target_pct == null ? null : SW_dec(p.target_pct) + "% weight",
+                                SW_days(p.opened_at, null) == null ? null : SW_days(p.opened_at, null) + "d"].filter(Boolean).join(" · ")}
+                            </span>
+                          </span>
+                        </div>
                       </td>
-                      <td style={{ ...tdR, ...mono }}>{p.qty == null ? "—" : SW_n(p.qty)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{SW_price(p.avg_price)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_price(markOf(p).px)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-primary)" }}>{SW_cur(natCost(p), ccyOf(p))}</td>
-                      <td style={{ ...tdR, ...mono, color: natPnl(p) == null ? "var(--text-tertiary)"
-                            : natPnl(p) > 0 ? "var(--profit)" : natPnl(p) < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{p.qty == null ? "—" : SW_n(p.qty)}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-tertiary)" }}>{SW_curP(p.avg_price, ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_curP(markOf(p).px, ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{SW_cur(natMktValue(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: pnlCol(natPnl(p)) }}>
                         {natPnl(p) == null ? "—" : SW_curP(natPnl(p), ccyOf(p))}</td>
-                      <td style={{ ...tdR, ...mono }}>{SW_days(p.opened_at, null) == null ? "—" : SW_days(p.opened_at, null) + "d"}</td>
+                      <td style={{ ...tdTallR }}>
+                        {pnlPct(p) == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
+                          <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "var(--radius-pill)",
+                                         background: natPnl(p) > 0 ? "var(--profit-bg)" : natPnl(p) < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
+                                         color: pnlCol(natPnl(p)),
+                                         font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)" }}>
+                            {SW_pct(pnlPct(p))}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
