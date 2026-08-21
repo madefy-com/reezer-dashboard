@@ -163,20 +163,22 @@ function SwingsPage({ page }) {
   const marks = (markSnap && markSnap.prices) || {};
   const brokerMarks = {};
   (d.marks || []).forEach((m) => { brokerMarks[String(m.symbol || "").toUpperCase()] = m; });
-  // OUR positions are marked at OUR broker. The sheet is only a fallback for a name IBKR has
-  // not quoted yet — his prices keep moving after the close, which is not our P&L moving.
+  // OUR positions are marked at OUR broker, full stop. There is deliberately NO fallback to
+  // the publisher's price: a position we hold is worth what our broker says it is worth, and a
+  // dashboard that quietly substitutes another source is a dashboard that disagrees with the
+  // account. With no broker mark the figures read "—" until one arrives.
   const markOf = (p) => {
-    const sym = String(p.symbol || "").toUpperCase();
-    const b = brokerMarks[sym];
-    if (b && b.px != null) return { px: SW_n(b.px), ccy: b.ccy || "USD", src: "ibkr" };
-    const m = marks[sym];
-    return m ? { ...m, src: "sheet" } : null;
+    const b = brokerMarks[String(p.symbol || "").toUpperCase()];
+    if (!b || b.px == null) return null;
+    return { px: SW_n(b.px), ccy: b.ccy || "USD", src: "ibkr" };
   };
+  // Currency still has to come from somewhere before the first mark lands.
+  const ccyFallback = (p) => (marks[String(p.symbol || "").toUpperCase()] || {}).ccy || "USD";
 
   const costOf = (p) => usd((SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0), (markOf(p) || {}).ccy) || 0;
   // The instrument's OWN currency. A position bought in euros is a euro position; converting
   // it to dollars for display is what made the dashboard disagree with the IBKR screen.
-  const ccyOf = (p) => (markOf(p) || {}).ccy || "USD";
+  const ccyOf = (p) => (markOf(p) || {}).ccy || ccyFallback(p);
   const natCost = (p) => (SW_n(p.qty) || 0) * (SW_n(p.avg_price) || 0);
   // Market value is what it is WORTH now (shares x current price), not what it cost. The
   // column used to show cost under the label "value", which is a different number entirely.
