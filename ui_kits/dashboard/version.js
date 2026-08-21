@@ -3,9 +3,16 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.024";
+window.NT_VERSION = "1.025";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.025", date: "2026-08-21",
+    notes: [
+      "Swings now shows Resting orders on the dashboard: an order that has been sent to the broker but has not filled yet. Placing a market order after the exchange closes leaves it waiting at the venue until the next opening auction, and until now nothing on screen told you that your money was already committed.",
+      "Swing orders are now plain market orders. The old style priced them just through the offer, which produced a price the exchange refused outright (\u201cthe price does not meet the minimum price variation\u201d) and cost a real buy on 21 August. A market order has no price to get wrong.",
+    ],
+  },
   {
     v: "1.024", date: "2026-08-20",
     notes: [

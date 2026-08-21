@@ -106,7 +106,7 @@ function SwingsPage({ page }) {
   const load = React.useCallback(async () => {
     if (!db) return;
     const y = new Date().getFullYear();
-    const [strats, pos, sigs, snaps, bench, fx, brokers] = await Promise.all([
+    const [strats, pos, sigs, snaps, bench, fx, brokers, orders] = await Promise.all([
       db.from("equity_strategies").select("*").order("id"),
       db.from("equity_positions").select("*").order("id", { ascending: false }),
       db.from("sheet_signals").select("*").order("detected_at", { ascending: false }).limit(60),
@@ -115,6 +115,10 @@ function SwingsPage({ page }) {
       // the sheet quotes in $/€/£/C$ but everything here is reported in USD
       db.from("benchmark_prices").select("symbol,close,d").in("symbol", ["EURUSD", "GBPUSD", "CADUSD"]).order("d", { ascending: false }).limit(30),
       db.from("equity_broker_accounts").select("*"),
+      // Orders that left us but have not filled. Real money is committed the moment one of
+      // these exists, so it has to be visible — a market order placed after the close rests
+      // at the venue until the next auction, and until 2026-08-21 nothing on screen said so.
+      db.from("equity_orders").select("*").order("id", { ascending: false }).limit(50),
     ]);
     const strategies = strats.data || [];
     window.NT_HAS_SWINGS = strategies.length > 0;
@@ -123,7 +127,8 @@ function SwingsPage({ page }) {
     const rates = { USD: 1 };            // newest row per currency wins (list is date-desc)
     (fx.data || []).forEach((r) => { const c = String(r.symbol).slice(0, 3); if (rates[c] == null) rates[c] = Number(r.close); });
     setD({ strats: strategies, pos: pos.data || [], sigs: sigs.data || [],
-           snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [] });
+           snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [],
+           orders: orders.data || [] });
   }, [db]);
   React.useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -336,6 +341,13 @@ function SwingsPage({ page }) {
     <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)" }}>{text}</div>
   );
 
+  // An order still owed to us by the venue: sent, acknowledged, not (fully) filled.
+  const resting = (d.orders || []).filter((o) => {
+    const st = String(o.status || "").toLowerCase();
+    if (st === "filled" || st === "cancelled" || st === "canceled" || st === "rejected") return false;
+    return (Number(o.filled_qty) || 0) < (Number(o.qty) || 0);
+  });
+
   // ---------------------------------------------------------------- dashboard
   if (page === "swings-dashboard") {
 
@@ -343,6 +355,40 @@ function SwingsPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Dashboard" subtitle="Swing positions from the Macrotrends portfolio sheet" />
         {kpiRow}
+        {resting.length > 0 ? (
+          <NT.Card title={"Resting orders \u00b7 " + resting.length} padding={20} bodyStyle={{ padding: 0 }}>
+            <div style={{ padding: "10px 20px 0", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)" }}>
+              Sent to the broker, not filled yet. Outside market hours these wait for the next auction.
+            </div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr>
+                  <th style={th}>order</th>
+                  <th style={thR}>qty</th>
+                  <th style={thR}>type</th>
+                  <th style={thR}>filled</th>
+                  <th style={thR}>placed</th>
+                </tr></thead>
+                <tbody>
+                  {resting.map((o) => (
+                    <tr key={o.id} className="nt-trow">
+                      <td style={{ ...td, color: "var(--text-primary)" }}>
+                        <span style={{ fontWeight: 500 }}>{o.symbol}</span>
+                        <span style={{ color: o.action === "SELL" ? "var(--loss)" : "var(--profit)" }}>{" " + (o.action || "")}</span>
+                      </td>
+                      <td style={{ ...tdR, ...mono }}>{o.qty == null ? "\u2014" : o.qty}</td>
+                      <td style={{ ...tdR, ...mono }}>{o.limit_price == null ? "market" : SW_dec(o.limit_price)}</td>
+                      <td style={{ ...tdR, ...mono, color: Number(o.filled_qty) > 0 ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+                        {(Number(o.filled_qty) || 0) + " / " + (o.qty == null ? "\u2014" : o.qty)}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>
+                        {o.placed_at ? String(o.placed_at).slice(5, 16).replace("T", " ") : "\u2014"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </NT.Card>
+        ) : null}
         <NT.Card title={openPos.length ? "Holdings · " + openPos.length : "Holdings"} padding={20} bodyStyle={{ padding: 0 }}>
           {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div style={{ overflowX: "auto" }}>
