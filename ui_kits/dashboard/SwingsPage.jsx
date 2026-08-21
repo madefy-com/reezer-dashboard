@@ -452,26 +452,45 @@ function SwingsPage({ page }) {
     const holdings = Object.keys(marks).map((sym) => ({ sym: sym, ...(marks[sym] || {}) }))
       .filter((h) => h.name || h.px != null)
       .sort((a, b) => (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9));
-    const buys = holdings.filter((h) => en(h.advies) === "buy").length;
-    const held = d.pos.filter((p) => p.status === "open").length;
+    const buyList = holdings.filter((h) => en(h.advies) === "buy");
+    const held = d.pos.filter((p) => p.status === "open");
+    const investedUsd = held.reduce((a, p) => a + (costOf(p) || 0), 0);
+    const openPnl = held.reduce((a, p) => a + (unrealOf(p) || 0), 0);
+    // Names he is still calling a BUY that trade at or below what he paid — the only ones you
+    // can still enter on his terms rather than chasing a move that already happened.
+    const candidates = buyList.filter((h) => {
+      const e = SW_n(h.entry_px), px = SW_n(h.px);
+      return e && px && (px - e) / e <= 0.05;
+    });
+    const accountUsd = SW_n(((d.brokers || [])[0] || {}).settings
+      && ((d.brokers || [])[0] || {}).settings.account_value);
 
-    const stat = (label, value, tone) => (
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    const stat = (label, value, tone, sub) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
         <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</span>
         <span style={{ font: "var(--w-light) var(--t-h2)/1 var(--font-mono)", color: tone || "var(--text-primary)" }}>{value}</span>
+        {sub ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span> : null}
       </div>
     );
 
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1180 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Alerts" subtitle="Every change the publisher makes to the portfolio sheet" />
 
         <NT.Card padding={20}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 20 }}>
-            {stat("holdings", String(holdings.length))}
-            {stat("on his buy list", String(buys), buys ? "var(--profit)" : null)}
-            {stat("changes today", String(dayGroups.length && dayGroups[0].label.indexOf("Today") === 0 ? dayGroups[0].rows.length : 0))}
-            {stat("you hold", String(held), held ? "var(--profit)" : "var(--text-tertiary)")}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
+            {stat("your positions", String(held.length),
+                  held.length ? null : "var(--text-tertiary)",
+                  held.length ? SW_money(investedUsd) + " invested" : "nothing bought yet")}
+            {stat("open p&l", held.length ? SW_money(openPnl) : "—",
+                  !held.length ? "var(--text-tertiary)" : openPnl > 0 ? "var(--profit)" : openPnl < 0 ? "var(--loss)" : null,
+                  held.length ? "marked off the sheet" : "no open positions")}
+            {stat("buying power", accountUsd == null ? "—" : SW_money(accountUsd),
+                  null, accountUsd == null ? "broker not checked" : "at your broker")}
+            {stat("you could buy now", String(candidates.length),
+                  candidates.length ? "var(--profit)" : "var(--text-tertiary)",
+                  candidates.length ? candidates.map((c) => c.sym).join(", ") + " — still at his price"
+                                    : "his buys have all run past his entry")}
           </div>
         </NT.Card>
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
@@ -539,7 +558,7 @@ function SwingsPage({ page }) {
             </div>
           ))}
 
-        <NT.Card title={"His portfolio · " + holdings.length + " holdings"} padding={20} bodyStyle={{ padding: 0 }}>
+        <NT.Card title={"Macrotrends current portfolio · " + holdings.length + " stocks"} padding={20} bodyStyle={{ padding: 0 }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
               <thead><tr>
