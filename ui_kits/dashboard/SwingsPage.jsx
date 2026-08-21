@@ -612,6 +612,7 @@ function SwingsPage({ page }) {
                 <th style={th}>theme</th>
                 <th style={th}>advice</th>
                 <th style={thR}>weight</th>
+                <th style={thR}>his buy-in</th>
                 <th style={thR}>price</th>
                 <th style={thR}>his result</th>
                 <th style={thR}>you</th>
@@ -630,6 +631,10 @@ function SwingsPage({ page }) {
                       <td style={td}>{h.theme ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", padding: "3px 8px", borderRadius: 999, background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{h.theme}</span> : "—"}</td>
                       <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
                       <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
+                      {/* What HE paid. Read next to the live price it says whether the name is
+                          still available at or under his entry — the question actually asked
+                          when deciding to follow him into something. */}
+                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_price(h.entry_px)}</td>
                       <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_price(h.px)}</td>
                       <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
                       <td style={{ ...tdR, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: mine ? "var(--profit)" : "var(--text-tertiary)" }}>{mine ? (mine.status === "open" ? "holding" : "sold") : "—"}</td>
