@@ -6,3 +6,11 @@
 @import url("./tokens/colors.css?v=44");
 @import url("./tokens/typography.css?v=42");
 @import url("./tokens/spacing.css?v=44");
+
+/* Row hover for every data table. The rule used to live inside two components' local <style>
+   tags, so pages that didn't mount them (all of swings) had rows with the hover CLASS but no
+   hover EFFECT. Global now — one definition, every table. */
+.nt-trow td { transition: background var(--dur); }
+.nt-trow:hover td { background: var(--surface-inset); }
+.nt-trow td:first-child { border-top-left-radius: var(--radius-xs); border-bottom-left-radius: var(--radius-xs); }
+.nt-trow td:last-child { border-top-right-radius: var(--radius-xs); border-bottom-right-radius: var(--radius-xs); }

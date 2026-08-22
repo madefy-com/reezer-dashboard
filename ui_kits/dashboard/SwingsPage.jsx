@@ -809,7 +809,7 @@ function SwingsPage({ page }) {
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
                 <thead><tr>
                   <th style={{ ...th, paddingLeft: 20 }}>holding</th>
-                  <th style={thR}>his buy-in</th>
+                  <th style={thR}>buy-in</th>
                   <th style={thR}>his exit</th>
                   <th style={thR}>result</th>
                 </tr></thead>
@@ -837,7 +837,7 @@ function SwingsPage({ page }) {
                 <th style={th}>industry</th>
                 <th style={th}>advice</th>
                 <th style={thR}>weight</th>
-                <th style={thR}>his buy-in</th>
+                <th style={thR}>buy-in</th>
                 <th style={thR}>current price</th>
                 <th style={thR}>result</th>
                 <th style={thR}>your p&l</th>
