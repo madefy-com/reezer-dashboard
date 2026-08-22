@@ -723,7 +723,10 @@ function SwingsPage({ page }) {
         <div style={{ marginTop: 18, background: "var(--surface-card)", border: "1px solid var(--border)",
                       borderRadius: "var(--radius-md)", overflow: "hidden" }}>
           <button type="button" onClick={() => setPortOpen((o) => !o)}
-            style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "14px 16px",
+            style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "0 16px",
+                     // an alert row is 14px padding + two stacked lines ≈ 76px — match it, so
+                     // the collapsed accordion sits in the page as an equal row, not a slimmer one
+                     minHeight: 76, boxSizing: "border-box",
                      background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
                      font: "var(--w-semibold) var(--t-h3)/1.2 var(--font-sans)", letterSpacing: "var(--ls-snug)",
                      color: "var(--text-primary)" }}>
