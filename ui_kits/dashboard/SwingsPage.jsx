@@ -769,9 +769,13 @@ function SwingsPage({ page }) {
       const cN = col("naam", "name"), cS = col("symbool", "symbol", "ticker"),
             cE = col("instap", "entry"), cX = col("verkoop", "exit", "sell"), cR = col("resultaat", "result");
       return out.slice(hi + 1)
-        .map((r) => ({ name: (r[cN] || "").trim(), sym: (r[cS] || "").trim().toUpperCase(),
-                       entry: (r[cE] || "").trim(), exit: (r[cX] || "").trim(),
-                       result: SW_n(String(r[cR] || "").replace("%", "").replace(",", ".")) }))
+        .map((r) => {
+          // the sheet writes "€ 2,92" — snug the symbol to the number like everywhere else
+          const snug = (v) => String(v || "").trim().replace(/^([€£$]|C\$)\s+/, "$1");
+          return ({ name: (r[cN] || "").trim(), sym: (r[cS] || "").trim().toUpperCase(),
+                       entry: snug(r[cE]), exit: snug(r[cX]),
+                       result: SW_n(String(r[cR] || "").replace("%", "").replace(",", ".")) });
+        })
         .filter((r) => r.sym || r.name);
     })();
     const mbtn = (v, label) => (
