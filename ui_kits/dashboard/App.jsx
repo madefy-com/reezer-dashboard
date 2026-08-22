@@ -1,4 +1,4 @@
-const NT_HOME_PAGE = { options: "dashboard", swings: "swings-dashboard", futures: "futures-dashboard" };
+const NT_HOME_PAGE = { options: "dashboard", swings: "swings-dashboard", futures: "futures-dashboard", crypto: "crypto-dashboard" };
 
 /* A crash in one component must not black out the whole app. The boundary renders the error
    IN PLACE so the failure names itself, and everything around it keeps working. */
@@ -106,7 +106,7 @@ function App() {
   const fromHash = () => {
     const h = String(window.location.hash || "").replace(/^#\/?/, "").trim();
     const w = h.split("/")[0];
-    return ["options", "swings", "futures"].indexOf(w) >= 0 ? w : null;
+    return ["options", "swings", "futures", "crypto"].indexOf(w) >= 0 ? w : null;
   };
   const initialWorld = fromHash();
   const [page, setPage] = React.useState(initialWorld ? (NT_HOME_PAGE[initialWorld] || "dashboard") : "dashboard");
@@ -172,6 +172,15 @@ function App() {
         window.dispatchEvent(new Event("nt-data"));
       }
     }, function () { /* offline — no futures world */ });
+    // Crypto (BETA) exists as soon as it has a strategy — the world is deliberately visible
+    // while empty so it can be tested and seen.
+    db.from("crypto_strategies").select("id").limit(1).then(function (r) {
+      const has = !!(r && r.data && r.data.length);
+      if (has !== (window.NT_HAS_CRYPTO === true)) {
+        window.NT_HAS_CRYPTO = has;
+        window.dispatchEvent(new Event("nt-data"));
+      }
+    }, function () { /* offline — no crypto world */ });
   }, []);
 
   // Switching worlds always lands on that world's dashboard, and writes the world into the
@@ -200,6 +209,7 @@ function App() {
   const renderPage = () => {
     if (page.indexOf("swings-") === 0) return <SwingsPage page={page} />;
     if (page.indexOf("futures-") === 0) return <FuturesPage page={page} />;
+    if (page.indexOf("crypto-") === 0) return <CryptoPage page={page} />;
     if (page === "trades") return <TradesPage />;
     if (page === "activity") return <ActivityPage />;
     if (page === "log") return <LogPage />;

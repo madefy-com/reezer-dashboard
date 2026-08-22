@@ -9,6 +9,8 @@ window.NT_CHANGELOG = [
   {
     v: "1.026", date: "2026-08-22",
     notes: [
+      "Crypto \u00b7 BETA is now a world of its own in the menu \u2014 dashboard, trades, alerts and strategies, all reading their own tables, all marked BETA so an empty page reads as \u201cnot built yet\u201d rather than \u201cbroken\u201d. It also takes part in the top bar: the run-state panel lists it with its own stop control, the positions panel will show crypto holdings, and the sessions panel shows Revolut X as open 24/7. One paper strategy exists, Revolut X beta (paper); nothing trades yet.",
+      "Settings \u2192 Brokers now lists the newest broker first: Revolut X, then Interactive Brokers, then Charles Schwab.",
       "A fourth world is on its way, in beta: crypto on Revolut X. The first visible piece is the broker itself \u2014 Revolut X now appears in Settings \u2192 Brokers, marked crypto \u00b7 beta, with the account value and balances Reezer reads from the venue each day, the same way the IBKR and Schwab rows work. No crypto trading happens yet; the signal sheet and the strategies come next.",
       "The separate Resting orders card is gone: an order on its way \u2014 queued for the open, or resting at IBKR \u2014 now appears as an amber row inside Your portfolio, and turns into a normal position row when it fills. The card's count includes them.",
       "A buy or sell the engine is holding for the next market open now shows on the swings dashboard as a queued order, in amber, next to the resting orders. The engine deliberately waits when the market is closed \u2014 with no price to check the contract against, ordering blind would drop a safety guard \u2014 but that waiting used to be invisible, which read as nothing happening.",

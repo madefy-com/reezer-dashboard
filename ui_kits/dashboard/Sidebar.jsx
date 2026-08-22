@@ -29,12 +29,20 @@ const NT_WORLD_NAV = {
     { id: "futures-alerts", label: "Alerts", icon: "message-square-dot" },
     { id: "futures-strategies", label: "Strategies", icon: "target" },
   ],
+  crypto: [
+    { id: "crypto-dashboard", label: "Dashboard", icon: "layout-dashboard" },
+    { id: "crypto-trades", label: "Trades", icon: "candlestick-chart" },
+    { id: "crypto-alerts", label: "Alerts", icon: "message-square-dot" },
+    { id: "crypto-strategies", label: "Strategies", icon: "target" },
+  ],
 };
 
 const NT_WORLD_META = {
   options: { label: "Options", icon: "candlestick-chart" },
   swings: { label: "Swings", icon: "trending-up" },
   futures: { label: "Futures", icon: "activity-square" },
+  // BETA is part of the name on purpose: every place the world is named says so.
+  crypto: { label: "Crypto \u00b7 BETA", icon: "bitcoin", beta: true },
 };
 
 /* The world picker. Closed it shows the current world + a one-line state; open it lists every
@@ -96,7 +104,8 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const hasOptions = ((D && D.strategies) || []).length > 0;
   const hasSwings = window.NT_HAS_SWINGS === true;
   const hasFutures = window.NT_HAS_FUTURES === true;
-  const worlds = [hasOptions && "options", hasSwings && "swings", hasFutures && "futures"].filter(Boolean);
+  const hasCrypto = window.NT_HAS_CRYPTO === true;
+  const worlds = [hasOptions && "options", hasSwings && "swings", hasFutures && "futures", hasCrypto && "crypto"].filter(Boolean);
   // With only one world there is nothing to pick — show that world's pages and no picker.
   const w = worlds.includes(world) ? world : (worlds[0] || "options");
   const nav = NT_WORLD_NAV[w] || NT_WORLD_NAV.options;
@@ -147,11 +156,16 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const optRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "options");
   const futRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "futures");
   const swgRows = ((D && D.equityStrategies) || []).map((x) => ({ account: x.account, category: "swings" }));
+  const crRows = ((D && D.cryptoStrategies) || []).map((x) => ({ account: x.account, category: "crypto" }));
+  const revx = ((D && D.cryptoBrokers) || []).filter((b) => b.broker === "revx")[0];
+  const revxAge = hoursSince(revx && revx.settings && revx.settings.synced_at);
+  const revxBad = !revx ? "no broker linked" : (revxAge == null || revxAge > STALE_H) ? "broker not checked today" : null;
 
   const worldState = {
     options: state((D && D.strategies) || [], "options", schwabBad),
     swings: state(swgRows, "swings", ibkrBad),
     futures: state((D && D.strategies) || [], "futures", schwabBad),
+    crypto: state(crRows, "crypto", revxBad),
   };
 
   const navBtn = (n) => {

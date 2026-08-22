@@ -247,7 +247,7 @@
   //      renders the instant the websocket message lands. ----
   var RAW = { positions: [], alerts: [], runs: [], sp: null, flags: [],
               strategies: [], sources: [], strategySources: [], events: [],
-              equityStrategies: [], equityBrokers: [] };
+              equityStrategies: [], equityBrokers: [], cryptoStrategies: [], cryptoBrokers: [] };
 
   function rebuild() {
     var base = window.NT_DATA || {};
@@ -376,6 +376,8 @@
     out.machines = (RAW.machines || []);
     out.equityStrategies = (RAW.equityStrategies || []);
     out.equityBrokers = (RAW.equityBrokers || []);
+    out.cryptoStrategies = (RAW.cryptoStrategies || []);
+    out.cryptoBrokers = (RAW.cryptoBrokers || []);
     out.machineCommands = (RAW.machineCommands || []);
     out.flags = RAW.flags || [];
     return out;
@@ -479,6 +481,8 @@
       c.from("bot_events").select("*").order("id", { ascending: false }).limit(300),
       c.from("equity_strategies").select("*").order("id"),
       c.from("equity_broker_accounts").select("*"),
+      c.from("crypto_strategies").select("*").order("id"),
+      c.from("crypto_broker_accounts").select("*"),
     ]).then(function (res) {
       RAW.positions = (res[0] && res[0].data) || [];
       RAW.alerts = (res[1] && res[1].data) || [];
@@ -495,6 +499,8 @@
       RAW.events = (res[12] && res[12].data) || [];
       RAW.equityStrategies = (res[13] && res[13].data) || [];
       RAW.equityBrokers = (res[14] && res[14].data) || [];
+      RAW.cryptoStrategies = (res[15] && res[15].data) || [];
+      RAW.cryptoBrokers = (res[16] && res[16].data) || [];
       return rebuild();
     }).catch(function (e) { console.warn("NT_LIVE failed:", e); return null; });
   };

@@ -24,6 +24,8 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
   const optStrats = (strategies || []).filter((s) => (s.category || "options") === "options");
   const futStrats = (strategies || []).filter((s) => s.category === "futures");
   const eqStrats = D.equityStrategies || [];
+  const crStrats = D.cryptoStrategies || [];
+  const revxSeen = ((D.cryptoBrokers || []).filter((b) => b.broker === "revx")[0] || {}).settings;
   const srcFor = (cat) => (D.sources || []).filter((s) => (s.category || "options") === cat)[0] || null;
   const ago = (iso) => (iso ? Math.max(0, (now.getTime() - new Date(iso).getTime()) / 1000) : null);
   const agoTxt = (s) => (s == null ? "never" : s < 90 ? Math.round(s) + "s ago" : s < 5400 ? Math.round(s / 60) + "m ago" : Math.round(s / 3600) + "h ago");
@@ -45,6 +47,10 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
       seen: (srcFor("futures") || {}).last_poll_at, staleAfter: 600, killLabel: "Stop trading futures",
       killMsg: "This blocks NEW futures orders. Open positions are NOT closed.",
       trades: "futures-trades", liveVal: "live" },
+    { id: "crypto", label: "Crypto \u00b7 BETA", beta: true, strats: crStrats, table: "crypto_strategies",
+      seen: (revxSeen || {}).synced_at, staleAfter: 93600, killLabel: "Stop trading crypto",
+      killMsg: "This blocks NEW crypto orders. Open positions are NOT closed.",
+      trades: "crypto-trades", liveVal: "live" },
   ].filter((w) => w.strats.length > 0);
 
   const wState = (w) => {
@@ -120,6 +126,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     if (w.id === "options" || w.id === "swings") mset.us = usIsOpen;
     if (w.id === "swings") mset.eu = euIsOpen;
     if (w.id === "futures") mset.glb = glbIsOpen;
+    if (w.id === "crypto") mset.crypto = true;          // the venue never closes
   });
   const relevant = Object.values(mset);
   const nOpen = relevant.filter(Boolean).length;
@@ -136,6 +143,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     options: etWin(srcFor("options")) || (ntFmtTz(sess.streamStart, TZ) + " – " + ntFmtTz(sess.streamEnd, TZ)),
     swings: etWin(srcFor("swings")) || "always · every 5 min",
     futures: etWin(srcFor("futures")) || "always · continuous",
+    crypto: "beta · not trading yet",
   };
 
   /* ---------------------------------------------------------------- bits */
@@ -342,6 +350,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
                   {w.id === "swings" && sessRow(mCol(euIsOpen), euIsOpen, "EU market", ntFmtTz(euOpen, TZ) + " – " + ntFmtTz(euClose, TZ))}
                   {w.id === "swings" && sessRow(mCol(usIsOpen), usIsOpen, "US market", ntFmtTz(sess.open, TZ) + " – " + ntFmtTz(sess.close, TZ))}
                   {w.id === "futures" && sessRow(mCol(glbIsOpen), glbIsOpen, "Globex", "Mon 00:00 – Fri 23:00")}
+                  {w.id === "crypto" && sessRow(mCol(true), true, "Revolut X", "24 / 7")}
                   {sessRow("var(--accent)", w.id === "options" ? sess.streaming : false, "Watching alerts", watchTxt[w.id])}
                 </React.Fragment>
               ))}

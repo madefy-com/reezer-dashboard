@@ -479,11 +479,12 @@ function SourcesPage() {
                 pill: pill(fresh ? "LINKED" : "STALE", fresh),
               });
             };
-            // IBKR leads: it is the broker that holds the swings book the user watches daily.
-            return ((eqBrokers || []).map((b, i) => row("eq" + b.id, b, "swings", "Interactive Brokers", i === 0)))
-              .concat(brokers.map((b) => row(b.id, b, "options", "Charles Schwab", !(eqBrokers || []).length)))
-              // Crypto is BETA: the row is real (synced by broker_sync like the others) but says so.
-              .concat((cryptoBrokers || []).map((b) => row("cr" + b.id, b, "crypto · beta", "Revolut X", false)));
+            // Newest broker on top (user's rule, 22 Aug): Revolut X (crypto · beta), then IBKR, then Schwab.
+            const list = []
+              .concat((cryptoBrokers || []).map((b) => ({ key: "cr" + b.id, b, world: "crypto \u00b7 beta", brand: "Revolut X" })))
+              .concat((eqBrokers || []).map((b) => ({ key: "eq" + b.id, b, world: "swings", brand: "Interactive Brokers" })))
+              .concat(brokers.map((b) => ({ key: b.id, b, world: "options", brand: "Charles Schwab" })));
+            return list.map((x, i) => row(x.key, x.b, x.world, x.brand, i === 0));
           })()}
           {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
               row so the gap is visible before it exists. */}
