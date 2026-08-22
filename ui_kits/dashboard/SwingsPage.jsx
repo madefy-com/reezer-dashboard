@@ -449,62 +449,9 @@ function SwingsPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title={greeting(window.NT_USER_NAME || (window.NT_DATA && window.NT_DATA.session && window.NT_DATA.session.user))} />
         {kpiRow}
-        {(resting.length > 0 || queuedSigs.length > 0) ? (
-          <NT.Card title={"Resting orders \u00b7 " + (resting.length + queuedSigs.length)} padding={20} bodyStyle={{ padding: 0 }}>
-            <div style={{ padding: "10px 20px 0", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)" }}>
-              Sent to the broker, not filled yet. Outside market hours these wait for the next auction.
-            </div>
-            {/* Signals the engine is HOLDING for the open \u2014 deliberately not yet at the broker
-                (no quote exists to sanity-check against on a closed market). Without this row
-                a weekend buy looked like nothing was happening at all. */}
-            {queuedSigs.map((s) => (
-              <div key={"q" + s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "12px 20px 0", padding: "10px 14px", borderRadius: "var(--radius-sm)", background: "var(--dryrun-bg)", border: "1px solid color-mix(in srgb, var(--dryrun) 30%, transparent)" }}>
-                <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)" }}>{s.symbol}</span>
-                  <span style={{ color: s.action === "sell" ? "var(--loss)" : "var(--profit)", marginLeft: 8, textTransform: "uppercase", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{s.action}</span>
-                </span>
-                <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--dryrun)", textAlign: "right" }}>
-                  queued \u2014 orders automatically at the next open, after the price check
-                </span>
-              </div>
-            ))}
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead><tr>
-                  <th style={th}>order</th>
-                  <th style={thR}>qty</th>
-                  <th style={thR}>type</th>
-                  <th style={thR}>lives until</th>
-                  <th style={thR}>filled</th>
-                  <th style={thR}>placed</th>
-                </tr></thead>
-                <tbody>
-                  {resting.map((o) => (
-                    <tr key={o.id} className="nt-trow">
-                      <td style={{ ...td, color: "var(--text-primary)" }}>
-                        <span style={{ fontWeight: 500 }}>{o.symbol}</span>
-                        <span style={{ color: o.action === "SELL" ? "var(--loss)" : "var(--profit)" }}>{" " + (o.action || "")}</span>
-                      </td>
-                      <td style={{ ...tdR, ...mono }}>{o.qty == null ? "\u2014" : o.qty}</td>
-                      <td style={{ ...tdR, ...mono }}>{o.limit_price == null ? "market" : SW_dec(o.limit_price)}</td>
-                      {/* A day order dies at the close of the session it was sent in. That is
-                          not obvious from "working", and it silently killed a real entry. */}
-                      <td style={{ ...tdR, ...mono, color: o.tif === "GTC" ? "var(--text-secondary)" : "var(--dryrun)" }}>
-                        {o.tif === "GTC" ? "cancelled" : o.tif ? "today's close" : "—"}</td>
-                      <td style={{ ...tdR, ...mono, color: Number(o.filled_qty) > 0 ? "var(--text-primary)" : "var(--text-tertiary)" }}>
-                        {(Number(o.filled_qty) || 0) + " / " + (o.qty == null ? "\u2014" : o.qty)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>
-                        {o.placed_at ? String(o.placed_at).slice(5, 16).replace("T", " ") : "\u2014"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </NT.Card>
-        ) : null}
-        <NT.Card title={openPos.length ? "Your portfolio · " + openPos.length : "Your portfolio"} padding={20} bodyStyle={{ padding: 0 }}
+        <NT.Card title={"Your portfolio" + ((openPos.length + resting.length + queuedSigs.length) ? " \u00b7 " + (openPos.length + resting.length + queuedSigs.length) : "")} padding={20} bodyStyle={{ padding: 0 }}
           action={markStamp ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{markStamp}</span> : null}>
-          {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
+          {(openPos.length + resting.length + queuedSigs.length) === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div>
             <div style={{ overflowX: "auto" }}>
               {/* fixed layout: the browser otherwise sizes each column to its content, so
@@ -531,6 +478,71 @@ function SwingsPage({ page }) {
                   <th style={thR}>%</th>
                 </tr></thead>
                 <tbody>
+                  {/* Orders-in-the-making live IN the portfolio, amber until real: a queued
+                      signal (held for the open — no quote on a closed market to sanity-check
+                      against) or an order resting at IBKR is simply the position it is about
+                      to become. When it fills, this row turns into a normal one. */}
+                  {queuedSigs.map((s) => (
+                    <tr key={"q" + s.id} style={{ background: "color-mix(in srgb, var(--dryrun) 5%, transparent)" }}>
+                      <td style={{ ...tdTall, borderLeft: "3px solid var(--dryrun)", color: "var(--text-primary)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                         width: 36, height: 36, flex: "none", borderRadius: "var(--radius-sm)",
+                                         background: "var(--dryrun-bg)", border: "1px solid color-mix(in srgb, var(--dryrun) 32%, transparent)",
+                                         color: "var(--dryrun)",
+                                         font: "var(--w-medium) " + (String(s.symbol || "").length > 3 ? "11px" : "12px") + "/1 var(--font-mono)" }}>
+                            {s.symbol}
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: "block", font: "var(--w-regular) var(--t-body)/1.2 var(--font-sans)" }}>
+                              {s.name || s.symbol}{" "}
+                              <span style={{ color: s.action === "sell" ? "var(--loss)" : "var(--profit)", fontWeight: 500, textTransform: "uppercase" }}>{s.action}</span>
+                            </span>
+                            <span style={{ display: "block", marginTop: 4, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--dryrun)" }}>
+                              queued — sent to IBKR at the next market open · market · GTC
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                      <td colSpan={6} style={{ ...tdTallR }}></td>
+                      <td style={{ ...tdTallR }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: 999,
+                                       background: "var(--dryrun-bg)", color: "var(--dryrun)",
+                                       font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>QUEUED</span>
+                      </td>
+                    </tr>
+                  ))}
+                  {resting.map((o) => (
+                    <tr key={"r" + o.id} style={{ background: "color-mix(in srgb, var(--dryrun) 5%, transparent)" }}>
+                      <td style={{ ...tdTall, borderLeft: "3px solid var(--dryrun)", color: "var(--text-primary)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                         width: 36, height: 36, flex: "none", borderRadius: "var(--radius-sm)",
+                                         background: "var(--dryrun-bg)", border: "1px solid color-mix(in srgb, var(--dryrun) 32%, transparent)",
+                                         color: "var(--dryrun)",
+                                         font: "var(--w-medium) " + (String(o.symbol || "").length > 3 ? "11px" : "12px") + "/1 var(--font-mono)" }}>
+                            {o.symbol}
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: "block", font: "var(--w-regular) var(--t-body)/1.2 var(--font-sans)" }}>
+                              <span style={{ color: o.action === "SELL" ? "var(--loss)" : "var(--profit)", fontWeight: 500 }}>{o.action}</span>
+                              {" " + (o.qty == null ? "" : o.qty)}
+                            </span>
+                            <span style={{ display: "block", marginTop: 4, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--dryrun)" }}>
+                              resting at IBKR · {o.limit_price == null ? "market" : "limit " + SW_dec(o.limit_price)} · {o.tif === "GTC" ? "GTC" : "expires at the close"} · filled {Number(o.filled_qty) || 0}/{o.qty == null ? "—" : o.qty}
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{o.qty == null ? "—" : o.qty}</td>
+                      <td colSpan={5} style={{ ...tdTallR }}></td>
+                      <td style={{ ...tdTallR }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: 999,
+                                       background: "var(--dryrun-bg)", color: "var(--dryrun)",
+                                       font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>RESTING</span>
+                      </td>
+                    </tr>
+                  ))}
                   {openPos.map((p) => (
                     <tr key={p.id} className="nt-trow">
                       <td style={{ ...tdTall, color: "var(--text-primary)" }}>
