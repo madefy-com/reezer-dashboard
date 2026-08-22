@@ -114,7 +114,7 @@ function SwingsPage({ page }) {
   const load = React.useCallback(async () => {
     if (!db) return;
     const y = new Date().getFullYear();
-    const [strats, pos, sigs, snaps, bench, fx, brokers, orders, bmarks] = await Promise.all([
+    const [strats, pos, sigs, snaps, bench, fx, brokers, orders, bmarks, src] = await Promise.all([
       db.from("equity_strategies").select("*").order("id"),
       db.from("equity_positions").select("*").order("id", { ascending: false }),
       db.from("sheet_signals").select("*").order("detected_at", { ascending: false }).limit(60),
@@ -130,6 +130,9 @@ function SwingsPage({ page }) {
       // Broker quotes for what we hold. These beat the sheet for OUR P&L: the publisher keeps
       // revising his prices after the exchange shuts, which moved a settled position's P&L.
       db.from("equity_marks").select("*"),
+      // The poller's own heartbeat. Snapshot age measures how long the PUBLISHER has been
+      // quiet, not whether we are checking — confusing the two produced false "lagging".
+      db.from("sources").select("last_poll_at").eq("category", "swings").limit(1),
     ]);
     const strategies = strats.data || [];
     window.NT_HAS_SWINGS = strategies.length > 0;
@@ -139,7 +142,8 @@ function SwingsPage({ page }) {
     (fx.data || []).forEach((r) => { const c = String(r.symbol).slice(0, 3); if (rates[c] == null) rates[c] = Number(r.close); });
     setD({ strats: strategies, pos: pos.data || [], sigs: sigs.data || [],
            snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [],
-           orders: orders.data || [], marks: bmarks.data || [] });
+           orders: orders.data || [], marks: bmarks.data || [],
+           pollAt: (((src.data || [])[0] || {}).last_poll_at) || null });
   }, [db]);
   React.useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -290,7 +294,11 @@ function SwingsPage({ page }) {
   const edge = (traded && investedRet != null && spyYtd != null) ? investedRet - spyYtd : null;
 
   const portfolioSnap = d.snaps.filter((s) => s.tab === "portfolio")[0] || null;
-  const feedAge = portfolioSnap ? (Date.now() - new Date(portfolioSnap.fetched_at).getTime()) / 60000 : null;
+  // Health = when WE last checked the sheet (the poller runs every ~5 min), never when the
+  // publisher last changed it — a snapshot is only written on change, so on a quiet day the
+  // newest snapshot ages for hours while everything is fine.
+  const feedAge = d.pollAt ? (Date.now() - new Date(d.pollAt).getTime()) / 60000
+    : (portfolioSnap ? (Date.now() - new Date(portfolioSnap.fetched_at).getTime()) / 60000 : null);
   const feedTone = feedAge == null ? "mute" : feedAge < 20 ? "ok" : feedAge < 180 ? "warn" : "bad";
   const feedLabel = feedAge == null ? "no data" : feedTone === "ok" ? "live" : feedTone === "warn" ? "lagging" : "stale";
 
@@ -644,7 +652,8 @@ function SwingsPage({ page }) {
         <PageHead title="Alerts" />
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
-          <span>Macrotrends sheet · checked {SW_ago(portfolioSnap && portfolioSnap.fetched_at)}</span>
+          <span>Macrotrends sheet · checked {SW_ago(d.pollAt || (portfolioSnap && portfolioSnap.fetched_at))}
+            {portfolioSnap ? " · last change " + SW_ago(portfolioSnap.fetched_at) : ""}</span>
           <SW_Pill tone={feedTone}>{feedLabel}</SW_Pill>
         </div>
         {d.sigs.length === 0
