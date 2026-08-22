@@ -70,7 +70,7 @@ function FronttestPage() {
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "10px 0", textAlign: "right", whiteSpace: "nowrap" };
   const thL = { ...th, textAlign: "left" };
-  const td = { font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", padding: "11px 0", borderTop: "1px solid var(--border)", textAlign: "right", color: "var(--text-primary)", whiteSpace: "nowrap" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", padding: "11px 0", borderTop: "1px solid var(--row-line)", textAlign: "right", color: "var(--text-primary)", whiteSpace: "nowrap" };
   const tdL = { ...td, textAlign: "left" };
 
   // per-strategy stats ALWAYS cover ALL strategies (date filter only) — the strategy

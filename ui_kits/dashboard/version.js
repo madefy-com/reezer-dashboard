@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.026", date: "2026-08-22",
     notes: [
+      "Table row lines across every page \u2014 options trades and alerts, activity, settings, Exit Lab, swings \u2014 are now slightly dimmer so they read the same as the card frame (the same colour looks brighter inside a card than at its edge), and the row hover highlight is softer everywhere.",
       "The Macrotrends page now has two tabs: his current portfolio (the default) and his closed positions \u2014 the sell log Reezer already watches for exit signals, all 42 of his past exits with entry, exit and result. Sorting of the open tab now counts only real decisions \u2014 an advice change, a weight change or a new addition.",
       "The publisher's portfolio has its own page now: Macrotrends, in the swings menu. On the alerts feed it vanished as soon as alerts piled up; as a page the table is always open, sorted by his latest real change. A violet dot marks every stock you hold from his book, the card header counts them, and the \u201cyour p&l\u201d column shows your own percentage \u2014 broker-priced while you hold, the realized figure once sold.",
       "Fixed: the Alerts page said \u201clagging\u201d while everything was healthy. The badge measured the age of the last sheet change \u2014 but a change is only recorded when the publisher actually edits something, so a quiet sheet looked like a broken feed. It now measures when Reezer last checked the sheet (every ~5 minutes), and shows the last change separately.",

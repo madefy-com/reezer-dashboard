@@ -60,7 +60,7 @@ function ActivityPage() {
     font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", background: "transparent", color: "var(--text-secondary)" };
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "10px 14px", textAlign: "left", whiteSpace: "nowrap", position: "sticky", top: 0, background: "var(--surface-card)", zIndex: 1 };
-  const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--border)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--row-line)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top" };
   const mono = { font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-mono)" };
 
   const emptyText = cat === "all"

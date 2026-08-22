@@ -30,7 +30,7 @@ function LogPage({ category = "options", title, subtitle }) {
   };
 
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "12px 14px 12px 0", textAlign: "left", whiteSpace: "nowrap", position: "sticky", top: 0, background: "var(--surface-card)", zIndex: 1 };
-  const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", padding: "12px 14px 12px 0", borderTop: "1px solid var(--border)", verticalAlign: "middle" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", padding: "12px 14px 12px 0", borderTop: "1px solid var(--row-line)", verticalAlign: "middle" };
   const mono = { fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" };
 
   return (

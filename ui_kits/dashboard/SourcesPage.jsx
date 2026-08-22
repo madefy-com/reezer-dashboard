@@ -226,7 +226,7 @@ function SourcesPage() {
   // ---- shared table styles (match TradesPage) ----
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "11px 16px", textAlign: "left", whiteSpace: "nowrap", borderBottom: "1px solid var(--border)" };
   const thR = { ...th, textAlign: "right" };
-  const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", padding: "13px 16px", borderTop: "1px solid var(--border)", textAlign: "left", color: "var(--text-primary)", verticalAlign: "middle" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", padding: "13px 16px", borderTop: "1px solid var(--row-line)", textAlign: "left", color: "var(--text-primary)", verticalAlign: "middle" };
   const tdR = { ...td, textAlign: "right" };
   const ICON = { width: 32, height: 32, flex: "none", borderRadius: "var(--radius-md)", background: "var(--surface-inset)", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text-secondary)" };
 
