@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Reezer · dashboard</title>
 <link rel="icon" href="/assets/logo-mark.png" />
-<link rel="stylesheet" href="/styles.css?v=225" />
+<link rel="stylesheet" href="/styles.css?v=226" />
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
@@ -13,7 +13,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <!-- ?v= is the cache-buster: bump NT_VER on every dashboard deploy so a normal
      refresh (no Cmd-Shift-R) picks up new code. Keep all app-script ?v= in sync. -->
-<script src="/_ds_bundle.js?v=225"></script>
+<script src="/_ds_bundle.js?v=226"></script>
 <style>
   html, body { margin: 0; background: var(--bg-app); color: var(--text-primary); font-family: var(--font-sans); }
   * { box-sizing: border-box; }
@@ -24,36 +24,55 @@
 </head>
 <body>
 <div id="root"></div>
-<script src="/ui_kits/dashboard/data.js?v=225"></script>
-<script src="/ui_kits/dashboard/config.js?v=225"></script>
-<script src="/ui_kits/dashboard/version.js?v=225"></script>
-<script src="/ui_kits/dashboard/client.js?v=225"></script>
-<script src="/ui_kits/dashboard/dialog.js?v=225"></script>
-<script src="/ui_kits/dashboard/auth-gate.js?v=225"></script>
-<script src="/ui_kits/dashboard/live.js?v=225"></script>
-<script src="/ui_kits/dashboard/realtime.js?v=225"></script>
-<script src="/ui_kits/dashboard/replay.js?v=225"></script>
-<script type="text/babel" src="/ui_kits/dashboard/Sidebar.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/Shared.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/StatusBar.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/KpiRow.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/PnlChart.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/TradesLog.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/DiscordLog.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/TradeDetail.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/TradesPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/DashboardPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/LogPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/BacktestingPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/FronttestPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/ActivityPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/StrategiesPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/SwingsPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/FuturesPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/ChangelogPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/SourcesPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/AdvisorPage.jsx?v=225" data-presets="react"></script>
-<script type="text/babel" src="/ui_kits/dashboard/App.jsx?v=225" data-presets="react"></script>
+<script src="/ui_kits/dashboard/data.js?v=226"></script>
+<script src="/ui_kits/dashboard/config.js?v=226"></script>
+<script src="/ui_kits/dashboard/version.js?v=226"></script>
+<script src="/ui_kits/dashboard/client.js?v=226"></script>
+<script src="/ui_kits/dashboard/dialog.js?v=226"></script>
+<script src="/ui_kits/dashboard/auth-gate.js?v=226"></script>
+<script src="/ui_kits/dashboard/live.js?v=226"></script>
+<script src="/ui_kits/dashboard/realtime.js?v=226"></script>
+<script src="/ui_kits/dashboard/replay.js?v=226"></script>
+<script>
+/* Crash visibility. An uncaught error in this Babel-in-browser app unmounts React and leaves
+   a silent black page — on 2026-08-22 that turned a one-line bug into a blind rollback. Any
+   uncaught error or rejection now paints itself onto the page with its stack. */
+(function () {
+  var shown = false;
+  function show(kind, msg, stack) {
+    if (shown) return; shown = true;
+    var d = document.createElement("div");
+    d.style.cssText = "position:fixed;inset:auto 16px 16px 16px;z-index:99999;background:#2a1215;border:1px solid #F0454B;border-radius:12px;padding:14px 16px;color:#ffd7d9;font:13px/1.5 ui-monospace,Menlo,monospace;max-height:45vh;overflow:auto;white-space:pre-wrap;";
+    d.textContent = "Reezer hit an error (" + kind + "):\n" + msg + (stack ? "\n\n" + stack : "") + "\n\nScreenshot this and send it to Claude. Reload to continue.";
+    (document.body || document.documentElement).appendChild(d);
+  }
+  window.addEventListener("error", function (e) { show("error", e.message || String(e), e.error && e.error.stack); });
+  window.addEventListener("unhandledrejection", function (e) {
+    var r = e.reason || {}; show("promise", r.message || String(r), r.stack);
+  });
+})();
+</script>
+<script type="text/babel" src="/ui_kits/dashboard/Sidebar.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/Shared.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/StatusBar.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/KpiRow.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/PnlChart.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradesLog.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/DiscordLog.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradeDetail.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/TradesPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/DashboardPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/LogPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/BacktestingPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/FronttestPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/ActivityPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/StrategiesPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/SwingsPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/FuturesPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/ChangelogPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/SourcesPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/AdvisorPage.jsx?v=226" data-presets="react"></script>
+<script type="text/babel" src="/ui_kits/dashboard/App.jsx?v=226" data-presets="react"></script>
 <script type="text/babel" data-presets="react">
   function ntBoot() {
     if (!window.NitroTraderDesignSystem_95e598 || !window.App) {
