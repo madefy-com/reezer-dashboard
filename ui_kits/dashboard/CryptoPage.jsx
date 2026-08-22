@@ -164,22 +164,26 @@ function CryptoPage({ page }) {
     const actWord = { font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", whiteSpace: "nowrap" };
 
     const Tile = ({ sym, pb }) => {
+      // ONE status word (what to do now); the move he is setting up for is the grey line.
       const x = pb || {};
       const now = x.now || "neutral", next = x.next && x.next !== "none" ? x.next : null;
-      const lean = next || now;
+      const nowTxt = now.replace("_", " ");
+      const trig = x.trigger ? x.trigger.replace(/^(if|on|when)\s+/i, "") : "";
+      let line;
+      if (next && trig) line = (next === "buy" ? (/buy/.test(now) ? "add" : "buy") : next === "sell" ? "sell" : next) + " if " + trig;
+      else if (next) line = next === "buy" ? (/buy/.test(now) ? "add later" : "prepare to buy") : "prepare to " + next;
+      else if (trig) line = "if " + trig;
+      else line = now === "neutral" ? "not discussed" : (x.reason || "");
+      if (x.via_alts) line += " · via his alts call";
       return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, padding: "9px 11px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(lean), minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, padding: "9px 11px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(now), minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)", width: 30 }}>{sym}</span>
-            <span style={{ ...actWord, color: actCol(now) }}>{now}</span>
-            {next ? <span style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)" }}>→</span> : null}
-            {next ? <span style={{ ...actWord, color: actCol(next) }}>{next === now ? (next === "buy" ? "add" : "more") : "prepare to " + next}</span> : null}
+            <span style={{ ...actWord, color: actCol(now), opacity: now === "conditional_buy" ? 0.85 : 1 }}>{nowTxt}</span>
           </div>
-          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.7em" }}>
-            {x.trigger ? (next ? "if " : "") + x.trigger : (now === "neutral" ? "not discussed" : (x.reason || ""))}{x.via_alts ? " · via his alts call" : ""}
-          </div>
+          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.7em" }}>{line}</div>
           <div style={{ height: 3, borderRadius: 2, background: "var(--border)", position: "relative" }}>
-            <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(lean), opacity: 0.8 }}></span>
+            <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(now), opacity: 0.8 }}></span>
           </div>
         </div>
       );
