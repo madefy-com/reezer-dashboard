@@ -261,11 +261,13 @@ function SwingsPage({ page }) {
   const firstYear = firstEntry ? new Date(firstEntry).getFullYear() : null;
   const sinceInception = firstEntry != null && firstYear === year;
   const benchFrom = sinceInception ? String(firstEntry).slice(0, 10) : (year + "-01-01");
-  const before = d.bench.filter((b) => String(b.d) <= benchFrom);
+  const before = d.bench.filter((b) => String(b.d) < benchFrom);
   const after = d.bench.filter((b) => String(b.d) >= benchFrom);
-  // Baseline = the last index close AT OR BEFORE the first buy. That is where the index stood
-  // when we entered, and it exists from day one — unlike a row dated on the entry day itself,
-  // which will not be written until that session closes.
+  // Baseline = the last index close strictly BEFORE the first buy, so the buy day's own move
+  // counts from day one. Anchoring on the buy date's own close pinned the S&P return to 0.0%
+  // until two further sessions existed — it looked like the figure was simply missing. In the
+  // first calendar year this measures from the first buy (2026-08-21); from 1 Jan of the next
+  // year it becomes an ordinary calendar-year comparison automatically (sinceInception flips).
   const bFirst = before.length ? SW_n(before[before.length - 1].close)
                                : (after.length ? SW_n(after[0].close) : null);
   const bLast = d.bench.length ? SW_n(d.bench[d.bench.length - 1].close) : null;
@@ -378,7 +380,7 @@ function SwingsPage({ page }) {
           : (buyingPower == null ? "at your broker"
              : SW_cur(buyingPower, acctCcy) + " buying power")} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
-        sub={year + " · on invested capital · " + closedThisYear.length + " closed"}
+        sub={"on invested capital · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
       <Kard label="net p&l" value={SW_cur(realized, baseCcy)} tone={tone(realized)}
         sub={"realized · " + SW_cur(openValue, baseCcy) + " open"} />
@@ -390,7 +392,7 @@ function SwingsPage({ page }) {
         visual={<Ico name="clock" size={17} color="var(--text-tertiary)" />} />
       <Kard label="vs S&P 500" value={traded ? SW_pct(edge) : "—"} tone={traded ? tone(edge) : null}
         sub={traded
-          ? ("your invested capital " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
+          ? ("you " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd))
           : "nothing bought yet · starts at your first buy"} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
@@ -478,13 +480,25 @@ function SwingsPage({ page }) {
           {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              {/* fixed layout: the browser otherwise sizes each column to its content, so
+                  every column lands at a different distance and the table reads unstructured. */}
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: 860 }}>
+                <colgroup>
+                  <col style={{ width: "23%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "10%" }} />
+                </colgroup>
                 <thead><tr>
-                  <th style={th}>holding</th>
+                  <th style={th}>company</th>
                   <th style={thR}>shares</th>
+                  <th style={thR}>capital</th>
                   <th style={thR}>buy-in</th>
                   <th style={thR}>current price</th>
-                  <th style={thR}>capital</th>
                   <th style={thR}>market value</th>
                   <th style={thR}>unrealized p&l</th>
                   <th style={thR}>%</th>
@@ -511,11 +525,11 @@ function SwingsPage({ page }) {
                         </div>
                       </td>
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{p.qty == null ? "—" : SW_n(p.qty)}</td>
-                      <td style={{ ...tdTallR, ...mono, color: "var(--text-tertiary)" }}>{SW_curP(p.avg_price, ccyOf(p))}</td>
-                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_curP(markOf(p).px, ccyOf(p))}</td>
                       {/* Capital = what the position COST, commission included (IBKR's avg
                           cost carries it). Market value = what it is worth now. */}
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{SW_cur(natCost(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-tertiary)" }}>{SW_curP(p.avg_price, ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_curP(markOf(p).px, ccyOf(p))}</td>
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{SW_cur(natMktValue(p), ccyOf(p))}</td>
                       <td style={{ ...tdTallR, ...mono, color: pnlCol(natPnl(p)) }}>
                         {natPnl(p) == null ? "—" : SW_curP(natPnl(p), ccyOf(p))}</td>
@@ -662,9 +676,7 @@ function SwingsPage({ page }) {
 
                     <div>
                       <div style={colLabel}>industry</div>
-                      <div style={{ marginTop: 4 }}>{meta.theme
-                        ? <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", padding: "4px 10px", borderRadius: 999, background: "var(--violet-soft)", border: "1px solid var(--violet-line)", color: "var(--violet-400)" }}>{meta.theme}</span>
-                        : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</div>
+                      <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: meta.theme ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{meta.theme || "—"}</div>
                     </div>
 
                     <div>
@@ -733,7 +745,7 @@ function SwingsPage({ page }) {
                         <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: "var(--text-primary)" }}>{h.sym}</span>
                         <span style={{ color: "var(--text-tertiary)", marginLeft: 8 }}>{h.name || ""}</span>
                       </td>
-                      <td style={td}>{h.theme ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", padding: "3px 8px", borderRadius: 999, background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{h.theme}</span> : "—"}</td>
+                      <td style={{ ...td, color: h.theme ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{h.theme || "—"}</td>
                       <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
                       <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
                       {/* What HE paid. Read next to the live price it says whether the name is
@@ -762,8 +774,12 @@ function SwingsPage({ page }) {
     const openPnl = openPos.reduce((a, p) => a + (unrealOf(p) || 0), 0);
     // Names he still calls a BUY trading at or near his entry — the ones still enterable on
     // his terms rather than chasing a move that already happened.
+    const heldSyms = {};
+    openPos.forEach((x) => { heldSyms[String(x.symbol).toUpperCase()] = true; });
+    // Already owning a name removes it from "you could buy now" — the question this stat
+    // answers is what is still open to you, not what you have already done.
     const cand = Object.keys(marks).map((k) => ({ sym: k, ...(marks[k] || {}) }))
-      .filter((h) => en2(h.advies) === "buy")
+      .filter((h) => en2(h.advies) === "buy" && !heldSyms[h.sym])
       .filter((h) => { const e = SW_n(h.entry_px), px = SW_n(h.px); return e && px && (px - e) / e <= 0.05; });
     const accountUsd = SW_n(((d.brokers || [])[0] || {}).settings
       && ((d.brokers || [])[0] || {}).settings.account_value);
@@ -781,11 +797,11 @@ function SwingsPage({ page }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
             {stat("your positions", String(openPos.length),
                   openPos.length ? null : "var(--text-tertiary)",
-                  openPos.length ? SW_money(investedUsd) + " invested" : "nothing bought yet")}
-            {stat("open p&l", openPos.length ? SW_money(openPnl) : "—",
+                  openPos.length ? SW_cur(investedUsd, acctCcy) + " invested" : "nothing bought yet")}
+            {stat("open p&l", openPos.length ? SW_curP(openPnl, acctCcy) : "—",
                   !openPos.length ? "var(--text-tertiary)" : openPnl > 0 ? "var(--profit)" : openPnl < 0 ? "var(--loss)" : null,
-                  openPos.length ? "valued by IBKR" : "no open positions")}
-            {stat("buying power", accountUsd == null ? "—" : SW_money(accountUsd),
+                  openPos.length ? null : "no open positions")}
+            {stat("buying power", accountUsd == null ? "—" : SW_cur(accountUsd, acctCcy),
                   null, accountUsd == null ? "broker not checked" : "at your broker")}
             {stat("you could buy now", String(cand.length),
                   cand.length ? "var(--profit)" : "var(--text-tertiary)",
