@@ -107,7 +107,7 @@ function SwingsPage({ page }) {
   const [d, setD] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [edit, setEdit] = React.useState(null);
-  const [portOpen, setPortOpen] = React.useState(true);   // the Macrotrends portfolio accordion
+  const [portOpen, setPortOpen] = React.useState(false);  // the Macrotrends portfolio accordion — closed until asked
   const [tradeFilter, setTradeFilter] = React.useState("all");   // trades page: all | open | closed
   const announced = React.useRef(false);
 
@@ -720,16 +720,17 @@ function SwingsPage({ page }) {
             </div>
           ))}
 
-        <NT.Card padding={20} bodyStyle={{ padding: 0 }}
-          title={(
-            <button type="button" onClick={() => setPortOpen((o) => !o)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "transparent", border: "none",
-                       padding: 0, cursor: "pointer", color: "inherit", font: "inherit", letterSpacing: "inherit" }}>
-              <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
-              {"Macrotrends current portfolio · " + holdings.length + " stocks"}
-            </button>
-          )}>
-          {portOpen && <div style={{ overflowX: "auto" }}>
+        <div style={{ marginTop: 18, background: "var(--surface-card)", border: "1px solid var(--border)",
+                      borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+          <button type="button" onClick={() => setPortOpen((o) => !o)}
+            style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "14px 16px",
+                     background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
+                     font: "var(--w-semibold) var(--t-h3)/1.2 var(--font-sans)", letterSpacing: "var(--ls-snug)",
+                     color: "var(--text-primary)" }}>
+            <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
+            {"Macrotrends current portfolio · " + holdings.length + " stocks"}
+          </button>
+          {portOpen && <div style={{ overflowX: "auto", borderTop: "1px solid var(--border)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
               <thead><tr>
                 <th style={th}>holding</th>
@@ -768,7 +769,7 @@ function SwingsPage({ page }) {
               </tbody>
             </table>
           </div>}
-        </NT.Card>
+        </div>
       </div>
     );
   }
