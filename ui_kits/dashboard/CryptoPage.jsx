@@ -133,7 +133,7 @@ function CryptoPage({ page }) {
   if (page === "crypto-trades") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Trades" subtitle="Every crypto position, open and closed — Revolut X" />
+        <PageHead title="Trades" />
         <CryptoBetaBanner />
         <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Positions" + (d.positions.length ? " \u00b7 " + d.positions.length : "")}>{positionsTable(d.positions, true)}</NT.Card>
       </div>
@@ -143,7 +143,7 @@ function CryptoPage({ page }) {
   if (page === "crypto-alerts") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Alerts" subtitle="Signals from the crypto sheet — none yet, the sheet does not exist" />
+        <PageHead title="Alerts" />
         <CryptoBetaBanner />
         <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Signals" + (d.signals.length ? " \u00b7 " + d.signals.length : "")}>
           {d.signals.length === 0 ? empty("No signals yet. The crypto signal sheet is the next piece to build.") : (
@@ -170,7 +170,7 @@ function CryptoPage({ page }) {
     };
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Strategies" subtitle="Crypto strategies on Revolut X" />
+        <PageHead title="Strategies" />
         <CryptoBetaBanner />
         <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Strategies" + (d.strategies.length ? " \u00b7 " + d.strategies.length : "")}>
           {d.strategies.length === 0 ? empty("No crypto strategies.") : (
@@ -194,7 +194,7 @@ function CryptoPage({ page }) {
   // dashboard
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>Crypto <CryptoBetaPill /></span>} subtitle="Revolut X \u00b7 USD pairs" />
+      <PageHead title={greeting(window.NT_USER_NAME || (window.NT_DATA && window.NT_DATA.session && window.NT_DATA.session.user))} />
       <CryptoBetaBanner />
       <div className="nt-kpi-row">
         <Kard label="account value" value={bs.account_value != null ? CR_usd(bs.account_value, 0) : "—"}
@@ -203,6 +203,10 @@ function CryptoPage({ page }) {
         <Kard label="open positions" value={String(openPos.length)} sub={working.length ? working.length + " order(s) working" : "no orders working"} />
         <Kard label="p&l" value={CR_usd(realized + unrealTotal, 0)} tone={realized + unrealTotal > 0 ? "up" : realized + unrealTotal < 0 ? "down" : null}
           sub={"realized " + CR_usd(realized, 0) + " · unrealized " + CR_usd(unrealTotal, 0)} />
+        <style>{`
+          .nt-kpi-row{ display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--gap-grid); }
+          @media (max-width: 720px){ .nt-kpi-row{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        `}</style>
       </div>
       <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Your portfolio" + (openPos.length ? " \u00b7 " + openPos.length : "")}
         action={bs.synced_at ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{"Revolut X \u00b7 " + CR_ago(bs.synced_at)}</span> : null}>{positionsTable(openPos, false)}</NT.Card>

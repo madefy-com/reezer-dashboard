@@ -1,6 +1,6 @@
 /* Sidebar — labeled nav rail with brand + subpages. */
 function Ico({ name, size = 20, color = "currentColor", sw = 1.75 }) {
-  return <i data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i>;
+  return <i key={name} data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i>;
 }
 
 /* Several worlds live side by side: the 0DTE options bot, the swing book, and futures.
