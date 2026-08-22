@@ -78,6 +78,7 @@ function SourcesPage() {
   // rendered by ONE shared row builder. The cached NT_DATA list predates the new columns.
   const [optBrokers, setOptBrokers] = React.useState(null);
   const [eqBrokers, setEqBrokers] = React.useState(null);
+  const [cryptoBrokers, setCryptoBrokers] = React.useState(null);   // Revolut X (crypto, BETA)
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
@@ -87,6 +88,9 @@ function SourcesPage() {
     db.from("equity_broker_accounts").select("*").order("id").then(function (r) {
       if (r && !r.error && r.data) setEqBrokers(r.data);
     }, function () { /* offline — keep the placeholder row */ });
+    db.from("crypto_broker_accounts").select("*").order("id").then(function (r) {
+      if (r && !r.error && r.data) setCryptoBrokers(r.data);
+    }, function () { /* offline — no crypto row */ });
   }, []);
   const brokers = optBrokers || window.NT_DATA.brokerAccounts || [];
   const hasIbkr = (eqBrokers || []).some((b) => /ibkr|interactive/i.test(String(b.broker || b.label || "")))
@@ -477,7 +481,9 @@ function SourcesPage() {
             };
             // IBKR leads: it is the broker that holds the swings book the user watches daily.
             return ((eqBrokers || []).map((b, i) => row("eq" + b.id, b, "swings", "Interactive Brokers", i === 0)))
-              .concat(brokers.map((b) => row(b.id, b, "options", "Charles Schwab", !(eqBrokers || []).length)));
+              .concat(brokers.map((b) => row(b.id, b, "options", "Charles Schwab", !(eqBrokers || []).length)))
+              // Crypto is BETA: the row is real (synced by broker_sync like the others) but says so.
+              .concat((cryptoBrokers || []).map((b) => row("cr" + b.id, b, "crypto · beta", "Revolut X", false)));
           })()}
           {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
               row so the gap is visible before it exists. */}
