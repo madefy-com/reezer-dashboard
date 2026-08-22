@@ -66,7 +66,9 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
   futStrats.forEach((s) => { futIds[s.id] = true; });
   const optOpen = (D.trades || []).filter((t) => t.status === "live" && !futIds[t.strategyId]);
   const futOpen = (D.trades || []).filter((t) => t.status === "live" && futIds[t.strategyId]);
-  const [eqOpen, setEqOpen] = React.useState([]);
+  const [eqOpen, setEqOpen] = React.useState(() => {
+    try { return JSON.parse(window.localStorage.getItem("nt_eq_open_cache") || "[]"); } catch (e) { return []; }
+  });
   const loadEq = React.useCallback(() => {
     const db = window.NT_CLIENT;
     if (!db || !(window.NT_HAS_SWINGS || eqStrats.length)) return;
@@ -76,11 +78,13 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     ]).then(([p, m]) => {
       const marks = {};
       (m.data || []).forEach((x) => { marks[String(x.symbol).toUpperCase()] = x; });
-      setEqOpen((p.data || []).map((x) => {
+      const rows = (p.data || []).map((x) => {
         const mk = marks[String(x.symbol).toUpperCase()] || {};
         return { sym: x.symbol, qty: Number(x.qty), ccy: mk.ccy || "EUR",
                  pnl: mk.unrealized_pnl != null ? Number(mk.unrealized_pnl) : null };
-      }));
+      });
+      setEqOpen(rows);
+      try { window.localStorage.setItem("nt_eq_open_cache", JSON.stringify(rows)); } catch (e) {}
     }, () => {});
   }, [eqStrats.length]);
   React.useEffect(() => { loadEq(); }, [loadEq]);
@@ -216,13 +220,17 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     );
   };
 
-  const posRow = (key, left, sub, pnl, ccy, world, page, first) => (
+  const posRow = (key, left, sub, pnl, ccy, world, wLabel, page, first) => (
     <button key={key} onClick={() => { closeAll(); if (onWorldNav) onWorldNav(world, page); else onNav(page); }}
       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%",
-               padding: "9px 12px", background: "transparent", border: "none",
+               padding: "10px 0", background: "transparent", border: "none",
                borderTop: first ? "none" : "1px solid var(--row-line)", cursor: "pointer", textAlign: "left" }}>
-      <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-primary)" }}>
-        {left} <span style={{ fontFamily: "var(--font-sans)", color: "var(--text-disabled)", fontWeight: "var(--w-regular)" }}>{sub}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-primary)", whiteSpace: "nowrap" }}>
+          {left} <span style={{ fontFamily: "var(--font-sans)", color: "var(--text-disabled)", fontWeight: "var(--w-regular)" }}>{sub}</span>
+        </span>
+        <span style={{ flex: "none", font: "var(--w-semibold) 9px/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase",
+                       padding: "3px 7px", borderRadius: "var(--radius-pill)", background: "var(--violet-soft)", color: "var(--violet-400)" }}>{wLabel}</span>
       </span>
       <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: pnl == null ? "var(--text-tertiary)" : pnl > 0 ? "var(--profit)" : pnl < 0 ? "var(--loss)" : "var(--text-secondary)", whiteSpace: "nowrap" }}>
         {money(pnl, ccy)} <span style={{ color: "var(--text-disabled)" }}>›</span>
@@ -288,24 +296,21 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
             {scrim}
             <div style={{ ...popBox(310), left: 0 }}>
               <span style={popTitle}>Open positions · all worlds</span>
-              {WORLDS.map((w, wi) => {
-                const rows = w.id === "swings"
-                  ? eqOpen.map((p, i) => posRow("eq" + i, p.sym, p.qty + (Math.abs(p.qty) === 1 ? " share" : " shares"), p.pnl, p.ccy, "swings", "swings-trades", i === 0))
-                  : (w.id === "options" ? optOpen : futOpen).map((p, i) => posRow(w.id + p.id,
-                      (p.tk || "") + " " + (p.strike || ""), p.qty + "x", p.pnl, "USD", w.id, w.trades, i === 0));
-                return (
-                  <div key={w.id} style={{ marginTop: wi ? 10 : 6 }}>
-                    <div style={{ padding: "0 2px 5px", font: "var(--w-semibold) 10px/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{w.label}</div>
-                    {/* each world is its own inset box, so the grouping is a shape you can
-                        see rather than a label you have to read */}
-                    <div style={{ background: "var(--surface-inset)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
-                      {rows.length ? rows : (
-                        <div style={{ padding: "9px 12px", font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-disabled)" }}>nothing open</div>
-                      )}
-                    </div>
-                  </div>
+              {(function () {
+                // One flat list, each row wearing its world as a small tag — a grouped layout
+                // with bordered boxes read as empty input fields. Worlds with nothing open
+                // simply don't appear; the pill already says how many there are.
+                const rows = [];
+                WORLDS.forEach((w) => {
+                  if (w.id === "swings") eqOpen.forEach((p) => rows.push(
+                    posRow("eq" + p.sym, p.sym, p.qty + (Math.abs(p.qty) === 1 ? " share" : " shares"), p.pnl, p.ccy, "swings", "swings", "swings-trades", rows.length === 0)));
+                  else (w.id === "options" ? optOpen : futOpen).forEach((p) => rows.push(
+                    posRow(w.id + p.id, (p.tk || "") + " " + (p.strike || ""), p.qty + "x", p.pnl, "USD", w.id, w.id, w.trades, rows.length === 0)));
+                });
+                return rows.length ? rows : (
+                  <div style={{ padding: "10px 0", font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-disabled)" }}>nothing open in any world</div>
                 );
-              })}
+              })()}
               <div style={popNote}>Every open position, wherever it lives, in its own currency. A row jumps to that world's Trades page.</div>
             </div>
           </React.Fragment>
