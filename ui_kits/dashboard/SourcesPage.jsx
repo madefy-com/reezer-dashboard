@@ -73,9 +73,9 @@ function SchwabReauth() {
 function IbkrGatewayLine({ row }) {
   const gw = (row && row.settings && row.settings.gateway) || null;
   const ago = (ts) => { if (!ts) return ""; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : s < 172800 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago"; };
-  const hhmm = (ts) => (ts ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "");
+  const hhmm = (ts) => (ts ? new Date(ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
   // IBKR forces a re-login once a week; the Gateway's own restart lands on Sunday.
-  const nextSunday = (() => { const d = new Date(); const add = (7 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + add); return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }); })();
+  const nextSunday = (() => { const d = new Date(); const add = (7 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + add); return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }); })();
   let tone = "var(--text-tertiary)", label = "no watchdog yet";
   if (gw && gw.online) { tone = "var(--profit)"; label = `re-login due ${nextSunday}`; }
   else if (gw) { tone = "var(--loss)"; label = `OFFLINE since ${hhmm(gw.since)}`; }
