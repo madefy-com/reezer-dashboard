@@ -849,8 +849,8 @@ function SwingsPage({ page }) {
                 <th style={th}>weight</th>
                 <th style={th}>buy-in</th>
                 <th style={th}>current price</th>
-                <th style={thR}>result</th>
-                <th style={thR}>your p&l</th>
+                <th style={th}>result</th>
+                <th style={th}>your p&l</th>
               </tr></thead>
               <tbody>
                 {holdings.map((h) => {
@@ -880,8 +880,8 @@ function SwingsPage({ page }) {
                           read as comparable to a € one */}
                       <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_curP(h.entry_px, h.ccy)}</td>
                       <td style={{ ...td, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_curP(h.px, h.ccy)}</td>
-                      <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
-                      <td style={{ ...tdR, ...mono, color: mp == null ? "var(--text-tertiary)" : mp > 0 ? "var(--profit)" : mp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
+                      <td style={{ ...td, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
+                      <td style={{ ...td, ...mono, color: mp == null ? "var(--text-tertiary)" : mp > 0 ? "var(--profit)" : mp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
                         {mp == null ? "—" : SW_pct(mp)}
                         {mp != null && !held ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginLeft: 6 }}>sold</span> : null}
                       </td>
