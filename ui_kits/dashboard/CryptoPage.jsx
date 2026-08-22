@@ -16,18 +16,20 @@ const CR_ago = (iso) => {
 };
 
 /* The one BETA pill, used everywhere the world is named: menu, top bar, page heads, banner. */
-function CryptoBetaPill({ small }) {
+function CryptoBetaPill({ small, tone }) {
+  const amber = tone === "amber";
   return (
     <span style={{ display: "inline-block", font: "var(--w-semibold) " + (small ? "9px" : "var(--t-2xs)") + "/1 var(--font-sans)", letterSpacing: "var(--ls-wide)",
-      color: "var(--violet)", padding: small ? "2px 5px" : "3px 7px", border: "1px solid var(--violet-line)", borderRadius: 999, verticalAlign: "middle" }}>BETA</span>
+      color: amber ? "var(--chip-entry)" : "var(--violet)", padding: small ? "2px 5px" : "3px 7px",
+      border: "1px solid " + (amber ? "var(--chip-entry)" : "var(--violet-line)"), borderRadius: 999, verticalAlign: "middle" }}>BETA</span>
   );
 }
 
 function CryptoBetaBanner() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-      background: "var(--violet-soft)", border: "1px solid var(--violet-line)", borderRadius: "var(--radius-sm)" }}>
-      <CryptoBetaPill />
+      background: "var(--chip-entry-bg)", border: "1px solid var(--chip-entry)", borderRadius: "var(--radius-sm)" }}>
+      <CryptoBetaPill tone="amber" />
       <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)" }}>
         Crypto on Revolut X is being built. The broker is connected and read daily; the signal sheet and the trading engine come next. Paper only — no real crypto orders yet.
       </span>
