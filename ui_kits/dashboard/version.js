@@ -9,6 +9,7 @@ window.NT_CHANGELOG = [
   {
     v: "1.026", date: "2026-08-22",
     notes: [
+      "The three settings cards \u2014 Dashboard, Brokers, Alert sources \u2014 now always share the same height, matching the tallest of the row.",
       "The menu is a little wider, and the world switcher is now the same height as the Ask Reezer button, so the selected item, the switcher and the button all line up.",
       "Settings starts with the choice that frames everything else: which world your dashboard opens on. Below it you can now set a default strategy per world \u2014 each world keeps its own choice, so picking a futures strategy no longer quietly becomes the options default too.",
       "Interactive Brokers is listed first among the brokers, the page stretches to use the full width of the window, and the New source button \u2014 which did nothing \u2014 is gone.",

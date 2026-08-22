@@ -408,7 +408,10 @@ function SourcesPage() {
         /* Three config cards side by side once there is room for them (Dashboard,
            Brokers, Alert sources), two on a laptop, one on a narrow window. The cap
            keeps a card from stretching to an unreadable width on a very wide display. */
-        .nt-set3{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--gap-grid); align-items:start; }
+        /* stretch, not start: the three cards read as one row, so they share the height of
+           the tallest instead of each stopping at its own content. */
+        .nt-set3{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--gap-grid); align-items:stretch; }
+        .nt-set3 > *{ height:100%; box-sizing:border-box; }
         @media (max-width: 1500px){ .nt-set3{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
         @media (max-width: 900px){ .nt-set3{ grid-template-columns: 1fr; } }
       `}</style>
