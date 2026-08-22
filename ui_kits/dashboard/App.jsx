@@ -1,5 +1,21 @@
 const NT_HOME_PAGE = { options: "dashboard", swings: "swings-dashboard", futures: "futures-dashboard" };
 
+/* A crash in one component must not black out the whole app. The boundary renders the error
+   IN PLACE so the failure names itself, and everything around it keeps working. */
+class NT_Boundary extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  render() {
+    if (!this.state.err) return this.props.children;
+    return (
+      <div style={{ padding: "10px 22px", background: "var(--loss-bg)", borderBottom: "1px solid var(--loss-line)",
+                    color: "var(--loss)", font: "var(--w-medium) var(--t-xs)/1.5 var(--font-mono)", whiteSpace: "pre-wrap" }}>
+        {"The " + (this.props.label || "component") + " crashed: " + (this.state.err.message || String(this.state.err))}
+      </div>
+    );
+  }
+}
+
 /* Operator-attention banner: surfaces unseen operator_flags (e.g. an ambiguous
    alert the bot had to guess on). Red strip under the status bar; Dismiss sets
    seen=1 in Supabase so it stays cleared across reloads. */
@@ -200,7 +216,11 @@ function App() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-app)" }}>
       <Sidebar page={page} onNav={setPage} world={world} onWorld={goWorld} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage} strategies={strategies} />
+        <NT_Boundary label="top bar">
+        <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage}
+          onWorldNav={(w, pg) => { setWorld(w); setPage(pg); try { window.history.replaceState(null, "", "#/" + w); } catch (e) {} }}
+          strategies={strategies} />
+        </NT_Boundary>
         <FlagBanner />
         <WatchdogBanner />
         <main style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
