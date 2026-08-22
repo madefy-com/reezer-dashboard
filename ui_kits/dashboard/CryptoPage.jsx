@@ -182,7 +182,7 @@ function CryptoPage({ page }) {
             <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)", width: 30 }}>{sym}</span>
             <span style={{ ...actWord, color: actCol(now), opacity: now === "conditional_buy" ? 0.85 : 1 }}>{nowTxt}</span>
           </div>
-          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.7em" }}>{line}</div>
+          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden", height: "4.05em" }}>{line}</div>
           <div style={{ height: 3, borderRadius: 2, background: "var(--border)", position: "relative" }}>
             <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(now), opacity: 0.8 }}></span>
           </div>
