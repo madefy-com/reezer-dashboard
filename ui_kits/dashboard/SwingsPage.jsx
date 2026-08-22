@@ -108,12 +108,13 @@ function SwingsPage({ page }) {
   const [busy, setBusy] = React.useState(false);
   const [edit, setEdit] = React.useState(null);
   const [tradeFilter, setTradeFilter] = React.useState("all");   // trades page: all | open | closed
+  const [macroTab, setMacroTab] = React.useState("open");        // macrotrends page: open | closed
   const announced = React.useRef(false);
 
   const load = React.useCallback(async () => {
     if (!db) return;
     const y = new Date().getFullYear();
-    const [strats, pos, sigs, snaps, bench, fx, brokers, orders, bmarks, src] = await Promise.all([
+    const [strats, pos, sigs, snaps, bench, fx, brokers, orders, bmarks, src, closedSnap] = await Promise.all([
       db.from("equity_strategies").select("*").order("id"),
       db.from("equity_positions").select("*").order("id", { ascending: false }),
       db.from("sheet_signals").select("*").order("detected_at", { ascending: false }).limit(60),
@@ -132,6 +133,7 @@ function SwingsPage({ page }) {
       // The poller's own heartbeat. Snapshot age measures how long the PUBLISHER has been
       // quiet, not whether we are checking — confusing the two produced false "lagging".
       db.from("sources").select("last_poll_at").eq("category", "swings").limit(1),
+      db.from("sheet_snapshots").select("raw_csv,fetched_at").eq("tab", "closed").order("fetched_at", { ascending: false }).limit(1),
     ]);
     const strategies = strats.data || [];
     window.NT_HAS_SWINGS = strategies.length > 0;
@@ -142,7 +144,8 @@ function SwingsPage({ page }) {
     setD({ strats: strategies, pos: pos.data || [], sigs: sigs.data || [],
            snaps: snaps.data || [], bench: bench.data || [], fx: rates, brokers: brokers.data || [],
            orders: orders.data || [], marks: bmarks.data || [],
-           pollAt: (((src.data || [])[0] || {}).last_poll_at) || null });
+           pollAt: (((src.data || [])[0] || {}).last_poll_at) || null,
+           closedCsv: (((closedSnap.data || [])[0] || {}).raw_csv) || null });
   }, [db]);
   React.useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons(); });
@@ -717,11 +720,13 @@ function SwingsPage({ page }) {
     const en3 = (v) => EN3[String(v || "").trim().toLowerCase()] || String(v || "").trim();
     const posOf3 = (sym) => d.pos.filter((x) => String(x.symbol).toUpperCase() === String(sym).toUpperCase())
       .sort((a, b) => (b.id || 0) - (a.id || 0))[0] || null;
-    // Sorted by the publisher's LAST REAL UPDATE to each name — advice, weight, add, drop —
-    // newest first. Price moves deliberately do not count: every price changes every day, so
-    // sorting on them would just reshuffle the whole table daily and mean nothing.
+    // Sorted by the publisher's LAST REAL UPDATE to a name — an advice change, a weight
+    // change, or a new addition. Nothing else counts: price moves would reshuffle the table
+    // daily, and a removal has no row here to sort.
+    const UPD_KINDS = { advice: 1, weight: 1, added: 1 };
     const lastUpd = {};
     d.sigs.forEach((x) => {
+      if (!UPD_KINDS[String(x.kind || "")]) return;
       const k = String(x.symbol || "").toUpperCase();
       if (!lastUpd[k] || String(x.detected_at) > lastUpd[k]) lastUpd[k] = String(x.detected_at);
     });
@@ -742,16 +747,85 @@ function SwingsPage({ page }) {
       return (v == null || !c) ? null : (v / c) * 100;
     };
     const heldCount = holdings.filter((h) => { const x = posOf3(h.sym); return x && x.status === "open"; }).length;
+    const closedRows = (function () {
+      const text = d.closedCsv;
+      if (!text) return [];
+      const out = []; let row = [], cell = "", q = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+        else if (c === '"') q = true;
+        else if (c === ",") { row.push(cell); cell = ""; }
+        else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); out.push(row); row = []; cell = ""; }
+        else cell += c;
+      }
+      if (cell !== "" || row.length) { row.push(cell); out.push(row); }
+      const lc = (v) => String(v || "").trim().toLowerCase();
+      const hi = out.findIndex((r) => r.some((c) => ["naam", "name"].indexOf(lc(c)) >= 0)
+                                    && r.some((c) => ["symbool", "symbol", "ticker"].indexOf(lc(c)) >= 0));
+      if (hi < 0) return [];
+      const head = out[hi].map(lc);
+      const col = (...names) => { for (const n of names) { const j = head.indexOf(n); if (j >= 0) return j; } return -1; };
+      const cN = col("naam", "name"), cS = col("symbool", "symbol", "ticker"),
+            cE = col("instap", "entry"), cX = col("verkoop", "exit", "sell"), cR = col("resultaat", "result");
+      return out.slice(hi + 1)
+        .map((r) => ({ name: (r[cN] || "").trim(), sym: (r[cS] || "").trim().toUpperCase(),
+                       entry: (r[cE] || "").trim(), exit: (r[cX] || "").trim(),
+                       result: SW_n(String(r[cR] || "").replace("%", "").replace(",", ".")) }))
+        .filter((r) => r.sym || r.name);
+    })();
+    const mbtn = (v, label) => (
+      <button key={v} type="button" onClick={() => setMacroTab(v)}
+        style={{ padding: "5px 12px", cursor: "pointer", borderRadius: "var(--radius-pill)",
+                 border: "1px solid " + (macroTab === v ? "var(--violet-line)" : "var(--border)"),
+                 background: macroTab === v ? "var(--violet-soft)" : "transparent",
+                 color: macroTab === v ? "var(--text-primary)" : "var(--text-tertiary)",
+                 font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
+    );
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Macrotrends" />
-        <NT.Card title={"Current portfolio · " + holdings.length + " stocks"} padding={20} bodyStyle={{ padding: 0 }}
-          action={heldCount ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
-              <span style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "var(--accent)" }} />
-              you hold {heldCount} of them
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }}
+          title={macroTab === "open" ? "Current portfolio · " + holdings.length + " stocks"
+                                     : "Closed positions · " + closedRows.length}
+          action={(
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
+              {macroTab === "open" && heldCount ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                  <span style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "var(--accent)" }} />
+                  you hold {heldCount} of them
+                </span>
+              ) : null}
+              <span style={{ display: "inline-flex", gap: 6 }}>{mbtn("open", "Open")}{mbtn("closed", "Closed")}</span>
             </span>
-          ) : null}>
+          )}>
+          {macroTab === "closed" ? (
+            closedRows.length === 0 ? emptyBox("His sell log hasn't been read yet.") : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+                <thead><tr>
+                  <th style={{ ...th, paddingLeft: 20 }}>holding</th>
+                  <th style={thR}>his buy-in</th>
+                  <th style={thR}>his exit</th>
+                  <th style={thR}>result</th>
+                </tr></thead>
+                <tbody>
+                  {closedRows.map((r, i) => (
+                    <tr key={r.sym + "|" + i} className="nt-trow">
+                      <td style={{ ...td, paddingLeft: 20 }}>
+                        <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: "var(--text-primary)" }}>{r.sym}</span>
+                        <span style={{ color: "var(--text-tertiary)", marginLeft: 8 }}>{r.name}</span>
+                      </td>
+                      {/* the sheet's own strings — they carry their currency symbol already */}
+                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{r.entry || "—"}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{r.exit || "—"}</td>
+                      <td style={{ ...tdR, ...mono, color: r.result == null ? "var(--text-tertiary)" : r.result > 0 ? "var(--profit)" : r.result < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{r.result == null ? "—" : SW_pct(r.result)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )) : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead><tr>
@@ -810,6 +884,7 @@ function SwingsPage({ page }) {
               </tbody>
             </table>
           </div>
+          )}
         </NT.Card>
       </div>
     );
