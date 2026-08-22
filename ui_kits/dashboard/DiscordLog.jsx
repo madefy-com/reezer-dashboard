@@ -55,7 +55,7 @@ function DiscordLog({ maxHeight = 320, fill = false, category = "options" }) {
             )}
             <div style={{
               display: "flex", alignItems: "center", gap: 11, padding: "0 18px", height: 41, boxSizing: "border-box",
-              borderTop: (i && !showDiv) ? "1px solid var(--border)" : "none", opacity: muted ? 0.6 : 1,
+              borderTop: (i && !showDiv) ? "1px solid var(--row-line)" : "none", opacity: muted ? 0.6 : 1,
             }}>
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", width: 42, flex: "none" }}>{m.t.slice(0, 5)}</span>
               <span style={{ width: 78, flex: "none", display: "inline-flex" }}>
