@@ -730,14 +730,15 @@ function SwingsPage({ page }) {
                      background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
                      color: "var(--text-primary)" }}>
             <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
-            <span style={{ minWidth: 0 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)", color: "var(--text-primary)" }}>Macrotrends current portfolio</span>
-                <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", padding: "3px 7px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{holdings.length}</span>
-              </span>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ display: "block", font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)", color: "var(--text-primary)" }}>Macrotrends current portfolio</span>
               <span style={{ display: "block", font: "var(--w-regular) var(--t-xs)/1.35 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>
-                {portOpen ? "click to close" : "every stock he currently holds — click to open"}
+                {portOpen ? "click to close" : "click to open"}
               </span>
+            </span>
+            {/* the count sits where an alert row keeps its timestamp, so the right edge lines up */}
+            <span style={{ flex: "none", textAlign: "right", font: "var(--w-regular) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)" }}>
+              {holdings.length} holdings
             </span>
           </button>
           {portOpen && <div style={{ overflowX: "auto", borderTop: "1px solid var(--border)" }}>
