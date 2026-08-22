@@ -466,13 +466,7 @@ function SourcesPage() {
   
         {/* ---- Alert sources — every world in one list, one row per source, grouped under a
                category label. A source's own schedule now lives in its editor. ---- */}
-        <NT.Card padding={20} bodyStyle={{ padding: 0 }}
-          title={(
-            <span style={{ display: "inline-flex", flexDirection: "column", gap: 4 }}>
-              Brokers
-              <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", letterSpacing: "var(--ls-normal)", color: "var(--text-tertiary)" }}>Connect once — any strategy can use it.</span>
-            </span>
-          )}>
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title="Brokers">
           {/* ONE builder for every broker row, whichever world it belongs to. LINKED must
               mean CHECKED RECENTLY (a daily sync stamps synced_at) — a broker that stopped
               reporting says STALE rather than pretending. */}
