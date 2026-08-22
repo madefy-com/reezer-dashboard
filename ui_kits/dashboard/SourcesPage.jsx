@@ -67,6 +67,31 @@ function SchwabReauth() {
   );
 }
 
+/* IB Gateway line — the IBKR twin of the Schwab connection line. Schwab has a token with an
+   expiry; the Gateway has a link that is up or down (the watchdog on the Gateway's Mac
+   probes it every minute) plus IBKR's weekly forced re-login. */
+function IbkrGatewayLine({ row }) {
+  const gw = (row && row.settings && row.settings.gateway) || null;
+  const ago = (ts) => { if (!ts) return ""; const s = Math.max(0, Math.round((Date.now() - new Date(ts).getTime()) / 1000)); return s < 60 ? s + "s ago" : s < 3600 ? Math.round(s / 60) + "m ago" : s < 172800 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago"; };
+  const hhmm = (ts) => (ts ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "");
+  // IBKR forces a re-login once a week; the Gateway's own restart lands on Sunday.
+  const nextSunday = (() => { const d = new Date(); const add = (7 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + add); return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }); })();
+  let tone = "var(--text-tertiary)", label = "no watchdog yet";
+  if (gw && gw.online) { tone = "var(--profit)"; label = `online since ${hhmm(gw.since)} · weekly re-login due ${nextSunday}`; }
+  else if (gw) { tone = "var(--loss)"; label = `OFFLINE since ${hhmm(gw.since)} · ${gw.detail || "no link to IBKR"}`; }
+  const stale = gw && gw.checked_at && (Date.now() - new Date(gw.checked_at).getTime()) > 15 * 60000;
+  return (
+    <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <Ico name="plug-zap" size={15} />
+        <span style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>IB Gateway</span>
+        <span style={{ font: "var(--w-semibold) var(--t-xs)/1 var(--font-sans)", color: stale ? "var(--text-tertiary)" : tone }}>· {stale ? "watchdog silent " + ago(gw.checked_at) : label}</span>
+      </span>
+      <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{gw && gw.checked_at ? "checked " + ago(gw.checked_at) : ""}</span>
+    </div>
+  );
+}
+
 function SourcesPage() {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [, force] = React.useState(0);
@@ -512,6 +537,7 @@ function SourcesPage() {
               <NT.Button variant="ghost" size="sm" onClick={() => window.NT_ALERT("Coming next — IBKR setup runs on your own machine and needs a weekly sign-in.", { title: "Interactive Brokers" })}>Connect</NT.Button>
             ),
           }) : null}
+          <IbkrGatewayLine row={(eqBrokers || []).filter((b) => b.broker === "ibkr")[0]} />
           <SchwabReauth />
         </NT.Card>
   
