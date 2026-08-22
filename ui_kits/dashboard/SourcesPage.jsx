@@ -83,18 +83,26 @@ function SourcesPage() {
   // page must run the icon pass itself — relying on App's pass left broker icons blank until
   // the next unrelated re-render, sometimes a minute later.
   React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
+  // Re-read on every data pulse (realtime push or the 10 s poll), not once on mount: the
+  // sidebar judges brokers from the live cache, and a card that fetched once could show
+  // ERROR for minutes after the sidebar had already gone green (22 Aug 19:30).
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
-    db.from("broker_accounts").select("*").order("id").then(function (r) {
-      if (r && !r.error && r.data) setOptBrokers(r.data);
-    }, function () { /* offline — fall back to the cached list */ });
-    db.from("equity_broker_accounts").select("*").order("id").then(function (r) {
-      if (r && !r.error && r.data) setEqBrokers(r.data);
-    }, function () { /* offline — keep the placeholder row */ });
-    db.from("crypto_broker_accounts").select("*").order("id").then(function (r) {
-      if (r && !r.error && r.data) setCryptoBrokers(r.data);
-    }, function () { /* offline — no crypto row */ });
+    const loadBrokers = () => {
+      db.from("broker_accounts").select("*").order("id").then(function (r) {
+        if (r && !r.error && r.data) setOptBrokers(r.data);
+      }, function () { /* offline — fall back to the cached list */ });
+      db.from("equity_broker_accounts").select("*").order("id").then(function (r) {
+        if (r && !r.error && r.data) setEqBrokers(r.data);
+      }, function () { /* offline — keep the placeholder row */ });
+      db.from("crypto_broker_accounts").select("*").order("id").then(function (r) {
+        if (r && !r.error && r.data) setCryptoBrokers(r.data);
+      }, function () { /* offline — no crypto row */ });
+    };
+    loadBrokers();
+    window.addEventListener("nt-data", loadBrokers);
+    return () => window.removeEventListener("nt-data", loadBrokers);
   }, []);
   const brokers = optBrokers || window.NT_DATA.brokerAccounts || [];
   const hasIbkr = (eqBrokers || []).some((b) => /ibkr|interactive/i.test(String(b.broker || b.label || "")))
