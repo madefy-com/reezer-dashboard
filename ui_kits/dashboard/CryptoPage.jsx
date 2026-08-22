@@ -86,7 +86,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 30 }}>
         <span style={labelStyle}>{label}</span>
       </div>
-      <span style={valStyle(tone)}>{value != null ? value : "\u2014"}</span>
+      <span style={valStyle(tone)}>{value != null ? value : "—"}</span>
       {sub ? <span style={subStyle}>{sub}</span> : null}
     </div>
   );
@@ -139,7 +139,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Trades" />
         <CryptoBetaBanner />
-        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Positions" + (d.positions.length ? " \u00b7 " + d.positions.length : "")}>{positionsTable(d.positions, true)}</NT.Card>
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Positions" + (d.positions.length ? " · " + d.positions.length : "")}>{positionsTable(d.positions, true)}</NT.Card>
       </div>
     );
   }
@@ -171,9 +171,9 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Sentiment" />
         <CryptoBetaBanner />
-        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Video briefs" + (briefs.length ? " \u00b7 " + briefs.length : "")}
-          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>Blockchain Backer \u00b7 read by {(briefs[0] && briefs[0].model) || "Claude"}</span>}>
-          {briefs.length === 0 ? empty("No video briefs yet \u2014 the next upload on the channel appears here within minutes of its captions being ready.") : (
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Video briefs" + (briefs.length ? " · " + briefs.length : "")}
+          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>Blockchain Backer · read by {(briefs[0] && briefs[0].model) || "Claude"}</span>}>
+          {briefs.length === 0 ? empty("No video briefs yet — the next upload on the channel appears here within minutes of its captions being ready.") : (
             <div>
               <div style={{ ...rowStyle(false), borderTop: "none", cursor: "default", padding: "10px 20px" }}>
                 {["Video", "Read", "Leaders", "Calls", ""].map((h) => <span key={h} style={th}>{h}</span>)}
@@ -187,7 +187,7 @@ function CryptoPage({ page }) {
                     <div style={rowStyle(on)} onClick={() => setOpenBrief(on ? null : b.id)}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</div>
-                        <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>{b.channel_name} \u00b7 {when(b.published_at)}</div>
+                        <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>{b.channel_name} · {when(b.published_at)}</div>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         {chip(String(b.sentiment || "").toUpperCase(), sentCol(b.sentiment), sentBg(b.sentiment))}
@@ -196,7 +196,7 @@ function CryptoPage({ page }) {
                       <div style={{ display: "flex", gap: 12 }}>{["BTC", "ETH", "XRP"].map((k) => leaderChip(k, L[k]))}</div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {sigs.length === 0 ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>no calls</span>
-                          : sigs.slice(0, 4).map((sg, i) => chip(sg.asset + " " + String(sg.direction || "").replace("_", " ") + (sg.conditional ? " \u00b7 if" : ""), dirCol(sg.direction)))}
+                          : sigs.slice(0, 4).map((sg, i) => chip(sg.asset + " " + String(sg.direction || "").replace("_", " ") + (sg.conditional ? " · if" : ""), dirCol(sg.direction)))}
                         {sigs.length > 4 ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>+{sigs.length - 4}</span> : null}
                       </div>
                       <Ico name={on ? "chevron-up" : "chevron-down"} size={16} color="var(--text-tertiary)" />
@@ -217,7 +217,7 @@ function CryptoPage({ page }) {
                             </div>
                           ) : null}
                           <div style={{ marginTop: 12, font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                            Transcript quality: {(b.summary && b.summary.data_quality) || "\u2014"} \u00b7 <a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>watch on YouTube</a>
+                            Transcript quality: {(b.summary && b.summary.data_quality) || "—"} · <a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>watch on YouTube</a>
                           </div>
                         </div>
                         <div>
@@ -228,16 +228,16 @@ function CryptoPage({ page }) {
                               <span>{(L[k] && L[k].reason) || ""}</span>
                             </div>
                           ))}
-                          <div style={{ ...th, marginTop: 14 }}>Calls \u00b7 with the quote behind each</div>
+                          <div style={{ ...th, marginTop: 14 }}>Calls · with the quote behind each</div>
                           {sigs.length === 0 ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}>No explicit buy or sell call in this video.</div>
                             : sigs.map((sg, i) => (
                             <div key={i} style={{ margin: "8px 0 0", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--surface-card)" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                                 {chip(sg.asset + " " + String(sg.direction || "").replace("_", " "), dirCol(sg.direction))}
-                                <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{sg.strength} \u00b7 {sg.timeframe} \u00b7 confidence {sg.confidence}{(sg.levels || []).length ? " \u00b7 " + sg.levels.join(", ") : ""}</span>
+                                <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{sg.strength} · {sg.timeframe} · confidence {sg.confidence}{(sg.levels || []).length ? " · " + sg.levels.join(", ") : ""}</span>
                               </div>
                               {sg.conditional && sg.condition ? <div style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 6 }}>If: {sg.condition}</div> : null}
-                              <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6, fontStyle: "italic" }}>\u201c{sg.quote}\u201d</div>
+                              <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6, fontStyle: "italic" }}>“{sg.quote}”</div>
                             </div>
                           ))}
                         </div>
@@ -250,10 +250,10 @@ function CryptoPage({ page }) {
           )}
         </NT.Card>
         {pending.length ? (
-          <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Waiting for captions \u00b7 " + pending.length}>
+          <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Waiting for captions · " + pending.length}>
             {pending.map((b) => (
               <div key={b.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 20px", borderTop: "1px solid var(--row-line)", font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)" }}>
-                <span>{b.title}</span><span style={{ color: b.status === "failed" ? "var(--loss)" : "var(--text-tertiary)" }}>{b.status === "failed" ? "failed \u2014 " + (b.error || "") : "captions not ready, retrying"}</span>
+                <span>{b.title}</span><span style={{ color: b.status === "failed" ? "var(--loss)" : "var(--text-tertiary)" }}>{b.status === "failed" ? "failed — " + (b.error || "") : "captions not ready, retrying"}</span>
               </div>
             ))}
           </NT.Card>
@@ -274,7 +274,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Strategies" />
         <CryptoBetaBanner />
-        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Strategies" + (d.strategies.length ? " \u00b7 " + d.strategies.length : "")}>
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Strategies" + (d.strategies.length ? " · " + d.strategies.length : "")}>
           {d.strategies.length === 0 ? empty("No crypto strategies.") : (
             <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
               <thead><tr><th style={th}>Name</th><th style={th}>Account</th><th style={th}>Sizing</th><th style={th}>Trading</th><th style={th}>Kill switch</th></tr></thead>
@@ -302,7 +302,7 @@ function CryptoPage({ page }) {
         <Kard label="account value" value={bs.account_value != null ? CR_usd(bs.account_value, 0) : "—"}
           sub={broker ? ("Revolut X · checked " + CR_ago(bs.synced_at)) : "no broker row"} />
         <Kard label="cash" value={bs.cash != null ? CR_usd(bs.cash, 0) : "—"}
-          sub={bs.cash_by_ccy ? Object.keys(bs.cash_by_ccy).map((c) => ({ EUR: "\u20ac", GBP: "\u00a3", USD: "$" }[c] || c) + Math.round(bs.cash_by_ccy[c])).join(" + ") + " on the exchange, in USD" : "on the exchange, in USD"} />
+          sub={bs.cash_by_ccy ? Object.keys(bs.cash_by_ccy).map((c) => ({ EUR: "€", GBP: "£", USD: "$" }[c] || c) + Math.round(bs.cash_by_ccy[c])).join(" + ") + " on the exchange, in USD" : "on the exchange, in USD"} />
         <Kard label="open positions" value={String(openPos.length)} sub={working.length ? working.length + " order(s) working" : "no orders working"} />
         <Kard label="p&l" value={CR_usd(realized + unrealTotal, 0)} tone={realized + unrealTotal > 0 ? "up" : realized + unrealTotal < 0 ? "down" : null}
           sub={"realized " + CR_usd(realized, 0) + " · unrealized " + CR_usd(unrealTotal, 0)} />
@@ -311,8 +311,8 @@ function CryptoPage({ page }) {
           @media (max-width: 720px){ .nt-kpi-row{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
         `}</style>
       </div>
-      <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Your portfolio" + (openPos.length ? " \u00b7 " + openPos.length : "")}
-        action={bs.synced_at ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{"Revolut X \u00b7 " + CR_ago(bs.synced_at)}</span> : null}>{positionsTable(openPos, false)}</NT.Card>
+      <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Your portfolio" + (openPos.length ? " · " + openPos.length : "")}
+        action={bs.synced_at ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{"Revolut X · " + CR_ago(bs.synced_at)}</span> : null}>{positionsTable(openPos, false)}</NT.Card>
     </div>
   );
 }
