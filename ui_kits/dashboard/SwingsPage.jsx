@@ -862,8 +862,10 @@ function SwingsPage({ page }) {
                       <td style={{ ...td, color: h.theme ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{h.theme || "—"}</td>
                       <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
                       <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_price(h.entry_px)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_price(h.px)}</td>
+                      {/* four currencies share this table — a bare number would let a C$ price
+                          read as comparable to a € one */}
+                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_curP(h.entry_px, h.ccy)}</td>
+                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_curP(h.px, h.ccy)}</td>
                       <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
                       <td style={{ ...tdR }}>
                         {mp == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
