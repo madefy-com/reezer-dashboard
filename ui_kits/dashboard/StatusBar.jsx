@@ -109,11 +109,15 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
   const usIsOpen = sess.state === "open";
   const glbClose = hm(now, "Europe/Brussels", 23, 0);
   const glbIsOpen = wkdB && t < glbClose;
-  const openMarkets = [usIsOpen, euIsOpen, glbIsOpen];
-  // Only count the markets a present world actually trades on.
-  const marketOf = { options: [usIsOpen], swings: [euIsOpen, usIsOpen], futures: [glbIsOpen] };
-  const relevant = [];
-  WORLDS.forEach((w) => (marketOf[w.id] || []).forEach((x) => relevant.push(x)));
+  // Count DISTINCT markets among the worlds present — options and swings both trade the US
+  // market, and counting it once per world made "3 markets" read as 4.
+  const mset = {};
+  WORLDS.forEach((w) => {
+    if (w.id === "options" || w.id === "swings") mset.us = usIsOpen;
+    if (w.id === "swings") mset.eu = euIsOpen;
+    if (w.id === "futures") mset.glb = glbIsOpen;
+  });
+  const relevant = Object.values(mset);
   const nOpen = relevant.filter(Boolean).length;
 
   // Watch window per world: the source's own window from Settings wins; with none set, each
