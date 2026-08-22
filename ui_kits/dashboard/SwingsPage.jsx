@@ -437,6 +437,11 @@ function SwingsPage({ page }) {
     ? "Synced by IBKR · " + SW_ago(markTimes[markTimes.length - 1])
     : (openPos.length ? "waiting for the first broker price" : null);
 
+  // Pending signals = intent the engine holds until it can order safely (a closed market has
+  // no quote to sanity-check). Shown alongside resting orders so a weekend never looks idle.
+  const queuedSigs = (d.sigs || []).filter((s) => s.status === "new" && s.tradeable !== false
+    && (s.action === "buy" || s.action === "sell"));
+
   // ---------------------------------------------------------------- dashboard
   if (page === "swings-dashboard") {
 
@@ -444,11 +449,25 @@ function SwingsPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title={greeting(window.NT_USER_NAME || (window.NT_DATA && window.NT_DATA.session && window.NT_DATA.session.user))} />
         {kpiRow}
-        {resting.length > 0 ? (
-          <NT.Card title={"Resting orders \u00b7 " + resting.length} padding={20} bodyStyle={{ padding: 0 }}>
+        {(resting.length > 0 || queuedSigs.length > 0) ? (
+          <NT.Card title={"Resting orders \u00b7 " + (resting.length + queuedSigs.length)} padding={20} bodyStyle={{ padding: 0 }}>
             <div style={{ padding: "10px 20px 0", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)" }}>
               Sent to the broker, not filled yet. Outside market hours these wait for the next auction.
             </div>
+            {/* Signals the engine is HOLDING for the open \u2014 deliberately not yet at the broker
+                (no quote exists to sanity-check against on a closed market). Without this row
+                a weekend buy looked like nothing was happening at all. */}
+            {queuedSigs.map((s) => (
+              <div key={"q" + s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "12px 20px 0", padding: "10px 14px", borderRadius: "var(--radius-sm)", background: "var(--dryrun-bg)", border: "1px solid color-mix(in srgb, var(--dryrun) 30%, transparent)" }}>
+                <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>{s.symbol}</span>
+                  <span style={{ color: s.action === "sell" ? "var(--loss)" : "var(--profit)", marginLeft: 8, textTransform: "uppercase", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" }}>{s.action}</span>
+                </span>
+                <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--dryrun)", textAlign: "right" }}>
+                  queued \u2014 orders automatically at the next open, after the price check
+                </span>
+              </div>
+            ))}
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
