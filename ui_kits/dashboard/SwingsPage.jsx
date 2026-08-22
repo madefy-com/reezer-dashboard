@@ -766,46 +766,12 @@ function SwingsPage({ page }) {
 
   // ---------------------------------------------------------------- trades
   if (page === "swings-trades") {
-    const EN2 = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
-    const en2 = (v) => EN2[String(v || "").trim().toLowerCase()] || String(v || "").trim();
-    const investedUsd = openPos.reduce((a, p) => a + (costOf(p) || 0), 0);
-    // Names he still calls a BUY trading at or near his entry — the ones still enterable on
-    // his terms rather than chasing a move that already happened.
-    const heldSyms = {};
-    openPos.forEach((x) => { heldSyms[String(x.symbol).toUpperCase()] = true; });
-    // Already owning a name removes it from "you could buy now" — the question this stat
-    // answers is what is still open to you, not what you have already done.
-    const cand = Object.keys(marks).map((k) => ({ sym: k, ...(marks[k] || {}) }))
-      .filter((h) => en2(h.advies) === "buy" && !heldSyms[h.sym])
-      .filter((h) => { const e = SW_n(h.entry_px), px = SW_n(h.px); return e && px && (px - e) / e <= 0.05; });
-    const accountUsd = SW_n(((d.brokers || [])[0] || {}).settings
-      && ((d.brokers || [])[0] || {}).settings.account_value);
-    const stat = (label, value, tone, sub) => (
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
-        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</span>
-        <span style={{ font: "var(--w-light) var(--t-h2)/1 var(--font-mono)", color: tone || "var(--text-primary)" }}>{value}</span>
-        {sub ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span> : null}
-      </div>
-    );
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Trades" subtitle="Every swing position this book has taken" />
         {/* The SAME cards as the dashboard — one definition, rendered on both pages, so they
             can never drift apart. */}
         {kpiRow}
-        <NT.Card padding={20}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
-            {stat("your positions", String(openPos.length),
-                  openPos.length ? null : "var(--text-tertiary)",
-                  openPos.length ? SW_cur(investedUsd, acctCcy) + " invested" : "nothing bought yet")}
-            {stat("buying power", accountUsd == null ? "—" : SW_cur(accountUsd, acctCcy),
-                  null, accountUsd == null ? "broker not checked" : "at your broker")}
-            {stat("you could buy now", String(cand.length),
-                  cand.length ? "var(--profit)" : "var(--text-tertiary)",
-                  cand.length ? cand.map((c) => c.sym).join(", ") + " — still at his price"
-                              : "his buys have all run past his entry")}
-          </div>
-        </NT.Card>
         {(function () {
           const rows = d.pos.filter((p) => tradeFilter === "all" ? true : p.status === tradeFilter);
           // One row shape for open AND closed: an open row is priced by the broker mark, a
