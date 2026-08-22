@@ -139,15 +139,17 @@ function Sidebar({ page, onNav, world, onWorld }) {
     // no explicit link: fall back to the account that actually holds money, then the first
     || accounts.filter((b) => Number((b.settings || {}).account_value) > 0)[0]
     || accounts[0];
-  const schwabAge = hoursSince(schwab && schwab.settings && schwab.settings.synced_at);
-  const schwabBad = !schwab ? "no broker linked"
-    : (schwabAge == null || schwabAge > STALE_H) ? "broker not checked today" : null;
-
+  // ONE rule for every broker, whichever world: no row -> "no broker linked"; the broker's
+  // own last verdict was an error -> "broker error"; otherwise judge by the sync age.
+  const brokerProblem = (b) => {
+    if (!b) return "no broker linked";
+    if (String(b.status || "").toLowerCase() === "error") return "broker error";
+    const age = hoursSince(b.settings && b.settings.synced_at);
+    return (age == null || age > STALE_H) ? "broker not checked today" : null;
+  };
+  const schwabBad = brokerProblem(schwab);
   const ibkr = ((D && D.equityBrokers) || []).filter((b) => b.broker === "ibkr")[0];
-  const ibkrAge = hoursSince(ibkr && ibkr.settings && ibkr.settings.synced_at);
-  const ibkrBad = !ibkr ? "no broker linked"
-    : (ibkr.status && ibkr.status !== "connected") ? "broker " + ibkr.status
-    : (ibkrAge == null || ibkrAge > STALE_H) ? "broker not checked today" : null;
+  const ibkrBad = brokerProblem(ibkr);
 
   // A world's state as PARTS, so live/paper/problem can each carry their own colour.
   // Only a live strategy behind an unhealthy broker is red — paper is never alarming.
@@ -155,7 +157,10 @@ function Sidebar({ page, onNav, world, onWorld }) {
     const mine = rows.filter((x) => (x.category || "options") === cat);
     const live = mine.filter((x) => x.account === "live").length;
     const paper = mine.length - live;
-    return { live: live, paper: paper, problem: (live && brokerProblem) ? brokerProblem : null };
+    // A broker error is shown for paper worlds too — the sync itself is broken, which is
+    // worth a red word whatever the strategies are doing. Staleness stays live-only.
+    const show = brokerProblem && (live || brokerProblem === "broker error");
+    return { live: live, paper: paper, problem: show ? brokerProblem : null };
   };
 
   const optRows = ((D && D.strategies) || []).filter((x) => (x.category || "options") === "options");
@@ -163,8 +168,7 @@ function Sidebar({ page, onNav, world, onWorld }) {
   const swgRows = ((D && D.equityStrategies) || []).map((x) => ({ account: x.account, category: "swings" }));
   const crRows = ((D && D.cryptoStrategies) || []).map((x) => ({ account: x.account, category: "crypto" }));
   const revx = ((D && D.cryptoBrokers) || []).filter((b) => b.broker === "revx")[0];
-  const revxAge = hoursSince(revx && revx.settings && revx.settings.synced_at);
-  const revxBad = !revx ? "no broker linked" : (revxAge == null || revxAge > STALE_H) ? "broker not checked today" : null;
+  const revxBad = brokerProblem(revx);
 
   const worldState = {
     options: state((D && D.strategies) || [], "options", schwabBad),

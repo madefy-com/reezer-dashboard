@@ -341,9 +341,12 @@ function SourcesPage() {
   };
 
   // Green = live, muted = off. Pass onClick to make it the toggle itself.
-  const pill = (text, on, onClick) => {
-    const st = { display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", border: "1px solid transparent", background: on ? "var(--profit-bg)" : "var(--surface-inset)", color: on ? "var(--profit)" : "var(--text-tertiary)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" };
-    const dot = <span style={{ width: 6, height: 6, borderRadius: "50%", background: on ? "var(--profit)" : "var(--text-tertiary)" }}></span>;
+  // on = green, off = grey, bad = red — the same three states the sidebar uses.
+  const pill = (text, on, onClick, bad) => {
+    const col = bad ? "var(--loss)" : on ? "var(--profit)" : "var(--text-tertiary)";
+    const bg = bad ? "var(--loss-bg)" : on ? "var(--profit-bg)" : "var(--surface-inset)";
+    const st = { display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", border: "1px solid transparent", background: bg, color: col, font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)" };
+    const dot = <span style={{ width: 6, height: 6, borderRadius: "50%", background: col }}></span>;
     if (!onClick) return <span style={st}>{dot}{text}</span>;
     return <button type="button" onClick={onClick} title={on ? "Turn this source off" : "Turn this source on"} style={{ ...st, cursor: "pointer" }}>{dot}{text}</button>;
   };
@@ -485,7 +488,7 @@ function SourcesPage() {
                 meta2: err ? ("last check failed " + (b.last_check_at ? ago(b.last_check_at) : "") + (s.synced_at ? " · last good " + ago(s.synced_at) : ""))
                      : s.synced_at ? (fresh ? "checked " + ago(s.synced_at) : "not checked in over a day")
                                    : "not checked yet",
-                pill: err ? pill("ERROR", false) : pill(fresh ? "LINKED" : "STALE", fresh),
+                pill: err ? pill("ERROR", false, null, true) : pill(fresh ? "LINKED" : "STALE", fresh),
               });
             };
             // Newest broker on top (user's rule, 22 Aug): Revolut X (crypto · beta), then IBKR, then Schwab.
