@@ -201,7 +201,8 @@ function CryptoPage({ page }) {
       <div className="nt-kpi-row">
         <Kard label="account value" value={bs.account_value != null ? CR_usd(bs.account_value, 0) : "—"}
           sub={broker ? ("Revolut X · checked " + CR_ago(bs.synced_at)) : "no broker row"} />
-        <Kard label="cash" value={bs.cash != null ? CR_usd(bs.cash, 0) : "—"} sub="USD available on the exchange" />
+        <Kard label="cash" value={bs.cash != null ? CR_usd(bs.cash, 0) : "—"}
+          sub={bs.cash_by_ccy ? Object.keys(bs.cash_by_ccy).map((c) => ({ EUR: "\u20ac", GBP: "\u00a3", USD: "$" }[c] || c) + Math.round(bs.cash_by_ccy[c])).join(" + ") + " on the exchange, in USD" : "on the exchange, in USD"} />
         <Kard label="open positions" value={String(openPos.length)} sub={working.length ? working.length + " order(s) working" : "no orders working"} />
         <Kard label="p&l" value={CR_usd(realized + unrealTotal, 0)} tone={realized + unrealTotal > 0 ? "up" : realized + unrealTotal < 0 ? "down" : null}
           sub={"realized " + CR_usd(realized, 0) + " · unrealized " + CR_usd(unrealTotal, 0)} />
