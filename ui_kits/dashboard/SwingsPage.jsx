@@ -210,7 +210,6 @@ function SwingsPage({ page }) {
     if (!m || e == null || q == null) return null;
     return (SW_n(m.px) - e) * q;
   };
-  const openValue = openPos.reduce((a, p) => a + costOf(p), 0);
   const realized = closedPos.reduce((a, p) => a + (SW_n(p.realized_pnl) || 0), 0);
   // Swing positions are held for MONTHS, so realized-only P&L would read zero for most of the
   // year — the unrealized move is the number that actually matters. Marked off the sheet's own
@@ -241,8 +240,6 @@ function SwingsPage({ page }) {
   const closedThisYear = closedPos.filter((p) => p.closed_at && new Date(p.closed_at).getFullYear() === year);
   const ytdPnl = closedThisYear.reduce((a, p) => a + (SW_n(p.realized_pnl) || 0), 0) + unrealized;
 
-  const winners = closedPos.filter((p) => (SW_n(p.realized_pnl) || 0) > 0);
-  const winFrac = closedPos.length ? winners.length / closedPos.length : null;
 
   const retOf = (p) => {
     const e = SW_n(p.avg_price), x = SW_n(p.exit_price);
@@ -383,11 +380,11 @@ function SwingsPage({ page }) {
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
         sub={"on invested capital · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
-      <Kard label="net p&l" value={SW_cur(realized, baseCcy)} tone={tone(realized)}
-        sub={"realized · " + SW_cur(openValue, baseCcy) + " open"} />
-      <Kard label="win rate" value={winFrac == null ? "—" : Math.round(winFrac * 100) + "%"}
-        tone={winFrac == null ? null : (winFrac >= 0.5 ? "profit" : "loss")}
-        sub={winners.length + " of " + closedPos.length + " closed"} visual={ring(winFrac)} />
+      <Kard label="p&l" value={SW_cur(totalPnl, baseCcy)} tone={tone(totalPnl)}
+        sub={SW_cur(realized, baseCcy) + " realized · " + SW_cur(unrealized, baseCcy) + " unrealized"} />
+      <Kard label="invested" value={acctValue ? Math.round((investedCost / acctValue) * 100) + "%" : "—"}
+        sub={acctValue ? SW_cur(investedCost, baseCcy) + " of " + SW_cur(acctValue, baseCcy) + " at work" : "needs a linked broker"}
+        visual={ring(acctValue ? investedCost / acctValue : 0)} />
       <Kard label="avg return / trade" value={SW_pct(avgRet)} tone={tone(avgRet)}
         sub={avgHold == null ? "no closed trades yet" : "held " + Math.round(avgHold) + "d on average"}
         visual={<Ico name="clock" size={17} color="var(--text-tertiary)" />} />
@@ -772,7 +769,6 @@ function SwingsPage({ page }) {
     const EN2 = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
     const en2 = (v) => EN2[String(v || "").trim().toLowerCase()] || String(v || "").trim();
     const investedUsd = openPos.reduce((a, p) => a + (costOf(p) || 0), 0);
-    const openPnl = openPos.reduce((a, p) => a + (unrealOf(p) || 0), 0);
     // Names he still calls a BUY trading at or near his entry — the ones still enterable on
     // his terms rather than chasing a move that already happened.
     const heldSyms = {};
@@ -794,14 +790,14 @@ function SwingsPage({ page }) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Trades" subtitle="Every swing position this book has taken" />
+        {/* The SAME cards as the dashboard — one definition, rendered on both pages, so they
+            can never drift apart. */}
+        {kpiRow}
         <NT.Card padding={20}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
             {stat("your positions", String(openPos.length),
                   openPos.length ? null : "var(--text-tertiary)",
                   openPos.length ? SW_cur(investedUsd, acctCcy) + " invested" : "nothing bought yet")}
-            {stat("open p&l", openPos.length ? SW_curP(openPnl, acctCcy) : "—",
-                  !openPos.length ? "var(--text-tertiary)" : openPnl > 0 ? "var(--profit)" : openPnl < 0 ? "var(--loss)" : null,
-                  openPos.length ? null : "no open positions")}
             {stat("buying power", accountUsd == null ? "—" : SW_cur(accountUsd, acctCcy),
                   null, accountUsd == null ? "broker not checked" : "at your broker")}
             {stat("you could buy now", String(cand.length),
@@ -884,10 +880,10 @@ function SwingsPage({ page }) {
                       <td style={{ ...tdTallR, ...mono, color: pnlColor(rPnl(p)) }}>{rPnl(p) == null ? "—" : SW_curP(rPnl(p), ccyOf(p))}</td>
                       <td style={{ ...tdTallR }}>
                         {rPct(p) == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
-                          <span style={{ display: "inline-block", padding: "6px 12px", borderRadius: "var(--radius-pill)",
+                          <span style={{ display: "inline-flex", alignItems: "center", height: 22, padding: "0 9px", borderRadius: 999,
                                          background: rPnl(p) > 0 ? "var(--profit-bg)" : rPnl(p) < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
                                          color: pnlColor(rPnl(p)),
-                                         font: "var(--w-medium) var(--t-body)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
+                                         font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
                             {SW_pct(rPct(p))}
                           </span>
                         )}
