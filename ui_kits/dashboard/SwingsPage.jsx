@@ -786,7 +786,7 @@ function SwingsPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Macrotrends" />
         <NT.Card padding={20} bodyStyle={{ padding: 0 }}
-          title={macroTab === "open" ? "Current portfolio · " + holdings.length + " stocks"
+          title={macroTab === "open" ? "Current portfolio · " + holdings.length
                                      : "Closed positions · " + closedRows.length}
           action={(
             <span style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
