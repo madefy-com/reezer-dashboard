@@ -652,7 +652,7 @@ function SwingsPage({ page }) {
         <PageHead title="Alerts" />
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
-          <span>Macrotrends sheet · checked {SW_ago(d.pollAt || (portfolioSnap && portfolioSnap.fetched_at))}
+          <span>checked {SW_ago(d.pollAt || (portfolioSnap && portfolioSnap.fetched_at))}
             {portfolioSnap ? " · last change " + SW_ago(portfolioSnap.fetched_at) : ""}</span>
           <SW_Pill tone={feedTone}>{feedLabel}</SW_Pill>
         </div>
