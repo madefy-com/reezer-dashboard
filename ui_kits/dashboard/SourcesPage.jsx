@@ -547,7 +547,10 @@ function SourcesPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
                           <span style={ICON}><Ico name="server" size={16} /></span>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{m.machine_id}</div>
+                            <div style={{ font: "var(--w-semibold) var(--t-sm)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>{m.machine_id}
+                              {m.code_version ? <span title="Code version this server is running"
+                                style={{ marginLeft: 8, font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)" }}>{m.code_version}</span> : null}
+                            </div>
                             {lc ? <div style={{ marginTop: 3, font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-mono)", color: lc.status === "error" ? "var(--loss)" : lc.status === "done" ? "var(--text-tertiary)" : "var(--accent)" }}>{lc.command}: {lc.status}</div> : null}
                           </div>
                         </div>
@@ -557,6 +560,7 @@ function SourcesPage() {
                       <td style={{ ...td, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{ago(m.last_seen)}</td>
                       <td style={tdR}>
                         <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
+                          {cmdBtn(m.machine_id, "update", "Update code", "download")}
                           {cmdBtn(m.machine_id, "preflight", "Verify", "shield-check")}
                           {cmdBtn(m.machine_id, "restart", "Restart", "rotate-cw")}
                           {cmdBtn(m.machine_id, "relogin-discord", "Re-login Discord", "log-in")}
