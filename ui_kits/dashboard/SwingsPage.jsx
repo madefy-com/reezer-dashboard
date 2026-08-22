@@ -720,18 +720,25 @@ function SwingsPage({ page }) {
             </div>
           ))}
 
+        {/* Height parity by CONSTRUCTION: this header is built from the alert row's exact
+            recipe — 3px left edge, 14px/16px padding, a t-body line plus a t-xs line 4px
+            below — so it renders the same height without any magic number to drift. */}
         <div style={{ marginTop: 18, background: "var(--surface-card)", border: "1px solid var(--border)",
-                      borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+                      borderLeft: "3px solid var(--line-3)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
           <button type="button" onClick={() => setPortOpen((o) => !o)}
-            style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "0 16px",
-                     // an alert row is 14px padding + two stacked lines ≈ 76px — match it, so
-                     // the collapsed accordion sits in the page as an equal row, not a slimmer one
-                     minHeight: 76, boxSizing: "border-box",
+            style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "14px 16px",
                      background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-                     font: "var(--w-semibold) var(--t-h3)/1.2 var(--font-sans)", letterSpacing: "var(--ls-snug)",
                      color: "var(--text-primary)" }}>
             <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
-            {"Macrotrends current portfolio · " + holdings.length + " stocks"}
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)", color: "var(--text-primary)" }}>Macrotrends current portfolio</span>
+                <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", padding: "3px 7px", borderRadius: "var(--radius-xs)", background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{holdings.length}</span>
+              </span>
+              <span style={{ display: "block", font: "var(--w-regular) var(--t-xs)/1.35 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>
+                {portOpen ? "click to close" : "every stock he currently holds — click to open"}
+              </span>
+            </span>
           </button>
           {portOpen && <div style={{ overflowX: "auto", borderTop: "1px solid var(--border)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
