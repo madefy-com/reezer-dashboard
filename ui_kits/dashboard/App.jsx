@@ -200,9 +200,7 @@ function App() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg-app)" }}>
       <Sidebar page={page} onNav={setPage} world={world} onWorld={goWorld} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage}
-          onWorldNav={(w, pg) => { setWorld(w); setPage(pg); try { window.history.replaceState(null, "", "#/" + w); } catch (e) {} }}
-          strategies={strategies} />
+        <StatusBar mode={mode} setMode={setMode} kill={kill} setKill={setKill} clock={clock} onNav={setPage} strategies={strategies} />
         <FlagBanner />
         <WatchdogBanner />
         <main style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
