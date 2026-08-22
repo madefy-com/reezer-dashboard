@@ -10,7 +10,12 @@
 /* Row hover for every data table. The rule used to live inside two components' local <style>
    tags, so pages that didn't mount them (all of swings) had rows with the hover CLASS but no
    hover EFFECT. Global now — one definition, every table. */
+/* Interior hairlines share the frame's TOKEN but not its optics: translucent white composites
+   brighter over the card surface than at the card's edge, so equal tokens render unequal.
+   A slightly dimmer value makes them LOOK the same. */
+:root { --row-line: rgba(255, 255, 255, 0.06); --row-hover: rgba(255, 255, 255, 0.035); }
+[data-theme="light"] { --row-line: rgba(15, 15, 20, 0.08); --row-hover: rgba(15, 15, 20, 0.04); }
 .nt-trow td { transition: background var(--dur); }
-.nt-trow:hover td { background: var(--surface-inset); }
+.nt-trow:hover td { background: var(--row-hover); }
 .nt-trow td:first-child { border-top-left-radius: var(--radius-xs); border-bottom-left-radius: var(--radius-xs); }
 .nt-trow td:last-child { border-top-right-radius: var(--radius-xs); border-bottom-right-radius: var(--radius-xs); }

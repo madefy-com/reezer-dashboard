@@ -413,7 +413,7 @@ function SwingsPage({ page }) {
   // shared table styling (ActivityPage)
   const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "10px 14px", textAlign: "left", whiteSpace: "nowrap" };
   const thR = { ...th, textAlign: "right" };
-  const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--border)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--row-line)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top" };
   const tdR = { ...td, textAlign: "right" };
   // Holdings get room to breathe — there are only ever a handful of them.
   const tdTall = { ...td, padding: "15px 14px", verticalAlign: "middle" };
