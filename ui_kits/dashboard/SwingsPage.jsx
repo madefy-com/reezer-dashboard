@@ -107,7 +107,6 @@ function SwingsPage({ page }) {
   const [d, setD] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [edit, setEdit] = React.useState(null);
-  const [portOpen, setPortOpen] = React.useState(false);  // the Macrotrends portfolio accordion — closed until asked
   const [tradeFilter, setTradeFilter] = React.useState("all");   // trades page: all | open | closed
   const announced = React.useRef(false);
 
@@ -632,21 +631,6 @@ function SwingsPage({ page }) {
     // His whole portfolio, straight off the newest snapshot. A change-only feed is empty on
     // most days — this is the context that makes the page worth opening even when nothing
     // changed, and it is the same data the changes refer to.
-    // Sorted by the publisher's LAST REAL UPDATE to each name — advice, weight, add, drop —
-    // newest first. Price moves deliberately do not count: every price changes every day, so
-    // sorting on them would just reshuffle the whole table daily and mean nothing.
-    const lastUpd = {};
-    d.sigs.forEach((x) => {
-      const k = String(x.symbol || "").toUpperCase();
-      if (!lastUpd[k] || String(x.detected_at) > lastUpd[k]) lastUpd[k] = String(x.detected_at);
-    });
-    const holdings = Object.keys(marks).map((sym) => ({ sym: sym, ...(marks[sym] || {}) }))
-      .filter((h) => h.name || h.px != null)
-      .sort((a, b) => {
-        const ua = lastUpd[a.sym] || "", ub = lastUpd[b.sym] || "";
-        if (ua !== ub) return ub < ua ? -1 : 1;
-        return (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9);
-      });
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Alerts" />
@@ -720,29 +704,51 @@ function SwingsPage({ page }) {
             </div>
           ))}
 
-        {/* Height parity by CONSTRUCTION: this header is built from the alert row's exact
-            recipe — 3px left edge, 14px/16px padding, a t-body line plus a t-xs line 4px
-            below — so it renders the same height without any magic number to drift. */}
-        <div style={{ marginTop: 18, background: "var(--surface-card)", border: "1px solid var(--border)",
-                      borderLeft: "3px solid var(--line-3)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>
-          <button type="button" onClick={() => setPortOpen((o) => !o)}
-            style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "14px 16px",
-                     background: "transparent", border: "none", cursor: "pointer", textAlign: "left",
-                     color: "var(--text-primary)" }}>
-            <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
-            <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ display: "block", font: "var(--w-semibold) var(--t-body)/1 var(--font-sans)", color: "var(--text-primary)" }}>Macrotrends current portfolio</span>
-              <span style={{ display: "block", font: "var(--w-regular) var(--t-xs)/1.35 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>
-                {portOpen ? "click to close" : "click to open"}
-              </span>
-            </span>
-            {/* the count sits where an alert row keeps its timestamp, so the right edge lines up */}
-            <span style={{ flex: "none", textAlign: "right", font: "var(--w-regular) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)" }}>
-              {holdings.length} holdings
-            </span>
-          </button>
-          {portOpen && <div style={{ overflowX: "auto", borderTop: "1px solid var(--border)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------- macrotrends
+  // HIS side of the mirror: the publisher's current book as reference data. Deliberately its
+  // own page — the alerts feed is a stream you scan, this is a table you consult; pinned to
+  // either end of the feed it was invisible as soon as alerts flooded in.
+  if (page === "swings-macrotrends") {
+    const EN3 = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
+    const en3 = (v) => EN3[String(v || "").trim().toLowerCase()] || String(v || "").trim();
+    const posOf3 = (sym) => d.pos.filter((x) => String(x.symbol).toUpperCase() === String(sym).toUpperCase())
+      .sort((a, b) => (b.id || 0) - (a.id || 0))[0] || null;
+    // Sorted by the publisher's LAST REAL UPDATE to each name — advice, weight, add, drop —
+    // newest first. Price moves deliberately do not count: every price changes every day, so
+    // sorting on them would just reshuffle the whole table daily and mean nothing.
+    const lastUpd = {};
+    d.sigs.forEach((x) => {
+      const k = String(x.symbol || "").toUpperCase();
+      if (!lastUpd[k] || String(x.detected_at) > lastUpd[k]) lastUpd[k] = String(x.detected_at);
+    });
+    const holdings = Object.keys(marks).map((sym) => ({ sym: sym, ...(marks[sym] || {}) }))
+      .filter((h) => h.name || h.px != null)
+      .sort((a, b) => {
+        const ua = lastUpd[a.sym] || "", ub = lastUpd[b.sym] || "";
+        if (ua !== ub) return ub < ua ? -1 : 1;
+        return (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9);
+      });
+    // MY p&l % on a name from his book: broker-priced while open, the realized figure once
+    // sold. This column answers "how is following him working out for ME".
+    const myPct = (pos) => {
+      if (!pos) return null;
+      if (pos.status === "open") return pnlPct(pos);
+      const c = (SW_n(pos.orig_qty) || 0) * (SW_n(pos.avg_price) || 0);
+      const v = SW_n(pos.realized_pnl);
+      return (v == null || !c) ? null : (v / c) * 100;
+    };
+    const heldCount = holdings.filter((h) => { const x = posOf3(h.sym); return x && x.status === "open"; }).length;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
+        <PageHead title="Macrotrends" />
+        <NT.Card title={"Current portfolio · " + holdings.length + " stocks"} padding={20} bodyStyle={{ padding: 0 }}
+          action={heldCount ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>you hold {heldCount} of them</span> : null}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead><tr>
                 <th style={th}>holding</th>
                 <th style={th}>industry</th>
@@ -751,36 +757,51 @@ function SwingsPage({ page }) {
                 <th style={thR}>his buy-in</th>
                 <th style={thR}>current price</th>
                 <th style={thR}>result</th>
-                <th style={thR}>you</th>
+                <th style={thR}>your p&l</th>
               </tr></thead>
               <tbody>
                 {holdings.map((h) => {
-                  const adv = en(h.advies);
-                  const mine = posOf(h.sym);
+                  const adv = en3(h.advies);
+                  const mine = posOf3(h.sym);
+                  const held = mine && mine.status === "open";
                   const hp = SW_n(h.his_pct);
+                  const mp = myPct(mine);
                   return (
                     <tr key={h.sym} className="nt-trow">
                       <td style={td}>
-                        <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: "var(--text-primary)" }}>{h.sym}</span>
-                        <span style={{ color: "var(--text-tertiary)", marginLeft: 8 }}>{h.name || ""}</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                          {/* the violet dot marks the rows YOU are in — his table, your footprint */}
+                          {held ? <span title="you hold this" style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "var(--accent)" }} /> : null}
+                          <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: held ? "var(--violet-400)" : "var(--text-primary)" }}>{h.sym}</span>
+                          <span style={{ color: "var(--text-tertiary)" }}>{h.name || ""}</span>
+                        </span>
                       </td>
                       <td style={{ ...td, color: h.theme ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{h.theme || "—"}</td>
                       <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
                       <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
-                      {/* What HE paid. Read next to the live price it says whether the name is
-                          still available at or under his entry — the question actually asked
-                          when deciding to follow him into something. */}
                       <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_price(h.entry_px)}</td>
                       <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_price(h.px)}</td>
                       <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
-                      <td style={{ ...tdR, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: mine ? "var(--profit)" : "var(--text-tertiary)" }}>{mine ? (mine.status === "open" ? "holding" : "sold") : "—"}</td>
+                      <td style={{ ...tdR }}>
+                        {mp == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", height: 22, padding: "0 9px", borderRadius: 999,
+                                           background: mp > 0 ? "var(--profit-bg)" : mp < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
+                                           color: mp > 0 ? "var(--profit)" : mp < 0 ? "var(--loss)" : "var(--text-secondary)",
+                                           font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
+                              {SW_pct(mp)}
+                            </span>
+                            {!held ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>sold</span> : null}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>}
-        </div>
+          </div>
+        </NT.Card>
       </div>
     );
   }

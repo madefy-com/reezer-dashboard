@@ -20,6 +20,7 @@ const NT_WORLD_NAV = {
     { id: "swings-dashboard", label: "Dashboard", icon: "layout-dashboard" },
     { id: "swings-trades", label: "Trades", icon: "candlestick-chart" },
     { id: "swings-alerts", label: "Alerts", icon: "message-square-dot" },
+    { id: "swings-macrotrends", label: "Macrotrends", icon: "briefcase" },
     { id: "swings-strategies", label: "Strategies", icon: "target" },
   ],
   futures: [
