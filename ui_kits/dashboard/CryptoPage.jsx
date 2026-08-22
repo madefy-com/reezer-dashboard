@@ -167,13 +167,14 @@ function CryptoPage({ page }) {
       // ONE status word (what to do now); the move he is setting up for is the grey line.
       const x = pb || {};
       const now = x.now || "neutral", next = x.next && x.next !== "none" ? x.next : null;
-      const nowTxt = now.replace("_", " ");
+      const conv = CR_n(x.conviction) || 0;
+      const nowTxt = now === "buy" && conv >= 85 ? "strong buy" : now === "sell" && conv >= 85 ? "strong sell" : now.replace("_", " ");
       const trig = x.trigger ? x.trigger.replace(/^(if|on|when)\s+/i, "") : "";
+      // Grey line: a DIFFERENT next move with its trigger; otherwise the reason in his words.
       let line;
-      if (next && trig) line = (next === "buy" ? (/buy/.test(now) ? "add" : "buy") : next === "sell" ? "sell" : next) + " if " + trig;
-      else if (next) line = next === "buy" ? (/buy/.test(now) ? "add later" : "prepare to buy") : "prepare to " + next;
-      else if (trig) line = "if " + trig;
-      else line = now === "neutral" ? "not discussed" : (x.reason || "");
+      if (next && next !== now.replace("conditional_", "")) line = "prepare to " + (next === "sell" ? "take profit / sell" : next) + (trig ? " if " + trig : "");
+      else if (now === "conditional_buy" && trig) line = "buy if " + trig;
+      else line = now === "neutral" ? "not discussed" : (x.reason || (trig ? "if " + trig : ""));
       if (x.via_alts) line += " · via his alts call";
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 5, padding: "9px 11px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(now), minWidth: 0 }}>
