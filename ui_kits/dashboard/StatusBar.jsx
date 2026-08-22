@@ -47,7 +47,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
       seen: (srcFor("futures") || {}).last_poll_at, staleAfter: 600, killLabel: "Stop trading futures",
       killMsg: "This blocks NEW futures orders. Open positions are NOT closed.",
       trades: "futures-trades", liveVal: "live" },
-    { id: "crypto", label: "Crypto \u00b7 BETA", beta: true, strats: crStrats, table: "crypto_strategies",
+    { id: "crypto", label: "Crypto", beta: true, strats: crStrats, table: "crypto_strategies",
       seen: (revxSeen || {}).synced_at, staleAfter: 93600, killLabel: "Stop trading crypto",
       killMsg: "This blocks NEW crypto orders. Open positions are NOT closed.",
       trades: "crypto-trades", liveVal: "live" },
@@ -170,8 +170,8 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-pop)" });
   const popTitle = { font: "var(--w-semibold) var(--t-xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 6, display: "block" };
   const popNote = { marginTop: 10, font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" };
-  const groupHead = (label, first) => (
-    <div style={{ padding: (first ? 9 : 12) + "px 0 3px", font: "var(--w-semibold) 10px/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-disabled)" }}>{label}</div>
+  const groupHead = (label, first, beta) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: (first ? 9 : 12) + "px 0 3px", font: "var(--w-semibold) 10px/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: "var(--text-disabled)" }}>{label}{beta && window.CryptoBetaPill ? <window.CryptoBetaPill small /> : null}</div>
   );
   const closeAll = () => setOpenPop(null);
   const scrim = <div onClick={closeAll} style={{ position: "fixed", inset: 0, zIndex: 40 }}></div>;
@@ -208,7 +208,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
     return (
       <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0", borderTop: "1px solid var(--row-line)" }}>
         <span style={{ minWidth: 0, flex: 1 }}>
-          <span style={{ display: "block", font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{w.label}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6, font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>{w.label}{w.beta && window.CryptoBetaPill ? <window.CryptoBetaPill small /> : null}</span>
           <span style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: st.stale ? "var(--loss)" : "var(--text-secondary)" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: hc, flex: "none" }} />
             {st.stale ? "not reporting · last " + agoTxt(st.a) : "reported " + agoTxt(st.a)}
@@ -345,7 +345,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
               <span style={popTitle}>Trading sessions · your time</span>
               {WORLDS.map((w, wi) => (
                 <React.Fragment key={w.id}>
-                  {groupHead(w.label, wi === 0)}
+                  {groupHead(w.label, wi === 0, w.beta)}
                   {w.id === "options" && sessRow(mCol(usIsOpen), usIsOpen, "US market", ntFmtTz(sess.open, TZ) + " – " + ntFmtTz(sess.close, TZ))}
                   {w.id === "swings" && sessRow(mCol(euIsOpen), euIsOpen, "EU market", ntFmtTz(euOpen, TZ) + " – " + ntFmtTz(euClose, TZ))}
                   {w.id === "swings" && sessRow(mCol(usIsOpen), usIsOpen, "US market", ntFmtTz(sess.open, TZ) + " – " + ntFmtTz(sess.close, TZ))}

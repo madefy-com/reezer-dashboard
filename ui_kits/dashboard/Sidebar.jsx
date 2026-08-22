@@ -42,7 +42,7 @@ const NT_WORLD_META = {
   swings: { label: "Swings", icon: "trending-up" },
   futures: { label: "Futures", icon: "activity-square" },
   // BETA is part of the name on purpose: every place the world is named says so.
-  crypto: { label: "Crypto \u00b7 BETA", icon: "bitcoin", beta: true },
+  crypto: { label: "Crypto", icon: "bitcoin", beta: true },
 };
 
 /* The world picker. Closed it shows the current world + a one-line state; open it lists every
@@ -66,7 +66,7 @@ function WorldPicker({ worlds, current, onPick, state }) {
         borderRadius: "var(--radius-xs)", background: on ? "var(--violet-soft)" : "transparent",
         color: on ? "var(--text-primary)" : "var(--text-secondary)",
         font: (on ? "var(--w-medium)" : "var(--w-regular)") + " var(--t-xs)/1.2 var(--font-sans)" }}>
-      <span>{label}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>{label}{(NT_WORLD_META[id] || {}).beta && window.CryptoBetaPill ? <window.CryptoBetaPill small /> : null}</span>
       {s ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)" }}>
         {s.live ? <span style={{ color: "var(--profit)" }}>{s.live} live</span> : null}
         {s.live && s.paper ? <span style={{ color: "var(--text-tertiary)" }}> · </span> : null}
@@ -85,6 +85,7 @@ function WorldPicker({ worlds, current, onPick, state }) {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           <Ico name={meta.icon} size={15} color="var(--text-secondary)" />
           <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.label}</span>
+          {meta.beta && window.CryptoBetaPill ? <window.CryptoBetaPill small /> : null}
         </span>
         <Ico name="chevrons-up-down" size={14} color="var(--text-tertiary)" />
       </button>

@@ -15,12 +15,19 @@ const CR_ago = (iso) => {
   return s < 90 ? Math.round(s) + "s ago" : s < 5400 ? Math.round(s / 60) + "m ago" : s < 172800 ? Math.round(s / 3600) + "h ago" : Math.round(s / 86400) + "d ago";
 };
 
+/* The one BETA pill, used everywhere the world is named: menu, top bar, page heads, banner. */
+function CryptoBetaPill({ small }) {
+  return (
+    <span style={{ display: "inline-block", font: "var(--w-semibold) " + (small ? "9px" : "var(--t-2xs)") + "/1 var(--font-sans)", letterSpacing: "var(--ls-wide)",
+      color: "var(--violet)", padding: small ? "2px 5px" : "3px 7px", border: "1px solid var(--violet-line)", borderRadius: 999, verticalAlign: "middle" }}>BETA</span>
+  );
+}
+
 function CryptoBetaBanner() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
       background: "var(--violet-soft)", border: "1px solid var(--violet-line)", borderRadius: "var(--radius-sm)" }}>
-      <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)",
-        color: "var(--violet)", padding: "3px 7px", border: "1px solid var(--violet-line)", borderRadius: 999 }}>BETA</span>
+      <CryptoBetaPill />
       <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)" }}>
         Crypto on Revolut X is being built. The broker is connected and read daily; the signal sheet and the trading engine come next. Paper only — no real crypto orders yet.
       </span>
@@ -63,18 +70,26 @@ function CryptoPage({ page }) {
   const realized = closedPos.reduce((a, p) => a + (CR_n(p.realized_pnl) || 0), 0);
   const unrealTotal = openPos.reduce((a, p) => a + (unreal(p) || 0), 0);
 
+  // Same KPI card, table and empty-state styles as the Swings pages — the world must read
+  // identically, only the data differs.
+  const toneCol = (t) => (t === "up" ? "var(--profit)" : t === "down" ? "var(--loss)" : "var(--text-primary)");
+  const cardStyle = { display: "flex", flexDirection: "column", gap: 10, padding: "18px 18px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)", minWidth: 0 };
+  const labelStyle = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "lowercase", color: "var(--text-tertiary)" };
+  const valStyle = (t) => ({ font: "var(--w-light) var(--t-kpi)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums", letterSpacing: "var(--ls-tight)", color: toneCol(t) });
+  const subStyle = { font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)" };
   const Kard = ({ label, value, sub, tone }) => (
-    <NT.Card padding={16}>
-      <div style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</div>
-      <div style={{ font: "var(--w-semibold) var(--t-xl)/1.1 var(--font-sans)", marginTop: 8,
-        color: tone === "up" ? "var(--profit)" : tone === "down" ? "var(--loss)" : "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      {sub ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.3 var(--font-sans)", color: "var(--text-secondary)", marginTop: 6 }}>{sub}</div> : null}
-    </NT.Card>
+    <div style={cardStyle}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 30 }}>
+        <span style={labelStyle}>{label}</span>
+      </div>
+      <span style={valStyle(tone)}>{value != null ? value : "\u2014"}</span>
+      {sub ? <span style={subStyle}>{sub}</span> : null}
+    </div>
   );
-  const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", textAlign: "left", padding: "10px 12px", borderBottom: "1px solid var(--border-soft)" };
-  const td = { font: "var(--w-regular) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-primary)", padding: "10px 12px", borderBottom: "1px solid var(--border-soft)", fontVariantNumeric: "tabular-nums" };
+  const th = { font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)", padding: "10px 14px", textAlign: "left", whiteSpace: "nowrap" };
+  const td = { font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", padding: "9px 14px", borderTop: "1px solid var(--row-line)", textAlign: "left", color: "var(--text-secondary)", verticalAlign: "top", fontVariantNumeric: "tabular-nums" };
   const empty = (text) => (
-    <div style={{ padding: "28px 16px", textAlign: "center", font: "var(--w-regular) var(--t-sm)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>{text}</div>
+    <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-sm)/1.6 var(--font-sans)" }}>{text}</div>
   );
   const pill = (txt, on) => (
     <span style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", padding: "3px 8px", borderRadius: 999,
@@ -84,7 +99,11 @@ function CryptoPage({ page }) {
   const positionsTable = (rows, withStatus) => (
     <div style={{ overflowX: "auto" }}>
       {rows.length === 0 ? empty(withStatus ? "No crypto trades yet." : "No open crypto positions — the first one appears here when the engine buys.") : (
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: 860 }}>
+          <colgroup>
+            <col style={{ width: "23%" }} /><col style={{ width: "9%" }} /><col style={{ width: "11%" }} /><col style={{ width: "11%" }} />
+            <col style={{ width: "12%" }} /><col style={{ width: "12%" }} /><col style={{ width: "12%" }} /><col style={{ width: "10%" }} />{withStatus ? <col style={{ width: "10%" }} /> : null}
+          </colgroup>
           <thead><tr>
             <th style={th}>Coin</th><th style={th}>Amount</th><th style={th}>Capital</th><th style={th}>Buy-in</th>
             <th style={th}>Price</th><th style={th}>Value</th><th style={th}>Profit</th><th style={th}>%</th>{withStatus ? <th style={th}>Status</th> : null}
@@ -116,7 +135,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Trades" subtitle="Every crypto position, open and closed — Revolut X" />
         <CryptoBetaBanner />
-        <NT.Card padding={0} bodyStyle={{ padding: 0 }} title="Positions">{positionsTable(d.positions, true)}</NT.Card>
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Positions" + (d.positions.length ? " \u00b7 " + d.positions.length : "")}>{positionsTable(d.positions, true)}</NT.Card>
       </div>
     );
   }
@@ -126,7 +145,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Alerts" subtitle="Signals from the crypto sheet — none yet, the sheet does not exist" />
         <CryptoBetaBanner />
-        <NT.Card padding={0} bodyStyle={{ padding: 0 }} title="Signals">
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Signals" + (d.signals.length ? " \u00b7 " + d.signals.length : "")}>
           {d.signals.length === 0 ? empty("No signals yet. The crypto signal sheet is the next piece to build.") : (
             <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
               <thead><tr><th style={th}>When</th><th style={th}>Coin</th><th style={th}>Signal</th><th style={th}>Weight</th><th style={th}>Status</th></tr></thead>
@@ -153,7 +172,7 @@ function CryptoPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Strategies" subtitle="Crypto strategies on Revolut X" />
         <CryptoBetaBanner />
-        <NT.Card padding={0} bodyStyle={{ padding: 0 }} title="Strategies">
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Strategies" + (d.strategies.length ? " \u00b7 " + d.strategies.length : "")}>
           {d.strategies.length === 0 ? empty("No crypto strategies.") : (
             <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
               <thead><tr><th style={th}>Name</th><th style={th}>Account</th><th style={th}>Sizing</th><th style={th}>Trading</th><th style={th}>Kill switch</th></tr></thead>
@@ -175,19 +194,20 @@ function CryptoPage({ page }) {
   // dashboard
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Crypto" subtitle="Revolut X · USD pairs · beta" />
+      <PageHead title={<span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>Crypto <CryptoBetaPill /></span>} subtitle="Revolut X \u00b7 USD pairs" />
       <CryptoBetaBanner />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--gap-grid)" }}>
-        <Kard label="Account value" value={bs.account_value != null ? CR_usd(bs.account_value, 0) : "—"}
+      <div className="nt-kpi-row">
+        <Kard label="account value" value={bs.account_value != null ? CR_usd(bs.account_value, 0) : "—"}
           sub={broker ? ("Revolut X · checked " + CR_ago(bs.synced_at)) : "no broker row"} />
-        <Kard label="Cash" value={bs.cash != null ? CR_usd(bs.cash, 0) : "—"} sub="USD available on the exchange" />
-        <Kard label="Open positions" value={String(openPos.length)} sub={working.length ? working.length + " order(s) working" : "no orders working"} />
-        <Kard label="P&L" value={CR_usd(realized + unrealTotal, 0)} tone={realized + unrealTotal > 0 ? "up" : realized + unrealTotal < 0 ? "down" : null}
+        <Kard label="cash" value={bs.cash != null ? CR_usd(bs.cash, 0) : "—"} sub="USD available on the exchange" />
+        <Kard label="open positions" value={String(openPos.length)} sub={working.length ? working.length + " order(s) working" : "no orders working"} />
+        <Kard label="p&l" value={CR_usd(realized + unrealTotal, 0)} tone={realized + unrealTotal > 0 ? "up" : realized + unrealTotal < 0 ? "down" : null}
           sub={"realized " + CR_usd(realized, 0) + " · unrealized " + CR_usd(unrealTotal, 0)} />
       </div>
-      <NT.Card padding={0} bodyStyle={{ padding: 0 }} title="Your portfolio">{positionsTable(openPos, false)}</NT.Card>
+      <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Your portfolio" + (openPos.length ? " \u00b7 " + openPos.length : "")}
+        action={bs.synced_at ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{"Revolut X \u00b7 " + CR_ago(bs.synced_at)}</span> : null}>{positionsTable(openPos, false)}</NT.Card>
     </div>
   );
 }
 
-Object.assign(window, { CryptoPage });
+Object.assign(window, { CryptoPage, CryptoBetaPill });
