@@ -53,10 +53,14 @@ function DiscordLog({ maxHeight = 320, fill = false, category = "options" }) {
             {showDiv && (
               <div style={{ padding: (i ? 24 : 8) + "px 18px 5px", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{m.dkey.slice(8, 10) + "/" + m.dkey.slice(5, 7)}</div>
             )}
+            {/* the muted fade applies to the CONTENT, not the container — the separator
+                lives on the container, and fading it with the row made filtered alerts'
+                lines render dimmer than every other table's */}
             <div style={{
-              display: "flex", alignItems: "center", gap: 11, padding: "0 18px", height: 41, boxSizing: "border-box",
-              borderTop: (i && !showDiv) ? "1px solid var(--row-line)" : "none", opacity: muted ? 0.6 : 1,
+              padding: "0 18px", boxSizing: "border-box",
+              borderTop: (i && !showDiv) ? "1px solid var(--row-line)" : "none",
             }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, height: 41, opacity: muted ? 0.6 : 1 }}>
               <span className="num" style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)", color: "var(--text-tertiary)", width: 42, flex: "none" }}>{m.t.slice(0, 5)}</span>
               <span style={{ width: 78, flex: "none", display: "inline-flex" }}>
                 <NT_TypeChip type={m.type} />
@@ -66,6 +70,7 @@ function DiscordLog({ maxHeight = 320, fill = false, category = "options" }) {
                 {m.msg}
               </span>
               <div style={{ flex: "none" }} title={m.reason || undefined}><NT.FiredBadge fired={m.fired} /></div>
+            </div>
             </div>
             </React.Fragment>
           );
