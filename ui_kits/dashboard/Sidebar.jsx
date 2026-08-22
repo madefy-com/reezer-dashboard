@@ -36,7 +36,7 @@ const NT_WORLD_NAV = {
   crypto: [
     { id: "crypto-dashboard", label: "Dashboard", icon: "layout-dashboard" },
     { id: "crypto-trades", label: "Trades", icon: "candlestick-chart" },
-    { id: "crypto-alerts", label: "Alerts", icon: "message-square-dot" },
+    { id: "crypto-sentiment", label: "Sentiment", icon: "message-square-dot" },
     { id: "crypto-strategies", label: "Strategies", icon: "target" },
   ],
 };
