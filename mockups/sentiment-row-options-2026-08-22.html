@@ -1,0 +1,171 @@
+<meta charset="utf-8">
+<title>Sentiment Row Playbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap">
+<style>
+:root{--ink-1:#0E0E11;--ink-2:#151518;--ink-3:#1B1B1F;--line-1:rgba(255,255,255,.11);--line-2:rgba(255,255,255,.18);
+--fg-1:#FBFBFC;--fg-2:#E8E8ED;--fg-3:#C9C9D2;--fg-4:#56565F;--violet:#6E5BF2;
+--buy:#21C77A;--buy-bg:rgba(33,199,122,.14);--sell:#F0454B;--sell-bg:rgba(240,69,75,.14);--hold:#F5A524;--hold-bg:rgba(245,165,36,.16);--neu:#8A8A94;--neu-bg:rgba(138,138,148,.16);
+--row:rgba(255,255,255,.07);--sans:"Geist",ui-sans-serif,system-ui,sans-serif;--mono:"Geist Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:#08080A;color:var(--fg-1);font-family:var(--sans);font-size:14px;line-height:1.45}
+.wrap{max-width:1320px;margin:0 auto;padding:36px 24px 80px}
+h1{font-weight:600;font-size:26px;letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--fg-3);max-width:84ch;font-size:13px;margin:0 0 8px}
+.opt{margin-top:40px}
+.opt-h{display:flex;align-items:baseline;gap:12px;margin:0 0 6px}
+.opt-h b{font-size:16px;font-weight:600} .opt-h span{font-size:12px;color:var(--fg-4)}
+.opt-note{color:var(--fg-3);font-size:13px;max-width:84ch;margin:0 0 12px} .opt-note i{color:var(--fg-4);font-style:normal}
+.screen{background:var(--ink-1);border:1px solid var(--line-2);border-radius:16px;padding:20px;overflow-x:auto}
+.card{background:var(--ink-2);border:1px solid var(--line-1);border-radius:16px;min-width:1180px}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line-1)}
+.card-h b{font-weight:600;font-size:17px} .card-h span{font-size:12px;color:var(--fg-3)}
+.row{display:grid;gap:18px;align-items:center;padding:14px 20px;border-top:1px solid var(--row)}
+.row.head{padding:10px 20px;border-top:none}
+.row.head span{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);font-weight:500}
+.score{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:500;font-size:16px}
+.score.up{background:var(--buy-bg);color:var(--buy)} .score.down{background:var(--sell-bg);color:var(--sell)} .score.mid{background:var(--neu-bg);color:var(--neu)}
+.title{font-weight:500;font-size:13px}
+.sub{font-size:12px;color:var(--fg-3);margin-top:3px;line-height:1.45}
+.date{font-family:var(--mono);font-size:12px;color:var(--fg-2);line-height:1.5} .date small{display:block;color:var(--fg-4);font-size:11px}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.p-bull{background:var(--buy-bg);color:var(--buy)} .p-bear{background:var(--sell-bg);color:var(--sell)} .p-neu{background:var(--neu-bg);color:var(--neu)}
+.chev{color:var(--fg-4);font-size:12px;text-align:right}
+/* playbook tile (A) */
+.pb{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:9px;background:var(--ink-3);border:1px solid var(--line-1);min-width:0}
+.pb .l1{display:flex;align-items:center;gap:8px}
+.pb .sym{font-family:var(--mono);font-size:12px;color:var(--fg-2);width:30px}
+.pb .now{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.pb .arrow{color:var(--fg-4);font-size:12px}
+.pb .next{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.pb .trig{font-size:11px;color:var(--fg-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buy{color:var(--buy)} .hold{color:var(--hold)} .sell{color:var(--sell)} .neu{color:var(--neu)}
+.pb.buy{border-color:rgba(33,199,122,.35)} .pb.hold{border-color:rgba(245,165,36,.35)} .pb.sell{border-color:rgba(240,69,75,.35)} .pb.neu{border-color:var(--line-1)}
+.pb .bar{height:3px;border-radius:2px;background:var(--line-1);position:relative;margin-top:2px}
+.pb .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+/* playbook text (B) */
+.play{font-size:12px;line-height:1.55;color:var(--fg-3)}
+.play .sym{font-family:var(--mono);color:var(--fg-2);display:inline-block;width:34px}
+.play b{font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.play .arr{color:var(--fg-4);margin:0 4px}
+.play i{font-style:normal;color:var(--fg-4)}
+.legend{display:flex;gap:18px;font-size:11px;color:var(--fg-4);margin:12px 0 0 4px;flex-wrap:wrap}
+.verdict{margin-top:36px;padding:18px 20px;background:var(--ink-2);border:1px solid var(--line-1);border-radius:12px;max-width:84ch}
+.verdict h3{margin:0 0 8px;font-size:14px;font-weight:600} .verdict p{margin:0 0 6px;color:var(--fg-3);font-size:13px}
+</style>
+<div class="wrap">
+<h1>Sentiment row — A and B, with a playbook instead of "action buttons"</h1>
+<p class="lede">What changed under the hood: for each leader Reezer AI now answers three things — <b style="color:var(--fg-2)">what to do now</b> (buy / hold / sell / out), <b style="color:var(--fg-2)">what to prepare for</b> (the next move, if he names one), and <b style="color:var(--fg-2)">the trigger</b> that flips it. A bullish 78 with "HOLD → BUY if the weekly closes" is no longer a contradiction — it's the plan. Alts and other coins are gone from the list; they stay inside the opened brief. The short summary is fully visible.</p>
+
+<!-- ============ A ============ -->
+<div class="opt">
+  <div class="opt-h"><b>A · Playbook tiles</b><span>score tile carries the sentiment; one tile per leader: now → next, trigger, and a strength bar</span></div>
+  <p class="opt-note">Score · Video · Date · BTC · XRP. The tile's border is the colour of <i>now</i>; the arrow word is the colour of <i>next</i>; the grey line is the trigger; the thin bar underneath is his conviction. <i>Trade-off: the densest option — two tiles per row — but every element answers "what do I do".</i></p>
+  <div class="screen"><div class="card">
+    <div class="card-h"><b>Video briefs · 3</b><span>Blockchain Backer · read by Reezer AI</span></div>
+    <div class="row head" style="grid-template-columns:52px minmax(300px,1fr) 110px 250px 250px 24px"><span>Score</span><span>Video</span><span>Date</span><span>BTC</span><span>XRP</span><span></span></div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 250px 250px 24px">
+      <div class="score up">78</div>
+      <div><div class="title">Bottom likely in, confirmation pending</div><div class="sub">Weekly RSI divergence and breadth point to a low; he waits for the weekly close and the daily breadth trigger before calling it.</div></div>
+      <div class="date">Fri, Aug 21<small>12:27</small></div>
+      <div class="pb hold"><div class="l1"><span class="sym">BTC</span><span class="now hold">Hold</span><span class="arrow">→</span><span class="next buy">prepare to buy</span></div><div class="trig">if the weekly closes above $78k</div><div class="bar"><i style="width:75%;background:var(--hold)"></i></div></div>
+      <div class="pb hold"><div class="l1"><span class="sym">XRP</span><span class="now hold">Hold</span><span class="arrow">→</span><span class="next buy">prepare to buy</span></div><div class="trig">if daily breadth triggers at 75%</div><div class="bar"><i style="width:70%;background:var(--hold)"></i></div></div>
+      <div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 250px 250px 24px">
+      <div class="score up">85</div>
+      <div><div class="title">Short squeeze sets up the breakout</div><div class="sub">One of the largest short liquidations on record; breadth participation is the tell for the bullish confirmation he expects this week.</div></div>
+      <div class="date">Thu, Aug 20<small>14:31</small></div>
+      <div class="pb hold"><div class="l1"><span class="sym">BTC</span><span class="now hold">Hold</span><span class="arrow">→</span><span class="next buy">prepare to buy</span></div><div class="trig">on the bullish confirmation</div><div class="bar"><i style="width:65%;background:var(--hold)"></i></div></div>
+      <div class="pb buy"><div class="l1"><span class="sym">XRP</span><span class="now buy">Buy</span></div><div class="trig">bottom is in at $1.38–1.40</div><div class="bar"><i style="width:70%;background:var(--buy)"></i></div></div>
+      <div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 250px 250px 24px">
+      <div class="score down">32</div>
+      <div><div class="title">Range low lost, retest ahead</div><div class="sub">Expects a retest of the May lows before any recovery; alts are the weakest part of the market and should be reduced first.</div></div>
+      <div class="date">Wed, Aug 19<small>11:02</small></div>
+      <div class="pb sell"><div class="l1"><span class="sym">BTC</span><span class="now sell">Reduce</span><span class="arrow">→</span><span class="next buy">prepare to buy</span></div><div class="trig">on a retest of the May lows</div><div class="bar"><i style="width:60%;background:var(--sell)"></i></div></div>
+      <div class="pb neu"><div class="l1"><span class="sym">XRP</span><span class="now neu">Neutral</span></div><div class="trig">not discussed</div><div class="bar"></div></div>
+      <div class="chev">⌄</div>
+    </div>
+  </div>
+  <div class="legend"><span><b class="buy">green</b> buy / prepare to buy</span><span><b class="hold">yellow</b> hold</span><span><b class="sell">red</b> reduce / sell</span><span><b class="neu">grey</b> neutral / not discussed</span><span>· bar = conviction</span></div></div>
+</div>
+
+<!-- ============ B ============ -->
+<div class="opt">
+  <div class="opt-h"><b>B · Playbook as text</b><span>sentiment pill kept; the two leaders as two short lines, only the action words coloured</span></div>
+  <p class="opt-note">Score · Video · Date · Sentiment · Playbook. Same information as A, written out: "BTC HOLD → BUY if the weekly closes above $78k". Calmer, two colours per row at most, reads like a note. <i>Trade-off: no conviction bar; the eye has to read rather than see.</i></p>
+  <div class="screen"><div class="card">
+    <div class="card-h"><b>Video briefs · 3</b><span>Blockchain Backer · read by Reezer AI</span></div>
+    <div class="row head" style="grid-template-columns:52px minmax(300px,1fr) 110px 110px 420px 24px"><span>Score</span><span>Video</span><span>Date</span><span>Sentiment</span><span>Playbook · now → next</span><span></span></div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 110px 420px 24px">
+      <div class="score up">78</div>
+      <div><div class="title">Bottom likely in, confirmation pending</div><div class="sub">Weekly RSI divergence and breadth point to a low; he waits for the weekly close and the daily breadth trigger before calling it.</div></div>
+      <div class="date">Fri, Aug 21<small>12:27</small></div><div><span class="pill p-bull">Bullish</span></div>
+      <div class="play"><div><span class="sym">BTC</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>if the weekly closes above $78k</i></div><div><span class="sym">XRP</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>if daily breadth triggers at 75%</i></div></div>
+      <div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 110px 420px 24px">
+      <div class="score up">85</div>
+      <div><div class="title">Short squeeze sets up the breakout</div><div class="sub">One of the largest short liquidations on record; breadth participation is the tell for the bullish confirmation he expects this week.</div></div>
+      <div class="date">Thu, Aug 20<small>14:31</small></div><div><span class="pill p-bull">Bullish</span></div>
+      <div class="play"><div><span class="sym">BTC</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>on the bullish confirmation</i></div><div><span class="sym">XRP</span><b class="buy">buy</b> <i>bottom is in at $1.38–1.40</i></div></div>
+      <div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(300px,1fr) 110px 110px 420px 24px">
+      <div class="score down">32</div>
+      <div><div class="title">Range low lost, retest ahead</div><div class="sub">Expects a retest of the May lows before any recovery; alts are the weakest part of the market and should be reduced first.</div></div>
+      <div class="date">Wed, Aug 19<small>11:02</small></div><div><span class="pill p-bear">Bearish</span></div>
+      <div class="play"><div><span class="sym">BTC</span><b class="sell">reduce</b><span class="arr">→</span><b class="buy">buy</b> <i>on a retest of the May lows</i></div><div><span class="sym">XRP</span><b class="neu">neutral</b> <i>not discussed</i></div></div>
+      <div class="chev">⌄</div>
+    </div>
+  </div></div>
+</div>
+
+
+<!-- ============ C+ ============ -->
+<div class="opt">
+  <div class="opt-h"><b>C+ · Stance line with the playbook</b><span>option C's calm three-column row, but the line under the title is the playbook itself</span></div>
+  <p class="opt-note">Score · Video · Date. Under the short title: the full summary, then one playbook line for the two leaders — "BTC HOLD → BUY if the weekly closes · XRP HOLD → BUY if daily breadth triggers". Only the action words carry colour; the score tile carries the sentiment. No pill, no tiles, no extra columns. <i>Trade-off: the row is three lines tall, so fewer videos per screen; but everything you need is in one place, in reading order: what happened → what to do.</i></p>
+  <div class="screen"><div class="card">
+    <div class="card-h"><b>Video briefs · 3</b><span>Blockchain Backer · read by Reezer AI</span></div>
+    <div class="row head" style="grid-template-columns:52px minmax(560px,1fr) 110px 24px"><span>Score</span><span>Video · summary · playbook</span><span>Date</span><span></span></div>
+
+    <div class="row" style="grid-template-columns:52px minmax(560px,1fr) 110px 24px;align-items:start">
+      <div class="score up">78</div>
+      <div><div class="title">Bottom likely in, confirmation pending</div><div class="sub">Weekly RSI divergence and breadth point to a low; he waits for the weekly close and the daily breadth trigger before calling it.</div>
+        <div class="play" style="margin-top:6px"><span class="sym">BTC</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>if the weekly closes above $78k</i> &nbsp;·&nbsp; <span class="sym">XRP</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>if daily breadth triggers at 75%</i></div></div>
+      <div class="date">Fri, Aug 21<small>12:27</small></div><div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(560px,1fr) 110px 24px;align-items:start">
+      <div class="score up">85</div>
+      <div><div class="title">Short squeeze sets up the breakout</div><div class="sub">One of the largest short liquidations on record; breadth participation is the tell for the bullish confirmation he expects this week.</div>
+        <div class="play" style="margin-top:6px"><span class="sym">BTC</span><b class="hold">hold</b><span class="arr">→</span><b class="buy">buy</b> <i>on the bullish confirmation</i> &nbsp;·&nbsp; <span class="sym">XRP</span><b class="buy">buy</b> <i>bottom is in at $1.38–1.40</i></div></div>
+      <div class="date">Thu, Aug 20<small>14:31</small></div><div class="chev">⌄</div>
+    </div>
+
+    <div class="row" style="grid-template-columns:52px minmax(560px,1fr) 110px 24px;align-items:start">
+      <div class="score down">32</div>
+      <div><div class="title">Range low lost, retest ahead</div><div class="sub">Expects a retest of the May lows before any recovery; alts are the weakest part of the market and should be reduced first.</div>
+        <div class="play" style="margin-top:6px"><span class="sym">BTC</span><b class="sell">reduce</b><span class="arr">→</span><b class="buy">buy</b> <i>on a retest of the May lows</i> &nbsp;·&nbsp; <span class="sym">XRP</span><b class="neu">neutral</b> <i>not discussed</i></div></div>
+      <div class="date">Wed, Aug 19<small>11:02</small></div><div class="chev">⌄</div>
+    </div>
+  </div></div>
+</div>
+
+<div class="verdict">
+  <h3>What Reezer AI will be asked for, per leader</h3>
+  <p><b style="color:var(--fg-2)">now</b> — buy · hold · reduce · sell · neutral (what he'd do with a position today)</p>
+  <p><b style="color:var(--fg-2)">next</b> — buy · sell · none (the move he's setting up for)</p>
+  <p><b style="color:var(--fg-2)">trigger</b> — the one condition that flips now into next, in his words, with the level if he gives one</p>
+  <p><b style="color:var(--fg-2)">conviction</b> — 0–100, how firmly he committed; drives the bar in A</p>
+  <p style="margin-top:10px">So the user-facing question "should I prepare to buy, hold or sell?" is answered in the row itself: the <i>now</i> word is what to do, the <i>next</i> word is what to prepare for, the grey line is when.</p>
+</div>
+</div>

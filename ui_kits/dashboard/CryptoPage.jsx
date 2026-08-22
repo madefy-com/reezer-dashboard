@@ -51,7 +51,7 @@ function CryptoPage({ page }) {
       db.from("crypto_marks").select("*"),
       db.from("crypto_signals").select("*").order("detected_at", { ascending: false }).limit(100),
       db.from("crypto_broker_accounts").select("*").order("id"),
-      db.from("crypto_video_briefs").select("id,channel_name,video_id,title,url,published_at,status,sentiment,sentiment_score,headline,summary,signals,model,summarized_at,error").order("published_at", { ascending: false }).limit(60),
+      db.from("crypto_video_briefs").select("id,channel_name,video_id,title,url,published_at,status,sentiment,sentiment_score,headline,short_title,summary_short,playbook,summary,signals,model,summarized_at,error").order("published_at", { ascending: false }).limit(60),
     ]).then((r) => {
       const strategies = (r[0] && r[0].data) || [];
       window.NT_HAS_CRYPTO = strategies.length > 0;
@@ -145,101 +145,140 @@ function CryptoPage({ page }) {
   }
 
   if (page === "crypto-sentiment") {
-    // One row per video: who, when, the read (sentiment pill + score), the three leaders,
-    // and the calls as chips. Open a row for the thesis, the bullets, the risks and the
-    // verbatim quote behind every call. Money colours only for direction: buy/add green,
-    // sell/reduce/take-profit red, wait/hold grey.
-    const sentCol = (sv) => (sv === "bullish" ? "var(--profit)" : sv === "bearish" ? "var(--loss)" : "var(--text-secondary)");
-    const sentBg = (sv) => (sv === "bullish" ? "var(--profit-bg)" : sv === "bearish" ? "var(--loss-bg)" : "var(--surface-inset)");
-    const dirCol = (dir) => (/buy|add/.test(dir) ? "var(--profit)" : /sell|reduce|take_profit/.test(dir) ? "var(--loss)" : "var(--text-secondary)");
-    const chip = (text, col, bg) => (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 8px", borderRadius: "var(--radius-sm)",
-        background: bg || "var(--surface-inset)", color: col, font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", whiteSpace: "nowrap" }}>{text}</span>
-    );
-    const leaderChip = (sym, v) => {
-      const verdict = (v && v.verdict) || "not_discussed";
-      const col = verdict === "bullish" ? "var(--profit)" : verdict === "bearish" ? "var(--loss)" : "var(--text-tertiary)";
-      return <span key={sym} title={v && v.reason} style={{ display: "inline-flex", alignItems: "center", gap: 6, font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: verdict === "not_discussed" ? "var(--text-disabled)" : "var(--text-primary)" }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: col }}></span>{sym}
-      </span>;
+    // Option A (22 Aug): Score · Video · Date · BTC · XRP. The score tile carries the
+    // sentiment (colour = direction, number = strength); each leader gets a PLAYBOOK tile —
+    // what to do now → what to prepare for · the trigger · a conviction bar. Alts and other
+    // coins live only inside the opened brief. Money colours only for actions.
+    const actCol = (a) => (/buy/.test(a) ? "var(--profit)" : /hold/.test(a) ? "var(--chip-entry)" : /reduce|sell/.test(a) ? "var(--loss)" : "var(--text-tertiary)");
+    const actLine = (a) => (/buy/.test(a) ? "var(--profit-line)" : /hold/.test(a) ? "var(--chip-entry)" : /reduce|sell/.test(a) ? "var(--loss-line)" : "var(--border)");
+    const scoreCol = (sv) => (sv === "bullish" ? "var(--profit)" : sv === "bearish" ? "var(--loss)" : "var(--text-secondary)");
+    const scoreBg = (sv) => (sv === "bullish" ? "var(--profit-bg)" : sv === "bearish" ? "var(--loss-bg)" : "var(--surface-inset)");
+    const when = (iso) => (iso ? new Date(iso) : null);
+    const dayTxt = (iso) => { const d = when(iso); return d ? d.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }) : ""; };
+    const timeTxt = (iso) => { const d = when(iso); return d ? d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""; };
+    const cap = (x) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : "");
+    const actWord = { font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", whiteSpace: "nowrap" };
+
+    const Tile = ({ sym, pb }) => {
+      const x = pb || {};
+      const now = x.now || "neutral", next = x.next && x.next !== "none" ? x.next : null;
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(now), minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)", width: 30 }}>{sym}</span>
+            <span style={{ ...actWord, color: actCol(now) }}>{now}</span>
+            {next ? <span style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)" }}>→</span> : null}
+            {next ? <span style={{ ...actWord, color: actCol(next) }}>prepare to {next}</span> : null}
+          </div>
+          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {x.trigger ? (next ? "if " : "") + x.trigger : (now === "neutral" ? "not discussed" : (x.reason || ""))}{x.via_alts ? " · via his alts call" : ""}
+          </div>
+          <div style={{ height: 3, borderRadius: 2, background: "var(--border)", position: "relative" }}>
+            <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(now) }}></span>
+          </div>
+        </div>
+      );
     };
-    const when = (iso) => (iso ? new Date(iso).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" }) + " " + new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
-    const rowStyle = (on) => ({ display: "grid", gridTemplateColumns: "1.7fr 130px 160px 1.3fr 28px", gap: 14, alignItems: "center", padding: "12px 20px", borderTop: "1px solid var(--row-line)", cursor: "pointer", background: on ? "var(--surface-inset)" : "transparent" });
+
+    const cols = "52px minmax(300px,1fr) 110px 250px 250px 24px";
+    const rowStyle = (on) => ({ display: "grid", gridTemplateColumns: cols, gap: 18, alignItems: "center", padding: "14px 20px", borderTop: "1px solid var(--row-line)", cursor: "pointer", background: on ? "var(--surface-inset)" : "transparent" });
     const briefs = d.briefs.filter((b) => b.status === "summarized");
     const pending = d.briefs.filter((b) => b.status !== "summarized");
+    const dirCol = (dir) => (/buy|add/.test(dir) ? "var(--profit)" : /sell|reduce|take_profit/.test(dir) ? "var(--loss)" : "var(--text-secondary)");
+    const kicker = { ...th, padding: 0, margin: "16px 0 8px" };
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Sentiment" />
         <CryptoBetaBanner />
         <NT.Card padding={20} bodyStyle={{ padding: 0 }} title={"Video briefs" + (briefs.length ? " · " + briefs.length : "")}
-          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>Blockchain Backer · read by {(briefs[0] && briefs[0].model) || "Claude"}</span>}>
+          action={<span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>Blockchain Backer · read by Reezer AI</span>}>
           {briefs.length === 0 ? empty("No video briefs yet — the next upload on the channel appears here within minutes of its captions being ready.") : (
             <div>
               <div style={{ ...rowStyle(false), borderTop: "none", cursor: "default", padding: "10px 20px" }}>
-                {["Video", "Read", "Leaders", "Calls", ""].map((h) => <span key={h} style={th}>{h}</span>)}
+                {["Score", "Video", "Date", "BTC", "XRP", ""].map((h, i) => <span key={i} style={{ ...th, padding: 0 }}>{h}</span>)}
               </div>
               {briefs.map((b) => {
                 const on = openBrief === b.id;
-                const sigs = b.signals || [];
+                const pb = b.playbook || {};
                 const L = (b.summary && b.summary.leaders) || {};
+                const sigs = b.signals || [];
                 return (
                   <div key={b.id}>
                     <div style={rowStyle(on)} onClick={() => setOpenBrief(on ? null : b.id)}>
+                      <div style={{ width: 40, height: 40, borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center", background: scoreBg(b.sentiment), color: scoreCol(b.sentiment), font: "var(--w-medium) 16px/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>{b.sentiment_score}</div>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</div>
-                        <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 3 }}>{b.channel_name} · {when(b.published_at)}</div>
+                        <div style={{ font: "var(--w-medium) var(--t-sm)/1.3 var(--font-sans)", color: "var(--text-primary)" }}>{b.short_title || b.title}</div>
+                        <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-secondary)", marginTop: 3 }}>{b.summary_short || b.headline}</div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        {chip(String(b.sentiment || "").toUpperCase(), sentCol(b.sentiment), sentBg(b.sentiment))}
-                        <span style={{ font: "var(--w-light) var(--t-md)/1 var(--font-mono)", color: sentCol(b.sentiment), fontVariantNumeric: "tabular-nums" }}>{b.sentiment_score}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 12 }}>{["BTC", "ETH", "XRP"].map((k) => leaderChip(k, L[k]))}</div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {sigs.length === 0 ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>no calls</span>
-                          : sigs.slice(0, 4).map((sg, i) => chip(sg.asset + " " + String(sg.direction || "").replace("_", " ") + (sg.conditional ? " · if" : ""), dirCol(sg.direction)))}
-                        {sigs.length > 4 ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>+{sigs.length - 4}</span> : null}
-                      </div>
+                      <div style={{ font: "var(--w-regular) var(--t-xs)/1.5 var(--font-mono)", color: "var(--text-secondary)" }}>{dayTxt(b.published_at)}<div style={{ color: "var(--text-tertiary)", fontSize: 11 }}>{timeTxt(b.published_at)}</div></div>
+                      <Tile sym="BTC" pb={pb.BTC} />
+                      <Tile sym="XRP" pb={pb.XRP} />
                       <Ico name={on ? "chevron-up" : "chevron-down"} size={16} color="var(--text-tertiary)" />
                     </div>
                     {on ? (
-                      <div style={{ padding: "4px 20px 18px", borderTop: "1px solid var(--row-line)", background: "var(--surface-inset)", display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24 }}>
+                      <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--row-line)", background: "var(--surface-inset)", display: "grid", gridTemplateColumns: "minmax(0,1fr) 440px", gap: 24 }}>
                         <div>
-                          <div style={{ font: "var(--w-semibold) var(--t-sm)/1.45 var(--font-sans)", color: "var(--text-primary)", margin: "12px 0 10px" }}>{b.headline}</div>
-                          <ul style={{ margin: 0, paddingLeft: 18, font: "var(--w-regular) var(--t-sm)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
-                            {((b.summary && b.summary.bullets) || []).map((t, i) => <li key={i} style={{ marginBottom: 4 }}>{t}</li>)}
+                          {/* The video, in place. YouTube's own player; nothing leaves the page. */}
+                          <div style={{ position: "relative", aspectRatio: "16/9", marginTop: 16, borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
+                            <iframe src={"https://www.youtube-nocookie.com/embed/" + b.video_id} title={b.title} allow="accelerometer; encrypted-media; picture-in-picture" allowFullScreen
+                              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}></iframe>
+                          </div>
+                          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}>{b.title} · <a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>open on YouTube</a></div>
+                          <div style={kicker}>Thesis</div>
+                          <div style={{ font: "var(--w-medium) var(--t-body)/1.45 var(--font-sans)", color: "var(--text-primary)", maxWidth: "62ch" }}>{b.headline}</div>
+                          <div style={kicker}>What he said</div>
+                          <ul style={{ margin: 0, paddingLeft: 18, font: "var(--w-regular) var(--t-sm)/1.55 var(--font-sans)", color: "var(--text-secondary)" }}>
+                            {((b.summary && b.summary.bullets) || []).map((t, i) => <li key={i} style={{ marginBottom: 5 }}>{t}</li>)}
                           </ul>
                           {((b.summary && b.summary.risks) || []).length ? (
-                            <div style={{ marginTop: 12 }}>
-                              <div style={th}>What would invalidate it</div>
-                              <ul style={{ margin: "6px 0 0", paddingLeft: 18, font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
+                            <div>
+                              <div style={kicker}>What would invalidate it</div>
+                              <ul style={{ margin: 0, paddingLeft: 18, font: "var(--w-regular) var(--t-xs)/1.5 var(--font-sans)", color: "var(--text-secondary)" }}>
                                 {b.summary.risks.map((t, i) => <li key={i}>{t}</li>)}
                               </ul>
                             </div>
                           ) : null}
-                          <div style={{ marginTop: 12, font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
-                            Transcript quality: {(b.summary && b.summary.data_quality) || "—"} · <a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>watch on YouTube</a>
+                          <div style={{ marginTop: 14, font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                            Transcript quality: {(b.summary && b.summary.data_quality) || "—"} · read by Reezer AI {b.summarized_at ? "at " + timeTxt(b.summarized_at) : ""}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ ...th, marginTop: 12 }}>Leaders</div>
-                          {["BTC", "ETH", "XRP"].map((k) => (
-                            <div key={k} style={{ display: "flex", gap: 10, margin: "8px 0", font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-secondary)" }}>
-                              <span style={{ minWidth: 36 }}>{leaderChip(k, L[k])}</span>
-                              <span>{(L[k] && L[k].reason) || ""}</span>
-                            </div>
-                          ))}
-                          <div style={{ ...th, marginTop: 14 }}>Calls · with the quote behind each</div>
-                          {sigs.length === 0 ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}>No explicit buy or sell call in this video.</div>
-                            : sigs.map((sg, i) => (
-                            <div key={i} style={{ margin: "8px 0 0", padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", background: "var(--surface-card)" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                {chip(sg.asset + " " + String(sg.direction || "").replace("_", " "), dirCol(sg.direction))}
-                                <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{sg.strength} · {sg.timeframe} · confidence {sg.confidence}{(sg.levels || []).length ? " · " + sg.levels.join(", ") : ""}</span>
+                        <div style={{ marginTop: 16 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+                            <span style={{ font: "var(--w-light) 34px/1 var(--font-mono)", letterSpacing: "var(--ls-tight)", color: scoreCol(b.sentiment), fontVariantNumeric: "tabular-nums" }}>{b.sentiment_score}</span>
+                            <div><div style={{ ...th, padding: 0 }}>Sentiment</div><div style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: scoreCol(b.sentiment), marginTop: 6 }}>{b.sentiment}</div></div>
+                          </div>
+                          <div style={{ padding: "14px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", marginTop: 10 }}>
+                            <div style={{ ...th, padding: 0 }}>Playbook</div>
+                            {["BTC", "XRP"].map((k) => {
+                              const x = pb[k] || {};
+                              return (
+                                <div key={k} style={{ marginTop: 10 }}>
+                                  <Tile sym={k} pb={x} />
+                                  <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-secondary)", margin: "6px 4px 0" }}>{x.reason || (L[k] && L[k].reason) || ""}</div>
+                                </div>
+                              );
+                            })}
+                            {L.ETH && L.ETH.verdict && L.ETH.verdict !== "not_discussed" ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 10 }}>ETH · {L.ETH.verdict}: {L.ETH.reason}</div> : null}
+                          </div>
+                          <div style={{ padding: "14px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", marginTop: 10 }}>
+                            <div style={{ ...th, padding: 0 }}>Every call he made{sigs.length ? " · " + sigs.length : ""}</div>
+                            {sigs.length === 0 ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 8 }}>No explicit buy or sell call in this video.</div>
+                              : sigs.map((sg, i) => (
+                              <div key={i} style={{ display: "grid", gridTemplateColumns: "84px 1fr", gap: 12, padding: "10px 0", borderTop: i ? "1px solid var(--row-line)" : "none" }}>
+                                <div>
+                                  <div style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-primary)" }}>{sg.asset}</div>
+                                  <div style={{ ...actWord, color: dirCol(sg.direction), marginTop: 5 }}>{String(sg.direction || "").replace("_", " ")}</div>
+                                  <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 5 }}>{sg.strength} · {sg.confidence}</div>
+                                </div>
+                                <div>
+                                  {sg.conditional && sg.condition ? <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-secondary)" }}><span style={{ color: "var(--chip-entry)", fontWeight: 500 }}>If</span> {sg.condition}</div> : null}
+                                  {(sg.levels || []).length ? <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-mono)", color: "var(--text-tertiary)", marginTop: 4 }}>{sg.levels.join(" · ")}</div> : null}
+                                  <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6, paddingLeft: 10, borderLeft: "2px solid var(--border-strong)" }}>“{sg.quote}”</div>
+                                </div>
                               </div>
-                              {sg.conditional && sg.condition ? <div style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 6 }}>If: {sg.condition}</div> : null}
-                              <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6, fontStyle: "italic" }}>“{sg.quote}”</div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ) : null}
