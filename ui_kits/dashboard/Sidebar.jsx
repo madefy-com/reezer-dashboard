@@ -70,9 +70,9 @@ function WorldPicker({ worlds, current, onPick, state }) {
     <div ref={ref} style={{ position: "relative", marginBottom: 10 }}>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-          width: "100%", padding: "8px 10px", cursor: "pointer", textAlign: "left",
+          width: "100%", height: 40, padding: "0 10px", cursor: "pointer", textAlign: "left",
           background: "var(--surface-inset)", border: "1px solid var(--border)",
-          borderRadius: "var(--radius-sm)", color: "var(--text-primary)" }}>
+          borderRadius: "var(--radius-md)", color: "var(--text-primary)" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
           <Ico name={meta.icon} size={15} color="var(--text-secondary)" />
           <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.label}</span>
@@ -171,7 +171,7 @@ function Sidebar({ page, onNav, world, onWorld }) {
 
   return (
     <aside style={{
-      width: 218, flex: "none", background: "var(--ink-0)", borderRight: "1px solid var(--border)",
+      width: 248, flex: "none", background: "var(--ink-0)", borderRight: "1px solid var(--border)",
       display: "flex", flexDirection: "column", padding: "16px 14px",
     }}>
       {/* brand */}

@@ -281,8 +281,8 @@ function ntTradesFor(category) {
   ((window.NT_DATA.strategies) || []).forEach(function (s) {
     if ((s.category || "options") === world) ids[s.id] = true;
   });
-  var sel = String(window.NT_DATA.viewStrategy || "all");
-  var pick = ids[sel] ? sel : null;                // ignore a selection from another world
+  var sel = String(window.NT_VIEW_FOR ? window.NT_VIEW_FOR(world) : (window.NT_DATA.viewStrategy || "all"));
+  var pick = ids[sel] ? sel : null;                // a stale id (deleted strategy) means no filter
   return ((window.NT_DATA.trades) || []).filter(function (t) {
     if (t.strategyId == null) return world === "options";
     if (!ids[t.strategyId]) return false;
@@ -320,11 +320,11 @@ function StrategyViewSelect({ category }) {
   if (!strategies.length) return null;             // nothing to filter at all
   const mine = {};
   strategies.forEach((s) => { mine[String(s.id)] = true; });
-  const raw = String(window.NT_DATA.viewStrategy || "all");
-  const view = mine[raw] ? raw : "all";            // a selection from another world resets
+  const raw = String(window.NT_VIEW_FOR ? window.NT_VIEW_FOR(world) : "all");
+  const view = mine[raw] ? raw : "all";            // a stale id (deleted strategy) resets
   const options = [{ value: "all", label: "All strategies" }]
     .concat(strategies.map((s) => ({ value: String(s.id), label: s.name })));
-  return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v)} />;
+  return <NT_Select value={view} options={options} icon="filter" minWidth={200} onChange={(v) => window.NT_SET_VIEW(v, world)} />;
 }
 
 Object.assign(window, { ntTradesFor, greeting, DateFilter, ntRangeBounds, PageHead, NT_Select, NT_TypeChip, StrategyViewSelect,

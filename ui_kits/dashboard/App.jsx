@@ -65,8 +65,8 @@ function WatchdogBanner() {
   if (machines.some((m) => m.active && online(m))) return null;   // a box is trading -> all good
   const anyOnline = machines.some(online);
   const msg = anyOnline
-    ? "A box is online but none is actively trading (standby or paused) — new alerts won't be acted on."
-    : "No box is running. The streaming window is open but no machine is online — alerts aren't being caught.";
+    ? "A server is online but none is actively trading (standby or paused) — new alerts won't be acted on."
+    : "No server is running. The streaming window is open but none is online — alerts aren't being caught.";
   return (
     <div style={{ flex: "0 0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 26px",

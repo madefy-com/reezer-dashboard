@@ -3,9 +3,18 @@
    NT_VERSION by +0.001 and adds a new {v, date, notes:[]} entry at the TOP of
    NT_CHANGELOG (newest first); further changes the SAME day just append a bullet to
    that day's `notes` (version unchanged). Separate from the ?v= asset cache-buster. */
-window.NT_VERSION = "1.025";
+window.NT_VERSION = "1.026";
 
 window.NT_CHANGELOG = [
+  {
+    v: "1.026", date: "2026-08-22",
+    notes: [
+      "The menu is a little wider, and the world switcher is now the same height as the Ask Reezer button, so the selected item, the switcher and the button all line up.",
+      "Settings starts with the choice that frames everything else: which world your dashboard opens on. Below it you can now set a default strategy per world \u2014 each world keeps its own choice, so picking a futures strategy no longer quietly becomes the options default too.",
+      "Interactive Brokers is listed first among the brokers, the page stretches to use the full width of the window, and the New source button \u2014 which did nothing \u2014 is gone.",
+      "Your Macs are now called servers everywhere \u2014 no more \u201cboxes\u201d or \u201cmachines\u201d.",
+    ],
+  },
   {
     v: "1.025", date: "2026-08-21",
     notes: [

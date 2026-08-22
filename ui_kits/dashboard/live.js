@@ -284,8 +284,7 @@
 
     // dashboard view filter: 'all' | 'live' | <strategy_id>. Scopes the KPIs / trades /
     // P&L to one strategy; the Strategies page + comparison always use the full set.
-    var view = "all";
-    try { view = (window.localStorage && localStorage.getItem("nt_view_strategy")) || "all"; } catch (e) {}
+    var view = window.NT_VIEW_FOR ? window.NT_VIEW_FOR("options") : "all";
     var liveIds = {};
     stratList.forEach(function (s) { if (s.account === "live") liveIds[s.id] = true; });
     // The strategy dropdown is an OPTIONS-world control — it only ever lists options
@@ -402,9 +401,23 @@
     return buildDaily(pos, bal);
   };
 
-  // Set the dashboard view filter (persisted) and re-render.
-  window.NT_SET_VIEW = function (v) {
-    try { window.localStorage.setItem("nt_view_strategy", v); } catch (e) {}
+  // The strategy view is PER WORLD: one stored default each for options, swings and futures.
+  // A single global key meant picking a futures strategy silently became the options default
+  // too — the worlds share a picker component, not a selection.
+  window.NT_VIEW_FOR = function (world) {
+    var w = world || "options";
+    try {
+      var v = window.localStorage.getItem("nt_view_strategy." + w);
+      if (v) return v;
+      // migrate the old single global key into the options slot it always really meant
+      if (w === "options") return window.localStorage.getItem("nt_view_strategy") || "all";
+    } catch (e) {}
+    return "all";
+  };
+
+  // Set one world's view filter (persisted) and re-render.
+  window.NT_SET_VIEW = function (v, world) {
+    try { window.localStorage.setItem("nt_view_strategy." + (world || "options"), v); } catch (e) {}
     window.NT_DATA = rebuild();
     window.dispatchEvent(new Event("nt-data"));
   };

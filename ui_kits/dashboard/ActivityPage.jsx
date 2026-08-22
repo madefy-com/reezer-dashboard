@@ -64,12 +64,12 @@ function ActivityPage() {
   const mono = { font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-mono)" };
 
   const emptyText = cat === "all"
-    ? "No activity recorded yet. The next bot session will populate this — sizing decisions, entries, exits and session start/stop from each box."
+    ? "No activity recorded yet. The next bot session will populate this — sizing decisions, entries, exits and session start/stop from each server."
     : "No activity for " + cap(cat) + " yet.";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Activity" subtitle="Live operational log from every box — sizing basis, entries, exits and session lifecycle"
+      <PageHead title="Activity" subtitle="Live operational log from every server — sizing basis, entries, exits and session lifecycle"
         right={
           <div style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={() => setProblemsOnly((v) => !v)} className="nt-boxfilter" data-on={problemsOnly ? "" : undefined}
@@ -80,7 +80,7 @@ function ActivityPage() {
             {["all", ...boxes].map((b) => (
               <button key={b} onClick={() => setBox(b)} className="nt-boxfilter" data-on={box === b ? "" : undefined}
                 style={filterBtn}>
-                {b === "all" ? "All boxes" : b}
+                {b === "all" ? "All servers" : b}
               </button>
             ))}
           </div>

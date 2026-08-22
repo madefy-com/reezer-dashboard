@@ -94,10 +94,33 @@ function SourcesPage() {
   const strategies = window.NT_DATA.strategies || [];
   const machines = window.NT_DATA.machines || [];
   const cmds = window.NT_DATA.machineCommands || [];   // newest first (id desc)
-  // With more than one world, a bare strategy name is ambiguous — say which category it is.
-  const viewOptions = [{ value: "all", label: "All strategies" }]
-    .concat(strategies.map((s) => ({ value: String(s.id), label: s.name + " · Options" })));
-  const view = String(window.NT_DATA.viewStrategy || "all");
+  // One default strategy PER WORLD. Each select lists only its own world's strategies and
+  // stores its own key, so picking a futures default can never bleed into options.
+  const [, bumpView] = React.useState(0);
+  // Evaluated lazily from JSX: it uses `cap` and NT_DATA fields declared further down, and an
+  // eager IIFE here would throw before first paint — one undefined name blanked this whole
+  // page once already.
+  const worldStratRows = function () {
+    const byWorld = {
+      options: strategies.filter((x) => (x.category || "options") === "options"),
+      swings: (window.NT_DATA.equityStrategies || []),
+      futures: strategies.filter((x) => x.category === "futures"),
+    };
+    return ["options", "swings", "futures"].filter((w) => (byWorld[w] || []).length).map((w) => {
+      const list = byWorld[w];
+      const cur = String((window.NT_VIEW_FOR && window.NT_VIEW_FOR(w)) || "all");
+      const val = list.some((x) => String(x.id) === cur) ? cur : "all";
+      return (
+        <div key={w} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 12 }}>
+          <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>{cap(w)}</span>
+          <NT_Select value={val} icon="filter" minWidth={240}
+            options={[{ value: "all", label: "All strategies" }]
+              .concat(list.map((x) => ({ value: String(x.id), label: x.name })))}
+            onChange={(v) => { window.NT_SET_VIEW(v, w); bumpView((n) => n + 1); }} />
+        </div>
+      );
+    });
+  };
   const range = String(window.NT_DATA.dateRange || "week");
   const defaultRange = String(window.NT_DATA.dateRangeDefault || "week");
   const [form, setForm] = React.useState(null);
@@ -345,12 +368,12 @@ function SourcesPage() {
   };
   const issueCmd = async (mid, command) => {
     try { const r = await window.NT_CLIENT.from("machine_commands").insert({ machine_id: mid, command }); if (r.error) throw r.error; await window.NT_REFRESH(); }
-    catch (e) { await window.NT_ALERT("Couldn’t send command: " + (e.message || e), { title: "Box command" }); }
+    catch (e) { await window.NT_ALERT("Couldn’t send command: " + (e.message || e), { title: "Server command" }); }
   };
   const removeMachine = async (mid) => {
-    if (!(await window.NT_CONFIRM("Remove “" + mid + "”? It'll come back on its own if that box checks in again — use this to clear a stale/duplicate entry.", { title: "Remove box", ok: "Remove", danger: true }))) return;
+    if (!(await window.NT_CONFIRM("Remove “" + mid + "”? It'll come back on its own if that server checks in again — use this to clear a stale/duplicate entry.", { title: "Remove server", ok: "Remove", danger: true }))) return;
     try { const r = await window.NT_CLIENT.from("machines").delete().eq("machine_id", mid); if (r.error) throw r.error; await window.NT_REFRESH(); }
-    catch (e) { await window.NT_ALERT("Couldn’t remove: " + (e.message || e), { title: "Remove box" }); }
+    catch (e) { await window.NT_ALERT("Couldn’t remove: " + (e.message || e), { title: "Remove server" }); }
   };
   const iconBtn = (label, icon, onClick, danger) => (
     <button key={label} title={label} aria-label={label} onClick={onClick}
@@ -370,7 +393,7 @@ function SourcesPage() {
     const col = act ? "var(--accent)" : on ? "var(--profit)" : offProblem ? "var(--loss)" : "var(--text-tertiary)";
     const bg = act ? "var(--violet-soft)" : on ? "var(--profit-bg)" : offProblem ? "var(--loss-bg)" : "var(--surface-inset)";
     return (
-      <span title={offProblem ? "In the trading window but not reporting — check this box" : on ? "Bot running" : "Outside the trading window — starts itself at the next session"}
+      <span title={offProblem ? "In the trading window but not reporting — check this server" : on ? "Bot running" : "Outside the trading window — starts itself at the next session"}
         style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 22, padding: "0 9px", borderRadius: "var(--radius-sm)", letterSpacing: "var(--ls-caps)", font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)",
         background: bg, color: col, border: act ? "1px solid var(--violet-line)" : offProblem ? "1px solid var(--loss-line)" : "1px solid transparent" }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: col, animation: act ? "nt-pulse var(--blink) var(--ease-in-out) infinite" : "none" }}></span>
@@ -380,7 +403,7 @@ function SourcesPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", maxWidth: 1760 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
       <style>{`
         /* Three config cards side by side once there is room for them (Dashboard,
            Brokers, Alert sources), two on a laptop, one on a narrow window. The cap
@@ -389,17 +412,26 @@ function SourcesPage() {
         @media (max-width: 1500px){ .nt-set3{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
         @media (max-width: 900px){ .nt-set3{ grid-template-columns: 1fr; } }
       `}</style>
-      <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your boxes" />
+      <PageHead title="Settings" subtitle="Dashboard defaults, alert sources, broker accounts and your servers" />
 
       {/* ---- Dashboard defaults + brokers + alert sources, side by side ---- */}
       <div className="nt-set3">
         <NT.Card title="Dashboard" padding={20}>
+          {/* The world comes first: it decides which dashboard you land on, and every choice
+              below it is a choice WITHIN a world. */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap" }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default strategy</div>
-              <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which strategy the dashboard shows when it first opens.</div>
+              <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default world</div>
+              <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
             </div>
-            <NT_Select value={view} options={viewOptions} icon="filter" minWidth={240} onChange={(v) => window.NT_SET_VIEW(v)} />
+            <NT_Select value={homeCat} icon="layout-dashboard" minWidth={240}
+              options={cats.map((c) => ({ value: c, label: cap(c) + " dashboard" }))}
+              onChange={(v) => setHomeCat(v)} />
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default strategy</div>
+            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Per world: which strategy its dashboard shows when it first opens.</div>
+            {worldStratRows()}
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "nowrap", marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
             <div style={{ minWidth: 0 }}>
@@ -407,16 +439,6 @@ function SourcesPage() {
               <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>The range the dashboard opens on each time. The date pickers on the pages change your current view for the session — they don’t change this default.</div>
             </div>
             <DateFilter value={defaultRange} onChange={(v, b) => window.NT_SET_DEFAULT_RANGE(v, b)} />
-          </div>
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-            <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Default view</div>
-            <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Which dashboard opens when you sign in.</div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginTop: 14 }}>
-              <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-sans)", color: "var(--text-secondary)" }}>Open on</span>
-              <NT_Select value={homeCat} icon="layout-dashboard" minWidth={240}
-                options={cats.map((c) => ({ value: c, label: cap(c) + " dashboard" }))}
-                onChange={(v) => setHomeCat(v)} />
-            </div>
           </div>
         </NT.Card>
   
@@ -450,13 +472,14 @@ function SourcesPage() {
                 pill: pill(fresh ? "LINKED" : "STALE", fresh),
               });
             };
-            return brokers.map((b, i) => row(b.id, b, "options", "Charles Schwab", i === 0))
-              .concat((eqBrokers || []).map((b) => row("eq" + b.id, b, "swings", "Interactive Brokers", !brokers.length)));
+            // IBKR leads: it is the broker that holds the swings book the user watches daily.
+            return ((eqBrokers || []).map((b, i) => row("eq" + b.id, b, "swings", "Interactive Brokers", i === 0)))
+              .concat(brokers.map((b) => row(b.id, b, "options", "Charles Schwab", !(eqBrokers || []).length)));
           })()}
           {/* Swings need IBKR for European & Canadian listings — show it as a greyed-out
               row so the gap is visible before it exists. */}
           {!hasIbkr ? itemRow("ibkr", {
-            first: !brokers.length,
+            first: true,
             dim: true,
             icon: "landmark",
             name: "Interactive Brokers",
@@ -468,8 +491,7 @@ function SourcesPage() {
           <SchwabReauth />
         </NT.Card>
   
-      <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}
-        action={<NT.Button variant="primary" size="sm" icon={<Ico name="plus" size={14} />} onClick={() => openNew()}>New source</NT.Button>}>
+      <NT.Card title="Alert sources" padding={20} bodyStyle={{ padding: 0 }}>
         {cats.map((c, gi) => {
           const rows = sources.filter((s) => catOf(s) === c);
           return (
@@ -503,16 +525,16 @@ function SourcesPage() {
       </NT.Card>
       </div>
 
-      {/* ---- Machines (failover boxes, shared) — full width: it is a real table ---- */}
+      {/* ---- Servers (failover machines, shared) — full width: it is a real table ---- */}
 
       {/* ---- Brokers (shared) — same one-row-per-item layout as the sources list. ---- */}
-      <NT.Card title="Machines" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}
-        action={machines.length ? <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{machines.length} box{machines.length === 1 ? "" : "es"}</span> : null}>
+      <NT.Card title="Servers" padding={20} bodyStyle={{ padding: machines.length ? 0 : 20 }}
+        action={machines.length ? <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{machines.length} server{machines.length === 1 ? "" : "s"}</span> : null}>
         {machines.length ? (
           <React.Fragment>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 820 }}>
-              <thead><tr><th style={th}>Box</th><th style={th}>Status</th><th style={th}>Health</th><th style={th}>Last seen</th><th style={thR}>Controls</th></tr></thead>
+              <thead><tr><th style={th}>Server</th><th style={th}>Status</th><th style={th}>Health</th><th style={th}>Last seen</th><th style={thR}>Controls</th></tr></thead>
               <tbody>
                 {machines.map((m) => {
                   const lc = lastCmd(m.machine_id);
@@ -546,7 +568,7 @@ function SourcesPage() {
             </table>
           </div>
           <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-            <b style={{ color: "var(--text-secondary)" }}>OFF-HOURS</b> = outside the trading window; the box starts itself at the next session ({nextLabel}). <b style={{ color: "var(--loss)" }}>OFFLINE</b> only shows if a box goes missing <i>during</i> a session.
+            <b style={{ color: "var(--text-secondary)" }}>OFF-HOURS</b> = outside the trading window; the server starts itself at the next session ({nextLabel}). <b style={{ color: "var(--loss)" }}>OFFLINE</b> only shows if a server goes missing <i>during</i> a session.
           </div>
           </React.Fragment>
         ) : (
@@ -554,7 +576,7 @@ function SourcesPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
               <span style={ICON}><Ico name="server" size={16} /></span>
               <div>
-                <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Connect a box</div>
+                <div style={{ font: "var(--w-semibold) var(--t-body)/1.2 var(--font-sans)", color: "var(--text-primary)" }}>Connect a server</div>
                 <div style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4 }}>Your nitro-trader folder is already on every Mac via iCloud — connecting each one is a single double-click.</div>
               </div>
             </div>
@@ -563,7 +585,7 @@ function SourcesPage() {
               <span style={{ font: "var(--w-medium) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-primary)" }}>On each Mac: Documents → nitro-trader → double-click <b>Connect-this-Mac.command</b></span>
             </div>
             <div style={{ font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>
-              It installs the bot on that Mac, opens a browser for its one-time Discord login (Schwab is already shared — no second login), and schedules it. The box shows up here within seconds — verify / restart / re-login / pause / failover are all dashboard buttons from then on. (First time, right-click → Open if macOS warns.) Each box runs only during the trading window, not 24/7.
+              It installs the bot on that Mac, opens a browser for its one-time Discord login (Schwab is already shared — no second login), and schedules it. The server shows up here within seconds — verify / restart / re-login / pause / failover are all dashboard buttons from then on. (First time, right-click → Open if macOS warns.) Each server runs only during the trading window, not 24/7.
             </div>
           </div>
         )}
