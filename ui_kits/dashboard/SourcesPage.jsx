@@ -79,6 +79,10 @@ function SourcesPage() {
   const [optBrokers, setOptBrokers] = React.useState(null);
   const [eqBrokers, setEqBrokers] = React.useState(null);
   const [cryptoBrokers, setCryptoBrokers] = React.useState(null);   // Revolut X (crypto, BETA)
+  // Icons are drawn by lucide after render. Rows here mount from their own fetches, so the
+  // page must run the icon pass itself — relying on App's pass left broker icons blank until
+  // the next unrelated re-render, sometimes a minute later.
+  React.useEffect(() => { if (window.lucide) window.lucide.createIcons({ attrs: { "stroke-width": 1.75 } }); });
   React.useEffect(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
