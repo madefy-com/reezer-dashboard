@@ -746,11 +746,16 @@ function SwingsPage({ page }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Macrotrends" />
         <NT.Card title={"Current portfolio · " + holdings.length + " stocks"} padding={20} bodyStyle={{ padding: 0 }}
-          action={heldCount ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>you hold {heldCount} of them</span> : null}>
+          action={heldCount ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+              <span style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "var(--accent)" }} />
+              you hold {heldCount} of them
+            </span>
+          ) : null}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
               <thead><tr>
-                <th style={th}>holding</th>
+                <th style={{ ...th, paddingLeft: 20 }}>holding</th>
                 <th style={th}>industry</th>
                 <th style={th}>advice</th>
                 <th style={thR}>weight</th>
@@ -768,10 +773,14 @@ function SwingsPage({ page }) {
                   const mp = myPct(mine);
                   return (
                     <tr key={h.sym} className="nt-trow">
-                      <td style={td}>
+                      {/* Every row reserves the dot slot in the PADDING zone (5 + 7 + 8 = 20px),
+                          so tickers line up with each other AND with the card title whether the
+                          dot is shown or not. */}
+                      <td style={{ ...td, paddingLeft: 5 }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                          {/* the violet dot marks the rows YOU are in — his table, your footprint */}
-                          {held ? <span title="you hold this" style={{ width: 7, height: 7, flex: "none", borderRadius: "50%", background: "var(--accent)" }} /> : null}
+                          <span title={held ? "you hold this" : undefined}
+                                style={{ width: 7, height: 7, flex: "none", borderRadius: "50%",
+                                         background: held ? "var(--accent)" : "transparent" }} />
                           <span style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: held ? "var(--violet-400)" : "var(--text-primary)" }}>{h.sym}</span>
                           <span style={{ color: "var(--text-tertiary)" }}>{h.name || ""}</span>
                         </span>
