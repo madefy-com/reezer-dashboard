@@ -831,14 +831,24 @@ function SwingsPage({ page }) {
             </div>
           )) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760, tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "9%" }} />
+                <col style={{ width: "9%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+              </colgroup>
               <thead><tr>
                 <th style={{ ...th, paddingLeft: 20 }}>holding</th>
                 <th style={th}>industry</th>
                 <th style={th}>advice</th>
-                <th style={thR}>weight</th>
-                <th style={thR}>buy-in</th>
-                <th style={thR}>current price</th>
+                <th style={th}>weight</th>
+                <th style={th}>buy-in</th>
+                <th style={th}>current price</th>
                 <th style={thR}>result</th>
                 <th style={thR}>your p&l</th>
               </tr></thead>
@@ -865,24 +875,15 @@ function SwingsPage({ page }) {
                       </td>
                       <td style={{ ...td, color: h.theme ? "var(--text-secondary)" : "var(--text-tertiary)" }}>{h.theme || "—"}</td>
                       <td style={{ ...td, color: adv === "buy" ? "var(--profit)" : "var(--text-secondary)", fontWeight: adv === "buy" ? 500 : 400 }}>{adv || "—"}</td>
-                      <td style={{ ...tdR, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
+                      <td style={{ ...td, ...mono }}>{h.weight_pct == null ? "—" : SW_dec(h.weight_pct) + "%"}</td>
                       {/* four currencies share this table — a bare number would let a C$ price
                           read as comparable to a € one */}
-                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_curP(h.entry_px, h.ccy)}</td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_curP(h.px, h.ccy)}</td>
+                      <td style={{ ...td, ...mono, color: "var(--text-tertiary)" }}>{h.entry_px == null ? "—" : SW_curP(h.entry_px, h.ccy)}</td>
+                      <td style={{ ...td, ...mono, color: "var(--text-secondary)" }}>{h.px == null ? "—" : SW_curP(h.px, h.ccy)}</td>
                       <td style={{ ...tdR, ...mono, color: hp == null ? "var(--text-tertiary)" : hp > 0 ? "var(--profit)" : hp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>{hp == null ? "—" : SW_pct(hp)}</td>
-                      <td style={{ ...tdR }}>
-                        {mp == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", height: 22, padding: "0 9px", borderRadius: 999,
-                                           background: mp > 0 ? "var(--profit-bg)" : mp < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
-                                           color: mp > 0 ? "var(--profit)" : mp < 0 ? "var(--loss)" : "var(--text-secondary)",
-                                           font: "var(--w-semibold) var(--t-2xs)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
-                              {SW_pct(mp)}
-                            </span>
-                            {!held ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>sold</span> : null}
-                          </span>
-                        )}
+                      <td style={{ ...tdR, ...mono, color: mp == null ? "var(--text-tertiary)" : mp > 0 ? "var(--profit)" : mp < 0 ? "var(--loss)" : "var(--text-secondary)" }}>
+                        {mp == null ? "—" : SW_pct(mp)}
+                        {mp != null && !held ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)", marginLeft: 6 }}>sold</span> : null}
                       </td>
                     </tr>
                   );
