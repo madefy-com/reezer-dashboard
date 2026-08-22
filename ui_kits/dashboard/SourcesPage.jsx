@@ -77,8 +77,8 @@ function IbkrGatewayLine({ row }) {
   // IBKR forces a re-login once a week; the Gateway's own restart lands on Sunday.
   const nextSunday = (() => { const d = new Date(); const add = (7 - d.getDay()) % 7 || 7; d.setDate(d.getDate() + add); return d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" }); })();
   let tone = "var(--text-tertiary)", label = "no watchdog yet";
-  if (gw && gw.online) { tone = "var(--profit)"; label = `online since ${hhmm(gw.since)} · weekly re-login due ${nextSunday}`; }
-  else if (gw) { tone = "var(--loss)"; label = `OFFLINE since ${hhmm(gw.since)} · ${gw.detail || "no link to IBKR"}`; }
+  if (gw && gw.online) { tone = "var(--profit)"; label = `re-login due ${nextSunday}`; }
+  else if (gw) { tone = "var(--loss)"; label = `OFFLINE since ${hhmm(gw.since)}`; }
   const stale = gw && gw.checked_at && (Date.now() - new Date(gw.checked_at).getTime()) > 15 * 60000;
   return (
     <div style={{ padding: "14px 20px", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
@@ -87,7 +87,6 @@ function IbkrGatewayLine({ row }) {
         <span style={{ font: "var(--w-semibold) var(--t-sm)/1 var(--font-sans)", color: "var(--text-primary)" }}>IB Gateway</span>
         <span style={{ font: "var(--w-semibold) var(--t-xs)/1 var(--font-sans)", color: stale ? "var(--text-tertiary)" : tone }}>· {stale ? "watchdog silent " + ago(gw.checked_at) : label}</span>
       </span>
-      <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{gw && gw.checked_at ? "checked " + ago(gw.checked_at) : ""}</span>
     </div>
   );
 }
