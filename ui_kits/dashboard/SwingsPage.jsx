@@ -432,7 +432,7 @@ function SwingsPage({ page }) {
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Dashboard" subtitle="Swing positions from the Macrotrends portfolio sheet" />
+        <PageHead title={greeting(window.NT_USER_NAME || (window.NT_DATA && window.NT_DATA.session && window.NT_DATA.session.user))} />
         {kpiRow}
         {resting.length > 0 ? (
           <NT.Card title={"Resting orders \u00b7 " + resting.length} padding={20} bodyStyle={{ padding: 0 }}>
