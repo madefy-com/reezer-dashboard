@@ -641,7 +641,7 @@ function SwingsPage({ page }) {
       });
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Alerts" subtitle="Every change the publisher makes to the portfolio sheet" />
+        <PageHead title="Alerts" />
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
           <span>Macrotrends sheet · checked {SW_ago(portfolioSnap && portfolioSnap.fetched_at)}</span>
@@ -768,7 +768,7 @@ function SwingsPage({ page }) {
   if (page === "swings-trades") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-        <PageHead title="Trades" subtitle="Every swing position this book has taken" />
+        <PageHead title="Trades" />
         {/* The SAME cards as the dashboard — one definition, rendered on both pages, so they
             can never drift apart. */}
         {kpiRow}
@@ -871,7 +871,7 @@ function SwingsPage({ page }) {
   // ---------------------------------------------------------------- strategies
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
-      <PageHead title="Strategies" subtitle="How much of your money each sheet weight is worth"
+      <PageHead title="Strategies"
         right={<NT.Button variant="primary" size="md" icon={<Ico name="plus" size={15} />}
           onClick={() => setEdit({ name: "Macrotrends follow", sizing_mode: "tiers_usd", sizing_tiers: {}, max_position_usd: "", allowlist: "" })}>New strategy</NT.Button>} />
 
