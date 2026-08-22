@@ -472,15 +472,20 @@ function SourcesPage() {
               const val = s.account_value != null ? sym + String(Math.round(s.account_value)) : null;
               const ageH = s.synced_at ? (Date.now() - new Date(s.synced_at).getTime()) / 36e5 : null;
               const fresh = ageH != null && ageH < 26;
+              // The broker's own verdict wins over the sync age: a row whose last check FAILED
+              // (Gateway cut off from IBKR, 22 Aug) must read ERROR here exactly as the
+              // sidebar says "broker error" — not LINKED because a day-old number exists.
+              const err = String(b.status || "").toLowerCase() === "error";
               return itemRow(key, {
                 first,
                 icon: "landmark",
                 name: b.label || brand,
                 sub: (b.account_ref ? "••••" + String(b.account_ref).slice(-4) : "no account id") + " · " + world,
                 meta: val ? val + " account value" : brand,
-                meta2: s.synced_at ? (fresh ? "checked " + ago(s.synced_at) : "not checked in over a day")
+                meta2: err ? ("last check failed " + (b.last_check_at ? ago(b.last_check_at) : "") + (s.synced_at ? " · last good " + ago(s.synced_at) : ""))
+                     : s.synced_at ? (fresh ? "checked " + ago(s.synced_at) : "not checked in over a day")
                                    : "not checked yet",
-                pill: pill(fresh ? "LINKED" : "STALE", fresh),
+                pill: err ? pill("ERROR", false) : pill(fresh ? "LINKED" : "STALE", fresh),
               });
             };
             // Newest broker on top (user's rule, 22 Aug): Revolut X (crypto · beta), then IBKR, then Schwab.
