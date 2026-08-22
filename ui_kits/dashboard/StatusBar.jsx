@@ -131,6 +131,17 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
   };
 
   /* ---------------------------------------------------------------- bits */
+  // Inline SVGs, NOT <Ico>: lucide's createIcons() swaps <i data-lucide> nodes for <svg>
+  // behind React's back, and this bar re-renders every second with a shape that changes as
+  // data arrives. React inserting beside a node lucide already replaced throws Safari's
+  // "NotFoundError: The object can not be found here" — the 2026-08-22 black page. A raw
+  // <svg> is React's own child; nothing external ever touches it.
+  const Chevron = ({ size }) => (
+    <svg width={size || 13} height={size || 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="m6 9 6 6 6-6" /></svg>
+  );
+  const Bell = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+  );
   const dot = (c, pulse) => ({ width: 7, height: 7, borderRadius: "50%", background: c, flex: "none", opacity: pulse ? "var(--nt-blink-o, 1)" : 1 });
   const pill = {
     display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px",
@@ -266,7 +277,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
           title="Open positions across all worlds" style={{ ...pill, cursor: "pointer" }}>
           <span><span style={{ color: "var(--text-primary)", fontWeight: "var(--w-semibold)" }}>{posCount}</span> open {posCount === 1 ? "position" : "positions"}</span>
           {posBreak ? <span style={{ color: "var(--text-tertiary)", letterSpacing: 0 }}>· {posBreak}</span> : null}
-          <Ico name="chevron-down" size={13} />
+          <Chevron size={13} />
         </button>
         {openPop === "pos" && (
           <React.Fragment>
@@ -304,7 +315,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
             {relevant.length <= 1 ? (nOpen ? "MARKET OPEN" : "MARKET CLOSED")
               : nOpen + " OF " + relevant.length + " MARKETS OPEN"}
           </span>
-          <Ico name="chevron-down" size={12} />
+          <Chevron size={12} />
         </button>
         {openPop === "sess" && (
           <React.Fragment>
@@ -334,7 +345,7 @@ function StatusBar({ mode, setMode, kill, setKill, clock, onNav, onWorldNav, str
       <span className="num" style={{ font: "var(--w-medium) var(--t-sm)/1 var(--font-mono)", color: "var(--text-primary)" }}>{ntFmtTz(now.getTime(), TZ)}</span>
       <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{new Intl.DateTimeFormat("en-US", { timeZone: TZ, month: "short", day: "numeric" }).format(now)}</span>
       <button style={{ width: 32, height: 32, display: "grid", placeItems: "center", borderRadius: "var(--radius-sm)", background: "transparent", border: "1px solid var(--border)", color: "var(--text-secondary)", cursor: "pointer", position: "relative" }}>
-        <Ico name="bell" size={16} />
+        <Bell />
         <span style={{ position: "absolute", top: 7, right: 7, width: 5, height: 5, borderRadius: "50%", background: "var(--accent)" }}></span>
       </button>
       <style>{`@property --nt-blink-o{ syntax:"<number>"; inherits:true; initial-value:1; } @keyframes nt-blinkkf{ 0%,100%{ --nt-blink-o:1 } 50%{ --nt-blink-o:0.4 } } html{ animation: nt-blinkkf var(--blink) var(--ease-in-out) infinite; } .nt-strat-pill:hover, .nt-sess-pill:hover{ filter: brightness(1.08); } .nt-sess-pill:hover{ background: var(--surface-inset) !important; } .nt-killico:hover{ color: var(--loss) !important; background: var(--loss-bg) !important; border-color: var(--loss-line) !important; }`}</style>
