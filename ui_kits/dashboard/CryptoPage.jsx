@@ -41,6 +41,7 @@ function CryptoPage({ page }) {
   const NT = window.NitroTraderDesignSystem_95e598;
   const [d, setD] = React.useState({ strategies: [], positions: [], orders: [], marks: [], signals: [], brokers: [], briefs: [], loaded: false });
   const [openBrief, setOpenBrief] = React.useState(null);
+  const [playing, setPlaying] = React.useState(null);     // brief id whose player is loaded
   const load = React.useCallback(() => {
     const db = window.NT_CLIENT;
     if (!db) return;
@@ -172,7 +173,7 @@ function CryptoPage({ page }) {
             <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)", width: 30 }}>{sym}</span>
             <span style={{ ...actWord, color: actCol(now) }}>{now}</span>
             {next ? <span style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)" }}>→</span> : null}
-            {next ? <span style={{ ...actWord, color: actCol(next) }}>prepare to {next}</span> : null}
+            {next ? <span style={{ ...actWord, color: actCol(next) }}>{next === now ? (next === "buy" ? "add" : "more") : "prepare to " + next}</span> : null}
           </div>
           <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.7em" }}>
             {x.trigger ? (next ? "if " : "") + x.trigger : (now === "neutral" ? "not discussed" : (x.reason || ""))}{x.via_alts ? " · via his alts call" : ""}
@@ -221,16 +222,34 @@ function CryptoPage({ page }) {
                       <Ico name={on ? "chevron-up" : "chevron-down"} size={16} color="var(--text-tertiary)" />
                     </div>
                     {on ? (
-                      <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--row-line)", background: "var(--surface-inset)", display: "grid", gridTemplateColumns: "minmax(0,1fr) 440px", gap: 24 }}>
-                        <div>
-                          {/* The video, in place. YouTube's own player; nothing leaves the page. */}
-                          <div style={{ position: "relative", aspectRatio: "16/9", marginTop: 16, borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
-                            <iframe src={"https://www.youtube-nocookie.com/embed/" + b.video_id} title={b.title} allow="accelerometer; encrypted-media; picture-in-picture" allowFullScreen
-                              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}></iframe>
+                      <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--row-line)", background: "var(--surface-inset)", display: "grid", gridTemplateColumns: cols, gap: 18 }}>
+                        {/* Same grid as the row: the read sits exactly under the BTC/XRP tiles. */}
+                        <div style={{ gridColumn: "1 / 4", minWidth: 0 }}>
+                          {/* The video, in place: a quiet play button first (no thumbnail clutter);
+                              YouTube's own player loads on click and autoplays. */}
+                          <div style={{ display: "grid", gridTemplateColumns: "320px minmax(0,1fr)", gap: 18, marginTop: 16, alignItems: "start" }}>
+                            <div>
+                              {playing === b.id ? (
+                                <div style={{ position: "relative", aspectRatio: "16/9", borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid var(--border)", background: "#000" }}>
+                                  <iframe src={"https://www.youtube-nocookie.com/embed/" + b.video_id + "?autoplay=1&rel=0"} title={b.title} allow="autoplay; accelerometer; encrypted-media; picture-in-picture" allowFullScreen
+                                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}></iframe>
+                                </div>
+                              ) : (
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setPlaying(b.id); }} title="Play the video here"
+                                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", aspectRatio: "16/9", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)", background: "#000", cursor: "pointer", padding: 0 }}>
+                                  <span style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <span style={{ width: 0, height: 0, borderStyle: "solid", borderWidth: "9px 0 9px 16px", borderColor: "transparent transparent transparent #08080A", marginLeft: 4 }}></span>
+                                  </span>
+                                </button>
+                              )}
+                              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}><a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>open on YouTube</a></div>
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ ...th, padding: 0, margin: "0 0 8px" }}>Thesis</div>
+                              <div style={{ font: "var(--w-medium) var(--t-body)/1.45 var(--font-sans)", color: "var(--text-primary)" }}>{b.headline}</div>
+                              <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 8 }}>{b.title}</div>
+                            </div>
                           </div>
-                          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.4 var(--font-sans)", color: "var(--text-tertiary)", marginTop: 6 }}>{b.title} · <a href={b.url} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>open on YouTube</a></div>
-                          <div style={kicker}>Thesis</div>
-                          <div style={{ font: "var(--w-medium) var(--t-body)/1.45 var(--font-sans)", color: "var(--text-primary)", maxWidth: "62ch" }}>{b.headline}</div>
                           <div style={kicker}>What he said</div>
                           <ul style={{ margin: 0, paddingLeft: 18, font: "var(--w-regular) var(--t-sm)/1.55 var(--font-sans)", color: "var(--text-secondary)" }}>
                             {((b.summary && b.summary.bullets) || []).map((t, i) => <li key={i} style={{ marginBottom: 5 }}>{t}</li>)}
@@ -247,7 +266,7 @@ function CryptoPage({ page }) {
                             Transcript quality: {(b.summary && b.summary.data_quality) || "—"} · read by Reezer AI {b.summarized_at ? "at " + timeTxt(b.summarized_at) : ""}
                           </div>
                         </div>
-                        <div style={{ marginTop: 16 }}>
+                        <div style={{ gridColumn: "4 / 6", marginTop: 16, minWidth: 0 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 16px", background: "var(--surface-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
                             <span style={{ font: "var(--w-light) 34px/1 var(--font-mono)", letterSpacing: "var(--ls-tight)", color: scoreCol(b.sentiment), fontVariantNumeric: "tabular-nums" }}>{b.sentiment_score}</span>
                             <div><div style={{ ...th, padding: 0 }}>Sentiment</div><div style={{ font: "var(--w-semibold) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-caps)", textTransform: "uppercase", color: scoreCol(b.sentiment), marginTop: 6 }}>{b.sentiment}</div></div>
@@ -260,6 +279,7 @@ function CryptoPage({ page }) {
                                 <div key={k} style={{ marginTop: 10 }}>
                                   <Tile sym={k} pb={x} />
                                   <div style={{ font: "var(--w-regular) var(--t-xs)/1.45 var(--font-sans)", color: "var(--text-secondary)", margin: "6px 4px 0" }}>{x.reason || (L[k] && L[k].reason) || ""}</div>
+                                  {x.positioning ? <div style={{ font: "var(--w-regular) var(--t-2xs)/1.45 var(--font-sans)", color: "var(--text-tertiary)", margin: "4px 4px 0" }}>His positioning: {x.positioning}</div> : null}
                                 </div>
                               );
                             })}
