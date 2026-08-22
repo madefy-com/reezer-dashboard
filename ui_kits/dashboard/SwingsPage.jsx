@@ -108,6 +108,7 @@ function SwingsPage({ page }) {
   const [busy, setBusy] = React.useState(false);
   const [edit, setEdit] = React.useState(null);
   const [portOpen, setPortOpen] = React.useState(true);   // the Macrotrends portfolio accordion
+  const [tradeFilter, setTradeFilter] = React.useState("all");   // trades page: all | open | closed
   const announced = React.useRef(false);
 
   const load = React.useCallback(async () => {
@@ -809,32 +810,89 @@ function SwingsPage({ page }) {
                               : "his buys have all run past his entry")}
           </div>
         </NT.Card>
-        <NT.Card title={"Positions" + (d.pos.length ? " · " + d.pos.length : "")} padding={20} bodyStyle={{ padding: 0 }}>
-          {d.pos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
+        {(function () {
+          const rows = d.pos.filter((p) => tradeFilter === "all" ? true : p.status === tradeFilter);
+          // One row shape for open AND closed: an open row is priced by the broker mark, a
+          // closed one by its own exit — same columns, so the page reads like the portfolio.
+          const rQty = (p) => SW_n(p.status === "open" ? p.qty : (p.orig_qty || p.qty));
+          const rCap = (p) => { const q = rQty(p), e = SW_n(p.avg_price); return (q == null || e == null) ? null : q * e; };
+          const rPx = (p) => p.status === "open" ? ((markOf(p) || {}).px != null ? SW_n(markOf(p).px) : null) : SW_n(p.exit_price);
+          const rVal = (p) => p.status === "open" ? natMktValue(p) : ((rQty(p) != null && SW_n(p.exit_price) != null) ? rQty(p) * SW_n(p.exit_price) : null);
+          const rPnl = (p) => p.status === "open" ? natPnl(p) : SW_n(p.realized_pnl);
+          const rPct = (p) => { const v = rPnl(p), c = rCap(p); return (v == null || !c) ? null : (v / c) * 100; };
+          const fbtn = (v, label) => (
+            <button key={v} type="button" onClick={() => setTradeFilter(v)}
+              style={{ padding: "5px 12px", cursor: "pointer", borderRadius: "var(--radius-pill)",
+                       border: "1px solid " + (tradeFilter === v ? "var(--violet-line)" : "var(--border)"),
+                       background: tradeFilter === v ? "var(--violet-soft)" : "transparent",
+                       color: tradeFilter === v ? "var(--text-primary)" : "var(--text-tertiary)",
+                       font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)" }}>{label}</button>
+          );
+          return (
+        <NT.Card title={"Positions" + (rows.length ? " · " + rows.length : "")} padding={20} bodyStyle={{ padding: 0 }}
+          action={<span style={{ display: "inline-flex", gap: 6 }}>{fbtn("all", "All")}{fbtn("open", "Open")}{fbtn("closed", "Closed")}</span>}>
+          {rows.length === 0 ? emptyBox(tradeFilter === "closed" ? "Nothing closed yet." : "Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", minWidth: 920 }}>
+                <colgroup>
+                  <col style={{ width: "21%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "8%" }} />
+                </colgroup>
                 <thead><tr>
-                  <th style={th}>holding</th>
-                  <th style={thR}>qty</th>
-                  <th style={thR}>entry</th>
-                  <th style={thR}>exit</th>
+                  <th style={th}>company</th>
+                  <th style={thR}>shares</th>
+                  <th style={thR}>capital</th>
+                  <th style={thR}>buy-in</th>
+                  <th style={thR}>current price</th>
+                  <th style={thR}>market value</th>
                   <th style={thR}>p&l</th>
+                  <th style={thR}>%</th>
                   <th style={thR}>status</th>
-                  <th style={thR}>opened</th>
                 </tr></thead>
                 <tbody>
-                  {d.pos.map((p) => (
+                  {rows.map((p) => (
                     <tr key={p.id} className="nt-trow">
-                      <td style={{ ...td, color: "var(--text-primary)" }}>
-                        <span style={{ fontWeight: 500 }}>{p.symbol}</span>
-                        {p.name ? <span style={{ color: "var(--text-tertiary)" }}>{" " + p.name}</span> : null}
+                      <td style={{ ...tdTall, color: "var(--text-primary)" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                         width: 36, height: 36, flex: "none", borderRadius: "var(--radius-sm)",
+                                         background: "var(--violet-soft)", border: "1px solid var(--violet-line)",
+                                         color: "var(--violet-400)",
+                                         font: "var(--w-medium) " + (String(p.symbol || "").length > 3 ? "11px" : "12px") + "/1 var(--font-mono)" }}>
+                            {p.symbol}
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span style={{ display: "block", font: "var(--w-regular) var(--t-body)/1.2 var(--font-sans)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name || p.symbol}</span>
+                            <span style={{ display: "block", marginTop: 4, font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
+                              {[SW_date(p.opened_at), p.status === "closed" && p.closed_at ? "→ " + SW_date(p.closed_at) : null].filter(Boolean).join(" ")}
+                            </span>
+                          </span>
+                        </div>
                       </td>
-                      <td style={{ ...tdR, ...mono }}>{SW_n(p.qty) == null ? "—" : String(Math.round(SW_n(p.qty)))}</td>
-                      <td style={{ ...tdR, ...mono }}>{SW_price(p.avg_price)}</td>
-                      <td style={{ ...tdR, ...mono }}>{SW_price(p.exit_price)}</td>
-                      <td style={{ ...tdR, ...mono, color: pnlColor(SW_n(p.realized_pnl)) }}>{p.realized_pnl == null ? "—" : SW_money(p.realized_pnl)}</td>
-                      <td style={tdR}><SW_Pill tone={p.status === "open" ? "ok" : "mute"}>{p.status}</SW_Pill></td>
-                      <td style={{ ...tdR, ...mono, color: "var(--text-tertiary)", whiteSpace: "nowrap" }}>{SW_date(p.opened_at)}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{rQty(p) == null ? "—" : String(Math.round(rQty(p)))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{SW_cur(rCap(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-tertiary)" }}>{SW_curP(p.avg_price, ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{rPx(p) == null ? "—" : SW_curP(rPx(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{rVal(p) == null ? "—" : SW_cur(rVal(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR, ...mono, color: pnlColor(rPnl(p)) }}>{rPnl(p) == null ? "—" : SW_curP(rPnl(p), ccyOf(p))}</td>
+                      <td style={{ ...tdTallR }}>
+                        {rPct(p) == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
+                          <span style={{ display: "inline-block", padding: "6px 12px", borderRadius: "var(--radius-pill)",
+                                         background: rPnl(p) > 0 ? "var(--profit-bg)" : rPnl(p) < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
+                                         color: pnlColor(rPnl(p)),
+                                         font: "var(--w-medium) var(--t-body)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
+                            {SW_pct(rPct(p))}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...tdTallR }}><SW_Pill tone={p.status === "open" ? "ok" : "mute"}>{p.status}</SW_Pill></td>
                     </tr>
                   ))}
                 </tbody>
@@ -842,6 +900,8 @@ function SwingsPage({ page }) {
             </div>
           )}
         </NT.Card>
+          );
+        })()}
       </div>
     );
   }
