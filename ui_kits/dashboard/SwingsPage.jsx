@@ -107,6 +107,7 @@ function SwingsPage({ page }) {
   const [d, setD] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [edit, setEdit] = React.useState(null);
+  const [portOpen, setPortOpen] = React.useState(true);   // the Macrotrends portfolio accordion
   const announced = React.useRef(false);
 
   const load = React.useCallback(async () => {
@@ -235,12 +236,9 @@ function SwingsPage({ page }) {
   const buyingPower = SW_n(bset.buying_power);
   const acctCcy = bset.currency || "USD";
   const syncedAt = bset.synced_at || (linked[0] || {}).last_check_at || null;
-  const startBal = acctValue != null ? acctValue - totalPnl : 0;   // value today, less what we made
-  const acctRet = startBal > 0 ? (totalPnl / startBal) * 100 : null;
 
   const closedThisYear = closedPos.filter((p) => p.closed_at && new Date(p.closed_at).getFullYear() === year);
   const ytdPnl = closedThisYear.reduce((a, p) => a + (SW_n(p.realized_pnl) || 0), 0) + unrealized;
-  const ytdRet = startBal > 0 ? (ytdPnl / startBal) * 100 : null;
 
   const winners = closedPos.filter((p) => (SW_n(p.realized_pnl) || 0) > 0);
   const winFrac = closedPos.length ? winners.length / closedPos.length : null;
@@ -284,12 +282,12 @@ function SwingsPage({ page }) {
   const closedCost = closedPos.reduce((a, p) => a + (usd((SW_n(p.orig_qty) || 0) * (SW_n(p.avg_price) || 0), ccyOf(p)) || 0), 0);
   const capitalUsed = investedCost + closedCost;
   const investedRet = capitalUsed > 0 ? (totalPnl / capitalUsed) * 100 : null;
+  // Both return cards measure INVESTED CAPITAL — open and closed positions over what they
+  // cost — by the user's explicit decision (2026-08-22). The whole-account basis punished the
+  // strategy for cash it deliberately leaves idle.
+  const ytdRet = capitalUsed > 0 ? (ytdPnl / capitalUsed) * 100 : null;
   const traded = (d.pos || []).length > 0;
-  // Compare the PORTFOLIO with the index, not just the sliver of it that happens to be
-  // invested. The index return assumes you were fully in it; measuring only deployed capital
-  // against that flatters the strategy by hiding the cash it chose not to deploy.
-  const portfolioRet = acctRet;
-  const edge = (traded && portfolioRet != null && spyYtd != null) ? portfolioRet - spyYtd : null;
+  const edge = (traded && investedRet != null && spyYtd != null) ? investedRet - spyYtd : null;
 
   const portfolioSnap = d.snaps.filter((s) => s.tab === "portfolio")[0] || null;
   const feedAge = portfolioSnap ? (Date.now() - new Date(portfolioSnap.fetched_at).getTime()) / 60000 : null;
@@ -380,7 +378,7 @@ function SwingsPage({ page }) {
           : (buyingPower == null ? "at your broker"
              : SW_cur(buyingPower, acctCcy) + " buying power")} />
       <Kard label="return this year" value={SW_pct(ytdRet)} tone={tone(ytdRet)}
-        sub={year + " · " + closedThisYear.length + " closed"}
+        sub={year + " · on invested capital · " + closedThisYear.length + " closed"}
         visual={<Ico name="calendar" size={17} color="var(--text-tertiary)" />} />
       <Kard label="net p&l" value={SW_cur(realized, baseCcy)} tone={tone(realized)}
         sub={"realized · " + SW_cur(openValue, baseCcy) + " open"} />
@@ -392,7 +390,7 @@ function SwingsPage({ page }) {
         visual={<Ico name="clock" size={17} color="var(--text-tertiary)" />} />
       <Kard label="vs S&P 500" value={traded ? SW_pct(edge) : "—"} tone={traded ? tone(edge) : null}
         sub={traded
-          ? ("your portfolio " + SW_pct(portfolioRet) + " · invested " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
+          ? ("your invested capital " + SW_pct(investedRet) + " · S&P " + SW_pct(spyYtd) + " " + benchLabel)
           : "nothing bought yet · starts at your first buy"} />
       <style>{`
         .nt-kpi-row{ display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: var(--gap-grid); }
@@ -426,7 +424,7 @@ function SwingsPage({ page }) {
   // the last price IBKR gave — correct, but it must not be mistaken for a live one.
   const markTimes = (d.marks || []).map((m) => m.quoted_at || m.updated_at).filter(Boolean).sort();
   const markStamp = markTimes.length
-    ? "valued by IBKR · " + SW_ago(markTimes[markTimes.length - 1])
+    ? "Synced by IBKR · " + SW_ago(markTimes[markTimes.length - 1])
     : (openPos.length ? "waiting for the first broker price" : null);
 
   // ---------------------------------------------------------------- dashboard
@@ -475,10 +473,10 @@ function SwingsPage({ page }) {
             </div>
           </NT.Card>
         ) : null}
-        <NT.Card title={openPos.length ? "Holdings · " + openPos.length : "Holdings"} padding={20} bodyStyle={{ padding: 0 }}>
+        <NT.Card title={openPos.length ? "Your portfolio · " + openPos.length : "Your portfolio"} padding={20} bodyStyle={{ padding: 0 }}
+          action={markStamp ? <span style={{ font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>{markStamp}</span> : null}>
           {openPos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div>
-            {markStamp ? <div style={{ padding: "10px 20px 0", font: "var(--w-regular) var(--t-2xs)/1.5 var(--font-sans)", color: "var(--text-tertiary)" }}>{markStamp}</div> : null}
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead><tr>
@@ -486,6 +484,7 @@ function SwingsPage({ page }) {
                   <th style={thR}>shares</th>
                   <th style={thR}>buy-in</th>
                   <th style={thR}>current price</th>
+                  <th style={thR}>capital</th>
                   <th style={thR}>market value</th>
                   <th style={thR}>unrealized p&l</th>
                   <th style={thR}>%</th>
@@ -514,15 +513,18 @@ function SwingsPage({ page }) {
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{p.qty == null ? "—" : SW_n(p.qty)}</td>
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-tertiary)" }}>{SW_curP(p.avg_price, ccyOf(p))}</td>
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{(markOf(p) || {}).px == null ? "—" : SW_curP(markOf(p).px, ccyOf(p))}</td>
+                      {/* Capital = what the position COST, commission included (IBKR's avg
+                          cost carries it). Market value = what it is worth now. */}
+                      <td style={{ ...tdTallR, ...mono, color: "var(--text-secondary)" }}>{SW_cur(natCost(p), ccyOf(p))}</td>
                       <td style={{ ...tdTallR, ...mono, color: "var(--text-primary)" }}>{SW_cur(natMktValue(p), ccyOf(p))}</td>
                       <td style={{ ...tdTallR, ...mono, color: pnlCol(natPnl(p)) }}>
                         {natPnl(p) == null ? "—" : SW_curP(natPnl(p), ccyOf(p))}</td>
                       <td style={{ ...tdTallR }}>
                         {pnlPct(p) == null ? <span style={{ ...mono, color: "var(--text-tertiary)" }}>—</span> : (
-                          <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "var(--radius-pill)",
+                          <span style={{ display: "inline-block", padding: "6px 12px", borderRadius: "var(--radius-pill)",
                                          background: natPnl(p) > 0 ? "var(--profit-bg)" : natPnl(p) < 0 ? "var(--loss-bg)" : "var(--breakeven-bg)",
                                          color: pnlCol(natPnl(p)),
-                                         font: "var(--w-regular) var(--t-2xs)/1 var(--font-mono)" }}>
+                                         font: "var(--w-medium) var(--t-body)/1 var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
                             {SW_pct(pnlPct(p))}
                           </span>
                         )}
@@ -545,15 +547,15 @@ function SwingsPage({ page }) {
     const EN = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
     const en = (v) => EN[String(v || "").trim().toLowerCase()] || String(v || "").trim();
 
-    // The verdict is the payload: what this change MEANS, not which Dutch words swapped.
+    // Simple BUY / HOLD / SELL — the from→to detail already lives in the advice column, so
+    // the badge only answers "what is it NOW".
     const verdictOf = (s) => {
       if (!s.tradeable) return { label: "TRACKED ONLY", color: "var(--text-tertiary)", bg: "var(--surface-inset)", muted: true };
-      if (s.kind === "removed" || s.action === "sell") return { label: "HE EXITED", color: "var(--loss)", bg: "var(--loss-bg)" };
-      if (s.kind === "added") return { label: "ADDED", color: "var(--profit)", bg: "var(--profit-bg)" };
-      const was = en(s.from_advies), now = en(s.advies);
-      if (now === "buy" && was !== "buy") return { label: "NOW A BUY", color: "var(--profit)", bg: "var(--profit-bg)" };
-      if (was === "buy" && now === "hold") return { label: "NO LONGER A BUY", color: "var(--dryrun)", bg: "var(--dryrun-bg)" };
-      if (s.kind === "weight") return { label: "WEIGHT CHANGED", color: "var(--accent)", bg: "var(--violet-soft)" };
+      if (s.kind === "removed" || s.action === "sell") return { label: "SELL", color: "var(--loss)", bg: "var(--loss-bg)" };
+      const now = en(s.advies);
+      if (now === "buy") return { label: "BUY", color: "var(--profit)", bg: "var(--profit-bg)" };
+      if (now === "sell" || now === "sold") return { label: "SELL", color: "var(--loss)", bg: "var(--loss-bg)" };
+      if (now === "hold") return { label: "HOLD", color: "var(--dryrun)", bg: "var(--dryrun-bg)" };
       return { label: (now || "change").toUpperCase(), color: "var(--text-secondary)", bg: "var(--surface-inset)" };
     };
 
@@ -610,50 +612,25 @@ function SwingsPage({ page }) {
     // His whole portfolio, straight off the newest snapshot. A change-only feed is empty on
     // most days — this is the context that makes the page worth opening even when nothing
     // changed, and it is the same data the changes refer to.
+    // Sorted by the publisher's LAST REAL UPDATE to each name — advice, weight, add, drop —
+    // newest first. Price moves deliberately do not count: every price changes every day, so
+    // sorting on them would just reshuffle the whole table daily and mean nothing.
+    const lastUpd = {};
+    d.sigs.forEach((x) => {
+      const k = String(x.symbol || "").toUpperCase();
+      if (!lastUpd[k] || String(x.detected_at) > lastUpd[k]) lastUpd[k] = String(x.detected_at);
+    });
     const holdings = Object.keys(marks).map((sym) => ({ sym: sym, ...(marks[sym] || {}) }))
       .filter((h) => h.name || h.px != null)
-      .sort((a, b) => (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9));
-    const buyList = holdings.filter((h) => en(h.advies) === "buy");
-    const held = d.pos.filter((p) => p.status === "open");
-    const investedUsd = held.reduce((a, p) => a + (costOf(p) || 0), 0);
-    const openPnl = held.reduce((a, p) => a + (unrealOf(p) || 0), 0);
-    // Names he is still calling a BUY that trade at or below what he paid — the only ones you
-    // can still enter on his terms rather than chasing a move that already happened.
-    const candidates = buyList.filter((h) => {
-      const e = SW_n(h.entry_px), px = SW_n(h.px);
-      return e && px && (px - e) / e <= 0.05;
-    });
-    const accountUsd = SW_n(((d.brokers || [])[0] || {}).settings
-      && ((d.brokers || [])[0] || {}).settings.account_value);
-
-    const stat = (label, value, tone, sub) => (
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
-        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</span>
-        <span style={{ font: "var(--w-light) var(--t-h2)/1 var(--font-mono)", color: tone || "var(--text-primary)" }}>{value}</span>
-        {sub ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span> : null}
-      </div>
-    );
-
+      .sort((a, b) => {
+        const ua = lastUpd[a.sym] || "", ub = lastUpd[b.sym] || "";
+        if (ua !== ub) return ub < ua ? -1 : 1;
+        return (SW_n(b.his_pct) || -1e9) - (SW_n(a.his_pct) || -1e9);
+      });
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Alerts" subtitle="Every change the publisher makes to the portfolio sheet" />
 
-        <NT.Card padding={20}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
-            {stat("your positions", String(held.length),
-                  held.length ? null : "var(--text-tertiary)",
-                  held.length ? SW_money(investedUsd) + " invested" : "nothing bought yet")}
-            {stat("open p&l", held.length ? SW_money(openPnl) : "—",
-                  !held.length ? "var(--text-tertiary)" : openPnl > 0 ? "var(--profit)" : openPnl < 0 ? "var(--loss)" : null,
-                  held.length ? "marked off the sheet" : "no open positions")}
-            {stat("buying power", accountUsd == null ? "—" : SW_money(accountUsd),
-                  null, accountUsd == null ? "broker not checked" : "at your broker")}
-            {stat("you could buy now", String(candidates.length),
-                  candidates.length ? "var(--profit)" : "var(--text-tertiary)",
-                  candidates.length ? candidates.map((c) => c.sym).join(", ") + " — still at his price"
-                                    : "his buys have all run past his entry")}
-          </div>
-        </NT.Card>
         <div style={{ display: "flex", alignItems: "center", gap: 10, font: "var(--w-regular) var(--t-sm)/1 var(--font-sans)", color: "var(--text-tertiary)" }}>
           <span>Macrotrends sheet · checked {SW_ago(portfolioSnap && portfolioSnap.fetched_at)}</span>
           <SW_Pill tone={feedTone}>{feedLabel}</SW_Pill>
@@ -683,7 +660,12 @@ function SwingsPage({ page }) {
                       <div style={{ font: "var(--w-regular) var(--t-xs)/1.35 var(--font-sans)", color: "var(--text-secondary)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.name || s.name || ""}</div>
                     </div>
 
-                    <div>{meta.theme ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1 var(--font-sans)", padding: "4px 9px", borderRadius: 999, background: "var(--surface-inset)", color: "var(--text-secondary)" }}>{meta.theme}</span> : null}</div>
+                    <div>
+                      <div style={colLabel}>industry</div>
+                      <div style={{ marginTop: 4 }}>{meta.theme
+                        ? <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", padding: "4px 10px", borderRadius: 999, background: "var(--violet-soft)", border: "1px solid var(--violet-line)", color: "var(--violet-400)" }}>{meta.theme}</span>
+                        : <span style={{ color: "var(--text-tertiary)" }}>—</span>}</div>
+                    </div>
 
                     <div>
                       <div style={colLabel}>advice</div>
@@ -719,17 +701,25 @@ function SwingsPage({ page }) {
             </div>
           ))}
 
-        <NT.Card title={"Macrotrends current portfolio · " + holdings.length + " stocks"} padding={20} bodyStyle={{ padding: 0 }}>
-          <div style={{ overflowX: "auto" }}>
+        <NT.Card padding={20} bodyStyle={{ padding: 0 }}
+          title={(
+            <button type="button" onClick={() => setPortOpen((o) => !o)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "transparent", border: "none",
+                       padding: 0, cursor: "pointer", color: "inherit", font: "inherit", letterSpacing: "inherit" }}>
+              <Ico name={portOpen ? "chevron-down" : "chevron-right"} size={17} color="var(--text-tertiary)" />
+              {"Macrotrends current portfolio · " + holdings.length + " stocks"}
+            </button>
+          )}>
+          {portOpen && <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
               <thead><tr>
                 <th style={th}>holding</th>
-                <th style={th}>theme</th>
+                <th style={th}>industry</th>
                 <th style={th}>advice</th>
                 <th style={thR}>weight</th>
                 <th style={thR}>his buy-in</th>
-                <th style={thR}>price</th>
-                <th style={thR}>his result</th>
+                <th style={thR}>current price</th>
+                <th style={thR}>result</th>
                 <th style={thR}>you</th>
               </tr></thead>
               <tbody>
@@ -758,7 +748,7 @@ function SwingsPage({ page }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </div>}
         </NT.Card>
       </div>
     );
@@ -766,9 +756,43 @@ function SwingsPage({ page }) {
 
   // ---------------------------------------------------------------- trades
   if (page === "swings-trades") {
+    const EN2 = { kopen: "buy", houden: "hold", verkopen: "sell", verkocht: "sold" };
+    const en2 = (v) => EN2[String(v || "").trim().toLowerCase()] || String(v || "").trim();
+    const investedUsd = openPos.reduce((a, p) => a + (costOf(p) || 0), 0);
+    const openPnl = openPos.reduce((a, p) => a + (unrealOf(p) || 0), 0);
+    // Names he still calls a BUY trading at or near his entry — the ones still enterable on
+    // his terms rather than chasing a move that already happened.
+    const cand = Object.keys(marks).map((k) => ({ sym: k, ...(marks[k] || {}) }))
+      .filter((h) => en2(h.advies) === "buy")
+      .filter((h) => { const e = SW_n(h.entry_px), px = SW_n(h.px); return e && px && (px - e) / e <= 0.05; });
+    const accountUsd = SW_n(((d.brokers || [])[0] || {}).settings
+      && ((d.brokers || [])[0] || {}).settings.account_value);
+    const stat = (label, value, tone, sub) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, minWidth: 0 }}>
+        <span style={{ font: "var(--w-medium) var(--t-2xs)/1 var(--font-sans)", letterSpacing: "var(--ls-wide)", textTransform: "uppercase", color: "var(--text-tertiary)" }}>{label}</span>
+        <span style={{ font: "var(--w-light) var(--t-h2)/1 var(--font-mono)", color: tone || "var(--text-primary)" }}>{value}</span>
+        {sub ? <span style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis" }}>{sub}</span> : null}
+      </div>
+    );
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)" }}>
         <PageHead title="Trades" subtitle="Every swing position this book has taken" />
+        <NT.Card padding={20}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 20 }}>
+            {stat("your positions", String(openPos.length),
+                  openPos.length ? null : "var(--text-tertiary)",
+                  openPos.length ? SW_money(investedUsd) + " invested" : "nothing bought yet")}
+            {stat("open p&l", openPos.length ? SW_money(openPnl) : "—",
+                  !openPos.length ? "var(--text-tertiary)" : openPnl > 0 ? "var(--profit)" : openPnl < 0 ? "var(--loss)" : null,
+                  openPos.length ? "valued by IBKR" : "no open positions")}
+            {stat("buying power", accountUsd == null ? "—" : SW_money(accountUsd),
+                  null, accountUsd == null ? "broker not checked" : "at your broker")}
+            {stat("you could buy now", String(cand.length),
+                  cand.length ? "var(--profit)" : "var(--text-tertiary)",
+                  cand.length ? cand.map((c) => c.sym).join(", ") + " — still at his price"
+                              : "his buys have all run past his entry")}
+          </div>
+        </NT.Card>
         <NT.Card title={"Positions" + (d.pos.length ? " · " + d.pos.length : "")} padding={20} bodyStyle={{ padding: 0 }}>
           {d.pos.length === 0 ? emptyBox("Nothing bought yet — the strategy starts flat and only buys when the sheet changes.") : (
             <div style={{ overflowX: "auto" }}>

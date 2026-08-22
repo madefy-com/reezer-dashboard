@@ -9,6 +9,8 @@ window.NT_CHANGELOG = [
   {
     v: "1.026", date: "2026-08-22",
     notes: [
+      "Swings dashboard: Holdings is now called Your portfolio, with the IBKR sync stamp up in its header. A new Capital column shows what each position cost including commission, next to what it is worth now, and the profit percentage is much bigger. Return this year and the S&P comparison both measure your invested capital \u2014 open and closed positions over what they cost \u2014 rather than the whole account.",
+      "Swings alerts: the statistics bar moved to the Trades page where it belongs. Alert badges are now simply BUY, HOLD or SELL \u2014 the from\u2192to detail already lives in the advice column. The industry tag has its own column title and no longer fades into the background. The Macrotrends portfolio table folds open and closed, its columns read Current price and Result, and it is sorted by the publisher's last real change to each name \u2014 price moves don't count, or the whole table would reshuffle daily.",
       "The three settings cards \u2014 Dashboard, Brokers, Alert sources \u2014 now always share the same height, matching the tallest of the row.",
       "The menu is a little wider, and the world switcher is now the same height as the Ask Reezer button, so the selected item, the switcher and the button all line up.",
       "Settings starts with the choice that frames everything else: which world your dashboard opens on. Below it you can now set a default strategy per world \u2014 each world keeps its own choice, so picking a futures strategy no longer quietly becomes the options default too.",
