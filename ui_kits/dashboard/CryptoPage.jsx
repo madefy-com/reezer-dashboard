@@ -206,7 +206,7 @@ function CryptoPage({ page }) {
           {briefs.length === 0 ? empty("No video briefs yet — the next upload on the channel appears here within minutes of its captions being ready.") : (
             <div>
               <div style={{ ...rowStyle(false), borderTop: "none", cursor: "default", padding: "10px 20px" }}>
-                {["Score", "Video", "Date", "BTC", "XRP", ""].map((h, i) => <span key={i} style={{ ...th, padding: 0 }}>{h}</span>)}
+                {["Score", "Video", "Date", "Actions", "", ""].map((h, i) => <span key={i} style={{ ...th, padding: 0 }}>{h}</span>)}
               </div>
               {briefs.map((b) => {
                 const on = openBrief === b.id;
