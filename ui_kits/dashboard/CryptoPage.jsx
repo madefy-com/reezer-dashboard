@@ -150,7 +150,10 @@ function CryptoPage({ page }) {
     // what to do now → what to prepare for · the trigger · a conviction bar. Alts and other
     // coins live only inside the opened brief. Money colours only for actions.
     const actCol = (a) => (/buy/.test(a) ? "var(--profit)" : /hold/.test(a) ? "var(--chip-entry)" : /reduce|sell/.test(a) ? "var(--loss)" : "var(--text-tertiary)");
-    const actLine = (a) => (/buy/.test(a) ? "var(--profit-line)" : /hold/.test(a) ? "var(--chip-entry)" : /reduce|sell/.test(a) ? "var(--loss-line)" : "var(--border)");
+    // Tile lean: the move he is SETTING UP FOR (next) colours the frame and the bar; the
+    // current state stays as the small first word. "Hold -> prepare to buy" reads as a buy
+    // setup, not as a hold. Borders are soft: 22% alpha, like the card hairlines.
+    const actLine = (a) => (/buy/.test(a) ? "rgba(33,199,122,0.22)" : /hold/.test(a) ? "rgba(245,165,36,0.22)" : /reduce|sell/.test(a) ? "rgba(240,69,75,0.22)" : "var(--border)");
     const scoreCol = (sv) => (sv === "bullish" ? "var(--profit)" : sv === "bearish" ? "var(--loss)" : "var(--text-secondary)");
     const scoreBg = (sv) => (sv === "bullish" ? "var(--profit-bg)" : sv === "bearish" ? "var(--loss-bg)" : "var(--surface-inset)");
     const when = (iso) => (iso ? new Date(iso) : null);
@@ -162,19 +165,20 @@ function CryptoPage({ page }) {
     const Tile = ({ sym, pb }) => {
       const x = pb || {};
       const now = x.now || "neutral", next = x.next && x.next !== "none" ? x.next : null;
+      const lean = next || now;
       return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "8px 10px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(now), minWidth: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, padding: "9px 11px", borderRadius: "var(--radius-sm)", background: "var(--surface-inset)", border: "1px solid " + actLine(lean), minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ font: "var(--w-medium) var(--t-xs)/1 var(--font-mono)", color: "var(--text-secondary)", width: 30 }}>{sym}</span>
             <span style={{ ...actWord, color: actCol(now) }}>{now}</span>
             {next ? <span style={{ color: "var(--text-tertiary)", font: "var(--w-regular) var(--t-xs)/1 var(--font-sans)" }}>→</span> : null}
             {next ? <span style={{ ...actWord, color: actCol(next) }}>prepare to {next}</span> : null}
           </div>
-          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.3 var(--font-sans)", color: "var(--text-tertiary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ font: "var(--w-regular) var(--t-2xs)/1.35 var(--font-sans)", color: "var(--text-tertiary)", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", minHeight: "2.7em" }}>
             {x.trigger ? (next ? "if " : "") + x.trigger : (now === "neutral" ? "not discussed" : (x.reason || ""))}{x.via_alts ? " · via his alts call" : ""}
           </div>
           <div style={{ height: 3, borderRadius: 2, background: "var(--border)", position: "relative" }}>
-            <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(now) }}></span>
+            <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, borderRadius: 2, width: Math.max(0, Math.min(100, CR_n(x.conviction) || 0)) + "%", background: actCol(lean), opacity: 0.8 }}></span>
           </div>
         </div>
       );
