@@ -1,6 +1,10 @@
 /* Sidebar — labeled nav rail with brand + subpages. */
 function Ico({ name, size = 20, color = "currentColor", sw = 1.75 }) {
-  return <i data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i>;
+  // lucide swaps the <i> for an <svg> behind React's back, so a changed `name` never reached
+  // the page (the world picker kept the previous world's icon). Keying a React-owned WRAPPER
+  // on the name makes React replace the wrapper — a node it still controls — and the fresh
+  // <i> inside it gets drawn by the next icon pass.
+  return <span key={name} style={{ display: "inline-flex", width: size, height: size }}><i data-lucide={name} style={{ width: size, height: size, display: "inline-flex", color }} data-sw={sw}></i></span>;
 }
 
 /* Several worlds live side by side: the 0DTE options bot, the swing book, and futures.

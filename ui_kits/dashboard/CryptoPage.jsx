@@ -28,7 +28,7 @@ function CryptoBetaPill({ small, tone }) {
 function CryptoBetaBanner() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-      background: "var(--chip-entry-bg)", border: "1px solid var(--chip-entry)", borderRadius: "var(--radius-sm)" }}>
+      background: "var(--chip-entry-bg)", borderRadius: "var(--radius-sm)" }}>
       <CryptoBetaPill tone="amber" />
       <span style={{ font: "var(--w-regular) var(--t-xs)/1.4 var(--font-sans)", color: "var(--text-secondary)" }}>
         Crypto on Revolut X is being built. The broker is connected and read daily; the signal sheet and the trading engine come next. Paper only — no real crypto orders yet.
